@@ -1,0 +1,63 @@
+import json
+import sys
+
+from scale_api import (
+    auth,
+    db,
+    keys,
+)
+
+
+def init_platforms(data):
+    platforms = db.store.platforms()
+    if platforms:
+        print('Platforms exist, skipping')
+        return
+    with db.SessionLocal.begin() as session:
+        for platform in data['platforms']:
+            new_plat = db.Platform(**platform)
+            session.add(new_plat)
+
+
+def init_auth_users(data):
+    try:
+        with db.SessionLocal.begin() as session:
+            for user in data['auth_users']:
+                secret = user.pop('client_secret')
+                user['client_secret_hash'] = auth.hash_password(secret)
+                new_user = db.AuthUser(**user)
+                session.add(new_user)
+    except Exception as exc:
+        print('AuthUsers update failed', repr(exc))
+
+
+def init_auth_json_web_keys(data):
+    web_keys = db.store.json_web_keys()
+    if web_keys:
+        print('AuthJsonWebKeys exist, skipping')
+        return
+    with db.SessionLocal.begin() as session:
+        web_key = keys.generate_private_key()
+        jwk = db.AuthJsonWeKey(
+            kid=web_key.kid,
+            data=web_key.data.get_secret_value(),
+        )
+        session.add(jwk)
+
+
+def init_db(data) -> None:
+    db.Base.metadata.create_all(bind=db.engine)
+    init_platforms(data)
+    init_auth_users(data)
+    init_auth_json_web_keys(data)
+
+
+def main() -> None:
+    seed_file = sys.argv[1] if len(sys.argv) > 1 else 'scale_initdb.json'
+    with open(seed_file, mode='r', encoding='utf-8') as f:
+        data = json.load(f)
+    init_db(data)
+
+
+if __name__ == '__main__':
+    main()

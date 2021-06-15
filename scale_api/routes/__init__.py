@@ -1,0 +1,43 @@
+from fastapi import APIRouter, Security
+
+from .firebase import router as router_firebase
+from .lti import router as router_lti
+from .auth import router as router_auth
+from .platforms import router as router_platforms
+from .well_known import router as router_well_known
+from .. import auth
+
+api_router = APIRouter()
+
+api_router.include_router(
+    router_lti,
+    prefix='/lti/v1.3',
+    tags=["LTI 1.3"],
+)
+
+api_router.include_router(
+    router_auth,
+    prefix='/v1/auth',
+    include_in_schema=False,
+)
+
+api_router.include_router(
+    router_well_known,
+    prefix='/.well-known',
+    tags=["Well Known"],
+)
+
+# Secured routes from this point on
+api_router.include_router(
+    router_platforms,
+    prefix='/v1/platforms',
+    tags=['Platforms'],
+    dependencies=[Security(auth.authorize, scopes=['plt'])],
+)
+
+api_router.include_router(
+    router_firebase,
+    prefix='/v1/FirebaseCompat',
+    tags=['Firebase Compatibility'],
+    dependencies=[Security(auth.authorize, scopes=['fb'])],
+)

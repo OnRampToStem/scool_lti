@@ -1,0 +1,16 @@
+.env*
+.git
+.gitignore
+.idea
+.svn
+.venv*
+**/__pycache__
+docs
+temp
+build.sh
+buildspec.yml
+docker-compose.yml
+mkdocs.yml
+*.sqlite
+scale_initdb.json
+scratch.py

@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+
+  scale_api:
+    build: .
+    image: scale_api
+    env_file:
+      - .env
+    networks:
+      - scalenet
+    extra_hosts:
+      - "canvas.docker:10.20.200.165"
+    ports:
+      - "8000:8000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    restart: always
+
+
+networks:
+  scalenet:
+    name: scalenet

@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+
+  scale_api:
+    build: .
+    image: scale_api
+    depends_on:
+      - scale_db
+      - scale_proxy
+    env_file:
+      - .env
+    environment:
+      - SCALE_DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@scale_db/${POSTGRES_DB}
+    networks:
+      - scalenet
+    ports:
+      - "8000:8000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    restart: always
+
+  scale_db:
+    image: postgres:12
+    networks:
+      - scalenet
+    env_file:
+      - .env
+    volumes:
+      - type: volume
+        source: db-volume
+        target: /var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    restart: always
+
+  scale_proxy:
+    build:
+      context: ./proxy
+    image: scale_proxy
+    networks:
+      - scalenet
+    ports:
+      - "443:443"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    restart: always
+
+volumes:
+  db-volume:
+
+
+networks:
+  scalenet:
+    name: scalenet

@@ -1,0 +1,31 @@
+# Environment, valid values are local, dev, stage, prod
+SCALE_ENV=prod
+
+# SQLAlchemy Database URL (REQUIRED)
+# For local development it is recommended to use the provided `docker-compose`
+# file and start up a local postgres server using the command:
+#       docker-compose up scale_db -d
+# POSTGRES database connection information used by the Docker image
+POSTGRES_USER=scale_api
+POSTGRES_PASSWORD=change_me
+POSTGRES_HOST=localhost
+POSTGRES_DB=swa
+SCALE_DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
+# To use sqlite locally for quick testing, uncomment the following:
+# SCALE_DB_URL=sqlite:///c:/projects/scale_api/scale_db.sqlite?check_same_thread=False
+
+# Turns on debug mode and sqlalchemy echo, defaults to False
+SCALE_DEBUG_DB=False
+
+# Turns on debug mode for FastAPI and Uvicorn
+SCALE_DEBUG_APP=False
+
+# Used to stored signed cookies using Starlette Session Middleware
+# If not set, a random secret will be generated for use.
+SCALE_SECRET_KEY=change_me
+
+# A JSON list of allowed origins for CORS.
+SCALE_BACKEND_CORS_ORIGINS=["http://localhost", "http://localhost:8080"]
+
+# Number of threads to use for the asyncio executor, default is 10
+SCALE_THREAD_POOL_WORKERS=10

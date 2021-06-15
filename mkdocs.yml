@@ -1,0 +1,11 @@
+site_name: OR2STEM API
+
+site_url: https://scale.fresnostate.edu/api/docs
+
+site_description: >
+  OR2STEM API
+
+site_dir: temp/docs
+
+nav:
+  - 'index.md'
