@@ -138,25 +138,31 @@ async def authorize(
 
 
 def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) -> str:
-    if expires_in == -1:
-        expires_in = app_config.OAUTH_ACCESS_TOKEN_EXPIRY
-    issued_at = datetime.datetime.utcnow()
-    expires_at = issued_at + datetime.timedelta(seconds=expires_in)
     payload = {
         # TODO: legacy claim used by dotnet was `nameid`, ok to use `sub` instead?
         'sub': auth_user.id,
         # TODO: legacy claim used by dotnet, make this `email` or `client_id`?
         'unique_name': auth_user.client_id,
-        # TODO: legacy claim used by dotnet, removed since we have `iat`
-        # 'nbf': issued_at,
-        'exp': expires_at,
-        'iat': issued_at,
-        'iss': JWT_ISSUER,
-        # TODO: should this be the front-end? Do we even need it?
-        'aud': JWT_ISSUER,
         'scopes': auth_user.scopes,
+        'roles': [
+            x.split(':', 1)[1]
+            for x in auth_user.scopes
+            if x.startswith('role:')
+        ],
         'is_superuser': auth_user.is_superuser,
     }
+    return create_token(payload, expires_in)
+
+
+def create_token(payload: dict, expires_in: int = -1) -> str:
+    if expires_in == -1:
+        expires_in = app_config.OAUTH_ACCESS_TOKEN_EXPIRY
+    issued_at = datetime.datetime.utcnow() - datetime.timedelta(seconds=30)
+    expires_at = issued_at + datetime.timedelta(seconds=expires_in)
+    payload['iat'] = issued_at
+    payload['exp'] = expires_at
+    payload['iss'] = JWT_ISSUER
+    payload['aud'] = JWT_ISSUER
     token = JWT.encode(
         header={'alg': app_config.JWT_ALGORITHM},
         payload=payload,
