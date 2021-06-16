@@ -1,26 +1,60 @@
 version: "3.8"
 
+x-json-logging:
+  &json-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: "10"
+
+
 services:
 
-  scale_api:
+  api:
     build: .
     image: scale_api
+    depends_on:
+      - db
+      - proxy
+    environment:
+      SCALE_ENV: local
+      SCALE_DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
     env_file:
       - .env
     networks:
-      - scalenet
-    extra_hosts:
-      - "canvas.docker:10.20.200.165"
+      - scale_net
     ports:
       - "8000:8000"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "10"
-    restart: always
+    logging: *json-logging
+
+  proxy:
+    build:
+      context: ./docker/proxy
+    image: scale_proxy
+    networks:
+      - scale_net
+    ports:
+      - "443:443"
+    logging: *json-logging
+
+  db:
+    image: postgres:12
+    env_file:
+      - .env
+    volumes:
+      - type: volume
+        source: db_data
+        target: /var/lib/postgresql/data
+    networks:
+      - scale_net
+    ports:
+      - "5432:5432"
+    logging: *json-logging
+
+
+volumes:
+  db_data:
 
 
 networks:
-  scalenet:
-    name: scalenet
+  scale_net:
