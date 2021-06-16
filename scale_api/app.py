@@ -81,7 +81,7 @@ async def shutdown_event():
     await aio.http_client.aclose()
 
 
-@app.get('/api/lb-status', include_in_schema=False)
+@app.get(f'{app_config.PATH_PREFIX}/lb-status', include_in_schema=False)
 async def health_check():
     return {
         'app_version': __version__,
