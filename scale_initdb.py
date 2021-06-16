@@ -1,5 +1,6 @@
 import json
 import sys
+from pathlib import Path
 
 from scale_api import (
     auth,
@@ -52,11 +53,15 @@ def init_db(data) -> None:
     init_auth_json_web_keys(data)
 
 
-def main() -> None:
-    seed_file = sys.argv[1] if len(sys.argv) > 1 else 'scale_initdb.json'
-    with open(seed_file, mode='r', encoding='utf-8') as f:
+def run(seed_file: Path) -> None:
+    with seed_file.open(mode='r', encoding='utf-8') as f:
         data = json.load(f)
     init_db(data)
+
+
+def main() -> None:
+    seed_file = sys.argv[1] if len(sys.argv) > 1 else 'scale_initdb.json'
+    run(Path(seed_file))
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ from scale_api import (
     __version__,
     app_config,
     aio,
+    db,
     templates,
 )
 from scale_api.routes import api_router
@@ -66,6 +67,11 @@ async def startup_event():
     app.state.thread_pool_executor = executor
     loop = asyncio.get_running_loop()
     loop.set_default_executor(executor)
+    if app_config.ENV == 'local':
+        import scale_initdb
+        import scale_api.settings
+        seed_file = scale_api.settings.BASE_PATH / 'scale_initdb-example.json'
+        scale_initdb.run(seed_file)
 
 
 @app.on_event('shutdown')
@@ -75,12 +81,14 @@ async def shutdown_event():
     await aio.http_client.aclose()
 
 
-@app.get('/lb-status', include_in_schema=False)
+@app.get('/api/lb-status', include_in_schema=False)
 async def health_check():
     return {
         'app_version': __version__,
         'framework_version': fastapi_version,
         'lang_version': sys.version,
+        'environment': app_config.ENV,
+        'engine': str(db.engine),
     }
 
 

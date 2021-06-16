@@ -23,13 +23,14 @@
             "issuer": "https://canvas.instructure.com",
             "oidc_auth_url": "https://fresnostate.instructure.com/api/lti/authorize_redirect",
             "auth_token_url": "https://fresnostate.instructure.com/login/oauth2/token",
-            "jwks_url": "https://fresnostate.instructure.com/api/lti/security/jwks"
+            "jwks_url": "https://fresnostate.instructure.com/api/lti/security/jwks",
+            "client_id": "131990000000000119"
         }
     ],
     "auth_users": [
         {
-            "id": "591759c0debb4b56bb8caf1e5bd29cdc",
-            "client_id": "johnwa@mail.fresnostate.edu",
+            "id": "9c5a1c7ffaee47039604db67015e3492",
+            "client_id": "scaleadmin@mail.fresnostate.edu",
             "client_secret": "sekret",
             "is_superuser": true
         }
