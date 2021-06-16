@@ -10,16 +10,16 @@ appropriately.
 
 # Running Locally
 
-
 ## Configuration
 
 Requires a `.env` file in the root of the project directory.
 
 ## Database Setup
 
-Sqlite is used for local development. See the section
-`Database > Initializing` below for information on how to seed the
-database.
+Sqlite is used for local development when running the app directly from
+Python. When running locally, the initdb script is called at startup.
+If a custom `scale_initdb.json` is not provided, the provided
+`scale_initdb-example.json` will be used to seed the database.
 
 ## Running with Python
 
@@ -57,7 +57,9 @@ can be accessed via
 ## Running with Docker
 
 Docker is the recommended method to run a local server. For an alternative,
-the server can be run using Python (see following section).
+the server can be run using Python (see following section). When running with
+`docker-compose`, an Apache proxy and Postgres database will be used so as to
+closely reflect the production environment.
 
 The recommended method is to use the provided `docker-compose.yml`:
 
@@ -79,8 +81,8 @@ OpenAPI schema documentation is available at:
 
 The commands below require the use of `psql`, to run from docker use:
 
-    docker-compose up -d scale_db
-    docker-compose exec scale_db psql -U scale_api -h stem-scale-db.priv.fresnostate.edu swa
+    docker-compose up -d db
+    docker-compose exec db psql -U postgres -h stem-scale-db.priv.fresnostate.edu swa
 
 The following commands must be run on a new Postgres server in order to create
 the database, user and associated schema where the database objects will be

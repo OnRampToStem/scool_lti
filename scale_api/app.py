@@ -70,7 +70,9 @@ async def startup_event():
     if app_config.ENV == 'local':
         import scale_initdb
         import scale_api.settings
-        seed_file = scale_api.settings.BASE_PATH / 'scale_initdb-example.json'
+        seed_file = scale_api.settings.BASE_PATH / 'scale_initdb.json'
+        if not seed_file.exists():
+            seed_file = scale_api.settings.BASE_PATH / 'scale_initdb-example.json'
         scale_initdb.run(seed_file)
 
 
