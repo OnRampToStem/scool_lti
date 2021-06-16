@@ -67,13 +67,6 @@ async def startup_event():
     app.state.thread_pool_executor = executor
     loop = asyncio.get_running_loop()
     loop.set_default_executor(executor)
-    if app_config.ENV == 'local':
-        import scale_initdb
-        import scale_api.settings
-        seed_file = scale_api.settings.BASE_PATH / 'scale_initdb.json'
-        if not seed_file.exists():
-            seed_file = scale_api.settings.BASE_PATH / 'scale_initdb-example.json'
-        scale_initdb.run(seed_file)
 
 
 @app.on_event('shutdown')
@@ -107,6 +100,21 @@ async def index_api(request: Request):
 app.include_router(api_router, prefix=app_config.PATH_PREFIX)
 
 
+def on_startup_main() -> None:
+    if app_config.ENV == 'local':
+        import scale_initdb
+        import scale_api.settings
+
+        seed_file = scale_api.settings.BASE_PATH / 'scale_initdb.json'
+        if not seed_file.exists():
+            seed_file = scale_api.settings.BASE_PATH / 'scale_initdb-example.json'
+        scale_initdb.run(seed_file)
+
+
+def on_shutdown_main() -> None:
+    pass
+
+
 def main() -> None:
     """Runs app in a local development mode.
 
@@ -127,7 +135,9 @@ def main() -> None:
         run_opts['ssl_keyfile'] = f"{cert_path / 'local_ssl_key.pem'}"
         run_opts['ssl_certfile'] = f"{cert_path / 'local_ssl_cert.pem'}"
 
+    on_startup_main()
     uvicorn.run('scale_api.app:app', **run_opts)
+    on_shutdown_main()
 
 
 if __name__ == '__main__':
