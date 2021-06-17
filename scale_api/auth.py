@@ -159,16 +159,21 @@ async def authorize(
 
 def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) -> str:
     payload = {
-        # TODO: legacy claim used by dotnet was `nameid`, ok to use `sub` instead?
         'sub': auth_user.id,
-        # TODO: legacy claim used by dotnet, make this `email` or `client_id`?
-        'unique_name': auth_user.client_id,
+        'client_id': auth_user.client_id,
         'scopes': auth_user.scopes,
-        'roles': [
-            x.split(':', 1)[1]
-            for x in auth_user.scopes
-            if x.startswith('role:')
-        ],
+    }
+    return create_token(payload, expires_in)
+
+
+def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1) -> str:
+    payload = {
+        'sub': scale_user.id,
+        # TODO: legacy claim used by dotnet
+        # TODO: delete this after moving the front-end to use `email` claim
+        'unique_name': scale_user.email,
+        'email': scale_user.email,
+        'roles': scale_user.roles,
     }
     return create_token(payload, expires_in)
 
@@ -199,12 +204,20 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
         claims_options=AUTH_USER_TOKEN_OPTS
     )
     claims.validate(leeway=30)
-    auth_user = schemas.AuthUser(
-        id=claims['sub'],
-        client_id=claims['unique_name'],
-        client_secret_hash='None',
-        scopes=claims['scopes'],
-    )
+    if claims.get('client_id'):
+        auth_user = schemas.AuthUser(
+            id=claims['sub'],
+            client_id=claims['client_id'],
+            client_secret_hash='none',
+            scopes=claims['scopes'],
+        )
+    else:
+        auth_user = schemas.AuthUser(
+            id=claims['sub'],
+            client_id=claims['email'],
+            client_secret_hash='none',
+            scopes=[f'role:{r}' for r in claims['roles']]
+        )
     return auth_user
 
 

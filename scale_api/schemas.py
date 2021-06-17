@@ -58,8 +58,21 @@ class AuthUser(BaseModel):
 
 
 class ScaleUser(BaseModel):
+    id: str = '1'
     email: EmailStr
     roles: List[str] = []
+
+    def session_dict(self):
+        return self.dict(exclude_defaults=True)
+
+    @classmethod
+    def from_auth_user(cls, auth_user: AuthUser) -> 'ScaleUser':
+        roles = [
+            r.split(':', 1)[1]
+            for r in auth_user.scopes
+            if r in ('role:instructor', 'role:student', 'role:teacher')
+        ]
+        return cls(id=auth_user.id, email=auth_user.client_id, roles=roles)
 
 
 class ScaleUserImpersonationRequest(ScaleUser):

@@ -38,7 +38,8 @@ async def index_api(request: Request):
 
 @router.get('/logout', include_in_schema=False)
 async def logout(request: Request):
-    request.session.pop('au', None)
+    # TODO: handle SSO logout?
+    request.session.clear()
     index_page_url = request.url_for('index_api')
     return RedirectResponse(url=index_page_url, status_code=302)
 
@@ -48,9 +49,9 @@ async def login_post(
         request: Request,
         username: str = Form(...),
         password: str = Form(...),
+        csrf_token: str = Form(...),
 ):
-    form_data = await request.form()
-    verify_request(request, form_data.get('csrf_token'))
+    verify_request(request, csrf_token)
     try:
         auth_user = await db.store.user_by_client_id_async(username)
     except LookupError:
@@ -67,43 +68,46 @@ async def login_post(
 
 
 @router.get('/token', include_in_schema=False)
-async def scale_user_token_session(
+async def session_user_token(
         request: Request,
         response: Response,
 ):
-    # TODO: this should return a ScaleUser instead of an AuthUser?
-    try:
-        auth_user = schemas.AuthUser.parse_obj(request.session['au'])
-    except LookupError:
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return {'error': 'Unable to authenticate'}
+    session_user = request.session.get('scale_user')
+    if session_user:
+        scale_user = schemas.ScaleUser.parse_obj(session_user)
     else:
-        auth_user_token = auth.create_auth_user_token(auth_user)
+        session_user = request.session.get('au')
+        if not session_user:
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return {'error': 'Unable to authenticate'}
+        auth_user = schemas.AuthUser.parse_obj(session_user)
+        scale_user = schemas.ScaleUser.from_auth_user(auth_user)
 
-    return {'token': auth_user_token}
+    user_token = auth.create_scale_user_token(scale_user)
+    return {'token': user_token}
 
 
 @router.post('/token')
 async def scale_user_token_impersonate(
         request: Request,
         response: Response,
-        scale_user: schemas.ScaleUserImpersonationRequest,
+        scale_user_request: schemas.ScaleUserImpersonationRequest,
 ):
     if app_config.is_production:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
-    if not scale_user.secret_key.get_secret_value() == app_config.SECRET_KEY:
+    if not scale_user_request.secret_key.get_secret_value() == app_config.SECRET_KEY:
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {'error': 'Unable to authenticate'}
 
-    auth_user = schemas.AuthUser(
-        id=scale_user.email,
-        client_id=scale_user.email,
-        client_secret_hash='none',
-        scopes=[f'role:{x}' for x in scale_user.roles],
+    scale_user = schemas.ScaleUser(
+        id=scale_user_request.id,
+        email=scale_user_request.email,
+        roles=scale_user_request.roles,
     )
 
-    token = auth.create_auth_user_token(auth_user)
+    request.session['scale_user'] = scale_user.session_dict()
+    token = auth.create_scale_user_token(scale_user)
     return {
         'token': token,
     }

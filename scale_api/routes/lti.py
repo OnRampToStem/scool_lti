@@ -1,6 +1,7 @@
 import logging
 import time
 import urllib.parse
+from typing import Any, Mapping
 
 from authlib import jose
 from authlib.oidc.core import IDToken
@@ -15,6 +16,7 @@ from scale_api import (
     keys,
     settings,
     schemas,
+    templates,
     urls,
 )
 
@@ -27,7 +29,11 @@ JWT = jose.JsonWebToken(['RS256', 'RS512'])
 
 @router.get('/', include_in_schema=False)
 async def lti_home(request: Request):
-    return request.session
+    context = {
+        'scale_user': request.session['scale_user'],
+        'scale_env': app_config.ENV,
+    }
+    return templates.render(request, 'lti.html', context)
 
 
 @router.get('/{platform_id}/config')
@@ -183,6 +189,7 @@ async def launch_form(
     if deploy_id := lti_context.deployment_id:
         session_key += f'/{deploy_id}'
     request.session[session_key] = lti_context.dict(exclude_unset=True, exclude_none=True)
+    request.session['scale_user'] = scale_user_from_resource_link(claims)
     response = RedirectResponse(
         request.url_for('lti_home'),
         headers=settings.NO_CACHE_HEADERS,
@@ -282,3 +289,23 @@ async def platform_or_404(platform_id: str) -> schemas.Platform:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Platform {platform_id} not found'
         )
+
+
+def scale_user_from_resource_link(message: Mapping[str, Any]) -> schemas.ScaleUser:
+    tool_platform = message['https://purl.imsglobal.org/spec/lti/claim/tool_platform']
+    user_id = message['sub'] + '@' + tool_platform['guid']
+    roles = [
+        r.rsplit('#')[1].lower()
+        for r in message['https://purl.imsglobal.org/spec/lti/claim/roles']
+        if r.startswith('http://purl.imsglobal.org/vocab/lis/v2/membership#')
+    ]
+    email = message.get('email')
+    if not email:
+        if tool_platform['name'] == 'Fresno State':
+            login_id = message['https://purl.imsglobal.org/spec/lti/claim/custom']['canvas_user_login_id']
+            email = f'{login_id.lower()}@mail.fresnostate.edu'
+    return schemas.ScaleUser(
+        id=user_id,
+        email=email,
+        roles=roles,
+    )

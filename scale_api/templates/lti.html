@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}SCALE :: Courses{% endblock %}
+
+{% block nav %}
+{% include "snippets/nav.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+<main role="main" class="pb-3">
+
+<div class="row">
+    <div class="col-md-6 col-md-offset-3 mt-5 text-muted">
+        Welcome {{ scale_user.email }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 col-md-offset-3 mt-5 text-muted">
+        <h1>Roles</h1>
+        <ul>
+        {% for role in scale_user.roles %}
+            <li>{{ role }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 col-md-offset-3 mt-5 text-muted">
+        {% if scale_env == 'prod' %}
+            <a href="/question-editor">Start Course</a>
+        {% elif scale_env == 'local' %}
+            <a href="http://localhost:8080/">Start Course</a>
+        {% else %}
+            <a href="/{{ scale_env }}/question-editor">Start Course</a>
+        {% endif %}
+    </div>
+</div>
+
+</main>
+</div>
+{% endblock %}
