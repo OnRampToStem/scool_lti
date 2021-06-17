@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Security
 
+from .auth import index_api as index_api
 from .auth import router as router_auth
 from .firebase import router as router_firebase
 from .lti import router as router_lti
@@ -33,7 +34,7 @@ api_router.include_router(
     router_platforms,
     prefix='/v1/platforms',
     tags=['Platforms'],
-    dependencies=[Security(auth.authorize, scopes=['plt'])],
+    dependencies=[Security(auth.authorize, scopes=['plat'])],
 )
 
 api_router.include_router(

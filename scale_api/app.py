@@ -12,11 +12,9 @@ from scale_api import (
     __version__,
     app_config,
     aio,
-    auth,
     db,
-    templates,
 )
-from scale_api.routes import api_router
+from scale_api.routes import api_router, index_api
 
 logger = logging.getLogger(__name__)
 
@@ -77,14 +75,6 @@ async def shutdown_event():
     await aio.http_client.aclose()
 
 
-@app.get('/', include_in_schema=False)
-@app.get(app_config.PATH_PREFIX, include_in_schema=False)
-async def index_api(request: Request):
-    csrf_token = request.session.get('csrf_token')
-    pk = auth.ProofKey(csrf_token)
-    return templates.render(request, 'index.html', {'csrf_token': pk.challenge})
-
-
 def on_startup_main() -> None:
     if app_config.ENV == 'local':
         import scale_initdb
@@ -98,6 +88,12 @@ def on_startup_main() -> None:
 
 def on_shutdown_main() -> None:
     pass
+
+
+@app.get('/', include_in_schema=False)
+@app.get(app_config.PATH_PREFIX, include_in_schema=False)
+async def index(request: Request):
+    return await index_api(request)
 
 
 @app.get(f'{app_config.PATH_PREFIX}/lb-status', include_in_schema=False)

@@ -63,6 +63,8 @@ class AuthUser(Base):
     scopes = sa.Column(sa.Text, nullable=True)
     is_active = sa.Column(sa.Boolean(), default=True)
     is_verified = sa.Column(sa.Boolean, default=False)
+    created_at = sa.Column(sa.DateTime, default=sa.func.now())
+    updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
 
     def __repr__(self) -> str:
         return (
@@ -113,8 +115,6 @@ class Message(Base):
             f'id={self.id!r}'
             f', subject={self.subject!r}'
             f', status={self.status!r}'
-            f', created_at={self.created_at}'
-            f', updated_at={self.updated_at}'
             ')'
         )
 

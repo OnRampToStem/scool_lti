@@ -30,10 +30,10 @@ router = APIRouter()
 http_basic = HTTPBasic(auto_error=False)
 
 
-@router.get('/login', include_in_schema=False)
-async def login(request: Request):
-    index_page_url = request.url_for('index_api')
-    return RedirectResponse(url=index_page_url, status_code=302)
+@router.get('/', include_in_schema=False)
+async def index_api(request: Request):
+    context = build_context(request)
+    return templates.render(request, 'index.html', context)
 
 
 @router.get('/logout', include_in_schema=False)
@@ -55,11 +55,11 @@ async def login_post(
         auth_user = await db.store.user_by_client_id_async(username)
     except LookupError:
         request.state.login_error = 'Incorrect username or password'
-        return await login(request)
+        return await index_api(request)
 
     if not auth.verify_password(password, auth_user.client_secret_hash):
         request.state.login_error = 'Incorrect username or password'
-        return await login(request)
+        return await index_api(request)
 
     request.session['au'] = auth_user.session_dict()
     index_page_url = request.url_for('index_api')
@@ -177,8 +177,8 @@ async def cas_validate(request: Request, ticket: str = Form(...)):
         auth_user = await db.store.user_by_client_id_async(f'{cas_user}@mail.fresnostate.edu')
     except (LookupError, cas.CasException) as exc:
         logger.error('cas_validate error: %r', exc)
-        request.state.login_error = 'Not authorized'
-        return await login(request)
+        request.state.sso_error = 'Not authorized'
+        return await index_api(request)
     else:
         request.session['au'] = auth_user.session_dict()
         index_page_url = request.url_for('index_api')

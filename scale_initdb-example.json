@@ -29,7 +29,6 @@
     ],
     "auth_users": [
         {
-            "id": "9c5a1c7ffaee47039604db67015e3492",
             "client_id": "scaleadmin@mail.fresnostate.edu",
             "client_secret": "sekret",
             "scopes": "role:superuser"
