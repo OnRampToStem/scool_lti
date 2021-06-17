@@ -1,7 +1,10 @@
+import base64
 import datetime
+import hashlib
 import logging
+import secrets
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Union
 
 import authlib.jose.errors
 from authlib import jose
@@ -35,6 +38,23 @@ AUTH_USER_TOKEN_OPTS = {
 JWT = jose.JsonWebToken([app_config.JWT_ALGORITHM])
 
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+
+
+@dataclass
+class ProofKey:
+    def __init__(self, verifier: str = None) -> None:
+        if verifier is None:
+            verifier = secrets.token_urlsafe(64)
+        self.verifier = verifier
+
+    @property
+    def challenge(self) -> str:
+        return sha256(self.verifier)
+
+    def verify(self, challenge: str) -> bool:
+        if challenge is None:
+            return False
+        return secrets.compare_digest(self.challenge, challenge)
 
 
 @dataclass
@@ -206,3 +226,11 @@ def can_access(auth_user: schemas.AuthUser, scopes: Optional[List[str]]) -> bool
         else:
             return False
     return True
+
+
+def sha256(data: Union[bytes, str]) -> str:
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    hashed = hashlib.sha256(data).digest()
+    encoded = base64.urlsafe_b64encode(hashed)
+    return encoded.rstrip(b'=').decode('ascii')

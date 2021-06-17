@@ -32,11 +32,8 @@ http_basic = HTTPBasic(auto_error=False)
 
 @router.get('/login', include_in_schema=False)
 async def login(request: Request):
-    if request.session.get('au'):
-        index_page_url = request.url_for('index_api')
-        return RedirectResponse(url=index_page_url, status_code=302)
-
-    return templates.render(request, 'login.html')
+    index_page_url = request.url_for('index_api')
+    return RedirectResponse(url=index_page_url, status_code=302)
 
 
 @router.get('/logout', include_in_schema=False)
@@ -52,6 +49,8 @@ async def login_post(
         username: str = Form(...),
         password: str = Form(...),
 ):
+    form_data = await request.form()
+    verify_request(request, form_data.get('csrf_token'))
     try:
         auth_user = await db.store.user_by_client_id_async(username)
     except LookupError:
@@ -190,20 +189,41 @@ async def cas_validate(request: Request, ticket: str = Form(...)):
 
 @router.get('/forgot-password', include_in_schema=False)
 async def forgot_password(request: Request):
-    return templates.render(request, 'forgot_password.html')
+    context = build_context(request)
+    return templates.render(request, 'forgot_password.html', context)
 
 
 @router.post('/forgot-password', include_in_schema=False)
 async def forgot_password_email(request: Request):
+    form_data = await request.form()
+    verify_request(request, form_data.get('csrf_token'))
     # TODO: generate one-time-password and email it
     return await reset_password(request)
 
 
 @router.get('/reset-password', include_in_schema=False)
 async def reset_password(request: Request):
-    return templates.render(request, 'reset_password.html')
+    context = build_context(request)
+    return templates.render(request, 'reset_password.html', context)
 
 
 @router.post('/reset-password', include_in_schema=False)
 async def reset_password_change(request: Request):
+    form_data = await request.form()
+    verify_request(request, form_data.get('csrf_token'))
     return {'p': 'post.reset_password_change'}
+
+
+def verify_request(request: Request, challenge: str) -> None:
+    csrf_token = request.session.get('csrf_token')
+    pk = auth.ProofKey(csrf_token)
+    if not pk.verify(challenge):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+
+def build_context(request: Request) -> dict:
+    csrf_token = request.session.get('csrf_token')
+    pk = auth.ProofKey(csrf_token)
+    if csrf_token is None:
+        request.session['csrf_token'] = pk.verifier
+    return {'csrf_token': pk.challenge}

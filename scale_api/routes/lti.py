@@ -1,10 +1,6 @@
-import base64
-import hashlib
 import logging
-import secrets
 import time
 import urllib.parse
-from typing import Union
 
 from authlib import jose
 from authlib.oidc.core import IDToken
@@ -14,6 +10,7 @@ from fastapi.responses import RedirectResponse
 import scale_api
 from scale_api import (
     app_config,
+    auth,
     db,
     keys,
     settings,
@@ -144,8 +141,6 @@ async def launch_form(
     platform = await platform_or_404(platform_id)
     logger.info('id_token: %s, %s', id_token, platform)
     logger.info('state: %s, %s', state, platform)
-    session_nonce = request.cookies[f'launch-{platform_id}']
-    compare_nonce = sha256(session_nonce)
     id_token_opts = {
         'iss': {
             'essential': True,
@@ -157,7 +152,6 @@ async def launch_form(
         },
         'nonce': {
             'essential': True,
-            'value': session_nonce,
         }
     }
     # TODO - handle case where we need to re-fetch the jwks url
@@ -165,7 +159,8 @@ async def launch_form(
     claims = JWT.decode(id_token, key_set, claims_cls=IDToken, claims_options=id_token_opts)
     claims.validate(leeway=5)
     hashed_nonce = claims.get('nonce')
-    assert compare_nonce == hashed_nonce, f"{compare_nonce=} != {hashed_nonce=}"
+    proof_key = auth.ProofKey(request.cookies[f'launch-{platform_id}'])
+    assert proof_key.verify(hashed_nonce)
     # TODO: compare state target uri with something
     state_token_opts = {
         'iss': {
@@ -176,7 +171,7 @@ async def launch_form(
             'essential': True,
         },
     }
-    jwt_key = f'{session_nonce}:{app_config.SECRET_KEY}'
+    jwt_key = f'{proof_key.verifier}:{app_config.SECRET_KEY}'
     state_token = jose.jwt.decode(state, jwt_key, claims_options=state_token_opts)
     state_token.validate(leeway=5)
     logger.info(claims)
@@ -243,9 +238,8 @@ async def login_initiations_form(
     # TODO - validate target_link_uri
     jwt_header = {'alg': 'HS256', 'type': 'JWT'}
     jwt_state = {'iss': iss, 'uri': target_link_uri, 'exp': time.time() + 60}
-    nonce = secrets.token_urlsafe(32)
-    hashed_nonce = sha256(nonce)
-    jwt_key = f'{nonce}:{scale_api.app_config.SECRET_KEY}'
+    proof_key = auth.ProofKey()
+    jwt_key = f'{proof_key.verifier}:{scale_api.app_config.SECRET_KEY}'
     state = jose.jwt.encode(jwt_header, jwt_state, jwt_key)
     query_string = {
         'response_type': 'id_token',
@@ -256,7 +250,7 @@ async def login_initiations_form(
         'state': state,
         'login_hint': login_hint,
         'lti_message_hint': lti_message_hint,
-        'nonce': hashed_nonce,
+        'nonce': proof_key.challenge,
         'prompt': 'none',
     }
     oidc_auth_req_url = platform.oidc_auth_url
@@ -269,7 +263,7 @@ async def login_initiations_form(
     )
     response.set_cookie(
         key=f'launch-{platform_id}',
-        value=nonce,
+        value=proof_key.verifier,
         secure=True,
         httponly=True,
         samesite='none',
@@ -288,11 +282,3 @@ async def platform_or_404(platform_id: str) -> schemas.Platform:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Platform {platform_id} not found'
         )
-
-
-def sha256(data: Union[bytes, str]) -> str:
-    if isinstance(data, str):
-        data = data.encode('utf-8')
-    hashed = hashlib.sha256(data).digest()
-    encoded = base64.urlsafe_b64encode(hashed)
-    return encoded.rstrip(b'=').decode('ascii')

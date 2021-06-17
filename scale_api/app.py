@@ -12,6 +12,7 @@ from scale_api import (
     __version__,
     app_config,
     aio,
+    auth,
     db,
     templates,
 )
@@ -76,28 +77,12 @@ async def shutdown_event():
     await aio.http_client.aclose()
 
 
-@app.get(f'{app_config.PATH_PREFIX}/lb-status', include_in_schema=False)
-async def health_check():
-    return {
-        'app_version': __version__,
-        'framework_version': fastapi_version,
-        'lang_version': sys.version,
-        'environment': app_config.ENV,
-        'engine': str(db.engine),
-    }
-
-
 @app.get('/', include_in_schema=False)
-async def index(request: Request):
-    return await index_api(request)
-
-
 @app.get(app_config.PATH_PREFIX, include_in_schema=False)
 async def index_api(request: Request):
-    return templates.render(request, 'index.html')
-
-
-app.include_router(api_router, prefix=app_config.PATH_PREFIX)
+    csrf_token = request.session.get('csrf_token')
+    pk = auth.ProofKey(csrf_token)
+    return templates.render(request, 'index.html', {'csrf_token': pk.challenge})
 
 
 def on_startup_main() -> None:
@@ -113,6 +98,20 @@ def on_startup_main() -> None:
 
 def on_shutdown_main() -> None:
     pass
+
+
+@app.get(f'{app_config.PATH_PREFIX}/lb-status', include_in_schema=False)
+async def health_check():
+    return {
+        'app_version': __version__,
+        'framework_version': fastapi_version,
+        'lang_version': sys.version,
+        'environment': app_config.ENV,
+        'engine': str(db.engine),
+    }
+
+
+app.include_router(api_router, prefix=app_config.PATH_PREFIX)
 
 
 def main() -> None:

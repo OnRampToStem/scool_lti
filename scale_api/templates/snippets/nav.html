@@ -9,21 +9,16 @@
             <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
 
 
-<ul class="navbar-nav">
-<li class="nav-item">
-    {% if request.session.au %}
-    <a class="nav-link text-dark" id="logout" href="{{ url_for('logout') }}">Logout</a>
-    {% else %}
-    <a class="nav-link text-dark" id="login" href="{{ url_for('login') }}">Login</a>
-    {% endif %}
-</li>
-</ul>
+            <ul class="navbar-nav">
+            <li class="nav-item">
+                {% if request.session.au %}
+                <a class="nav-link text-dark" id="logout" href="{{ url_for('logout') }}">Logout</a>
+                {% else %}
+                Login Required
+                {% endif %}
+            </li>
+            </ul>
 
-                <ul class="navbar-nav flex-grow-1">
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" href="{{ url_for('index_api') }}">Privacy</a>
-                    </li>
-                </ul>
             </div>
         </div>
     </nav>
