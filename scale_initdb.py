@@ -54,6 +54,8 @@ def init_db(data) -> None:
 
 
 def run(seed_file: Path) -> None:
+    print('Using DB Engine', db.engine)
+    print('Using seed file', seed_file)
     with seed_file.open(mode='r', encoding='utf-8') as f:
         data = json.load(f)
     init_db(data)
