@@ -3,9 +3,9 @@ from typing import Optional
 
 from fastapi import (
     APIRouter,
-    Body,
     Depends,
     Form,
+    HTTPException,
     Request,
     Response,
     status,
@@ -30,7 +30,7 @@ router = APIRouter()
 http_basic = HTTPBasic(auto_error=False)
 
 
-@router.get('/login')
+@router.get('/login', include_in_schema=False)
 async def login(request: Request):
     if request.session.get('au'):
         index_page_url = request.url_for('index_api')
@@ -39,14 +39,14 @@ async def login(request: Request):
     return templates.render(request, 'login.html')
 
 
-@router.get('/logout')
+@router.get('/logout', include_in_schema=False)
 async def logout(request: Request):
     request.session.pop('au', None)
     index_page_url = request.url_for('index_api')
     return RedirectResponse(url=index_page_url, status_code=302)
 
 
-@router.post('/login')
+@router.post('/login', include_in_schema=False)
 async def login_post(
         request: Request,
         username: str = Form(...),
@@ -67,11 +67,12 @@ async def login_post(
     return RedirectResponse(url=index_page_url, status_code=302)
 
 
-@router.get('/token')
-async def legacy_token_from_session(
+@router.get('/token', include_in_schema=False)
+async def scale_user_token_session(
         request: Request,
         response: Response,
 ):
+    # TODO: this should return a ScaleUser instead of an AuthUser?
     try:
         auth_user = schemas.AuthUser.parse_obj(request.session['au'])
     except LookupError:
@@ -84,21 +85,24 @@ async def legacy_token_from_session(
 
 
 @router.post('/token')
-async def legacy_token(
+async def scale_user_token_impersonate(
         request: Request,
         response: Response,
-        username: str = Body(...),
-        password: str = Body(...),
+        scale_user: schemas.ScaleUserImpersonationRequest,
 ):
-    try:
-        auth_user = await db.store.user_by_client_id_async(username)
-    except LookupError:
+    if app_config.is_production:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+    if not scale_user.secret_key.get_secret_value() == app_config.SECRET_KEY:
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {'error': 'Unable to authenticate'}
 
-    if not auth.verify_password(password, auth_user.client_secret_hash):
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return {'error': 'Unable to authenticate'}
+    auth_user = schemas.AuthUser(
+        id=scale_user.email,
+        client_id=scale_user.email,
+        client_secret_hash='none',
+        scopes=[f'role:{x}' for x in scale_user.roles],
+    )
 
     token = auth.create_auth_user_token(auth_user)
     return {
@@ -155,7 +159,7 @@ def user_info(request: Request):
 
 
 # TODO: indicate what provider (school) this is for so correct target urls can be gotten
-@router.get('/cas')
+@router.get('/cas', include_in_schema=False)
 async def cas_login(request: Request, ticket: Optional[str] = None):
     if ticket is not None:
         return await cas_validate(request, ticket)
@@ -166,7 +170,7 @@ async def cas_login(request: Request, ticket: Optional[str] = None):
     return RedirectResponse(url=cas_login_url)
 
 
-@router.post('/cas')
+@router.post('/cas', include_in_schema=False)
 async def cas_validate(request: Request, ticket: str = Form(...)):
     service_url = request.url_for('cas_login')
     try:
@@ -184,22 +188,22 @@ async def cas_validate(request: Request, ticket: str = Form(...)):
 
 # TODO: handle CAS logout?
 
-@router.get('/forgot-password')
+@router.get('/forgot-password', include_in_schema=False)
 async def forgot_password(request: Request):
     return templates.render(request, 'forgot_password.html')
 
 
-@router.post('/forgot-password')
+@router.post('/forgot-password', include_in_schema=False)
 async def forgot_password_email(request: Request):
     # TODO: generate one-time-password and email it
     return await reset_password(request)
 
 
-@router.get('/reset-password')
+@router.get('/reset-password', include_in_schema=False)
 async def reset_password(request: Request):
     return templates.render(request, 'reset_password.html')
 
 
-@router.post('/reset-password')
+@router.post('/reset-password', include_in_schema=False)
 async def reset_password_change(request: Request):
     return {'p': 'post.reset_password_change'}

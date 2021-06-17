@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Security
 
+from .auth import router as router_auth
 from .firebase import router as router_firebase
 from .lti import router as router_lti
-from .auth import router as router_auth
+from .messages import router as router_messages
 from .platforms import router as router_platforms
 from .well_known import router as router_well_known
 from .. import auth
@@ -18,7 +19,7 @@ api_router.include_router(
 api_router.include_router(
     router_auth,
     prefix='/v1/auth',
-    include_in_schema=False,
+    tags=['Authentication'],
 )
 
 api_router.include_router(
@@ -39,5 +40,12 @@ api_router.include_router(
     router_firebase,
     prefix='/v1/FirebaseCompat',
     tags=['Firebase Compatibility'],
-    dependencies=[Security(auth.authorize, scopes=['fb'])],
+    dependencies=[Security(auth.authorize)],
+)
+
+api_router.include_router(
+    router_messages,
+    prefix='/v1/messages',
+    tags=['Messages'],
+    dependencies=[Security(auth.authorize)],
 )

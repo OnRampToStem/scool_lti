@@ -99,6 +99,29 @@ class AuthJsonWeKey(Base):
         )
 
 
+class Message(Base):
+    __tablename__ = 'messages'
+
+    id = sa.Column(sa.String(36), primary_key=True, default=new_uuid)
+    subject = sa.Column(sa.String(255), index=True)
+    header = sa.Column(sa.Text, nullable=True)
+    body = sa.Column(sa.Text)
+    status = sa.Column(sa.Enum(schemas.EntryStatus), default=schemas.EntryStatus.active)
+    created_at = sa.Column(sa.DateTime, default=sa.func.now())
+    updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
+
+    def __repr__(self) -> str:
+        return (
+            'Message('
+            f'id={self.id!r}'
+            f', subject={self.subject!r}'
+            f', status={self.status!r}'
+            f', created_at={self.created_at}'
+            f', updated_at={self.updated_at}'
+            ')'
+        )
+
+
 class ScaleStore:
 
     def platforms(self) -> List[schemas.Platform]:
@@ -194,4 +217,65 @@ class ScaleStore:
     json_web_keys_async = aio.wrap(json_web_keys)
 
 
+class MessageStore:
+
+    def messages(self, subject: str) -> List[schemas.Message]:
+        stmt = sa.select(Message).where(
+            Message.subject == subject,
+            Message.status == schemas.EntryStatus.active,
+        )
+        with SessionLocal.begin() as session:
+            result = session.execute(stmt)
+            entry_list = [
+                schemas.Message.from_orm(row)
+                for row in result.scalars()
+            ]
+
+        return entry_list
+
+    def message(self, msg_id: str, subject: str) -> schemas.Message:
+        with SessionLocal.begin() as session:
+            msg = session.get(Message, msg_id)
+            if not msg:
+                raise LookupError(msg_id)
+            assert msg.subject == subject, f'{msg.subject} != {subject}'
+            return schemas.Message.from_orm(msg)
+
+    def create(self, subject: str, body: str, header: str = None) -> schemas.Message:
+        with SessionLocal.begin() as session:
+            msg = Message(subject=subject, header=header, body=body)
+            session.add(msg)
+            session.flush()
+            return schemas.Message.from_orm(msg)
+
+    def update(self, msg_id: str, subject: str, body: str, header: str = None) -> schemas.Message:
+        with SessionLocal.begin() as session:
+            msg = session.get(Message, msg_id)
+            if not msg:
+                raise LookupError(msg_id)
+            if not (msg.subject == subject and msg.body == body and msg.header == header):
+                msg.subject = subject
+                msg.body = body
+                msg.header = header
+            session.flush()
+            return schemas.Message.from_orm(msg)
+
+    def delete(self, msg_id: str, subject: str) -> schemas.Message:
+        with SessionLocal.begin() as session:
+            msg = session.get(Message, msg_id)
+            if not msg:
+                raise LookupError(msg_id)
+            assert msg.subject == subject, f'{msg.subject} != {subject}'
+            msg.status = schemas.EntryStatus.deleted
+            session.flush()
+            return schemas.Message.from_orm(msg)
+
+    messages_async = aio.wrap(messages)
+    message_async = aio.wrap(message)
+    create_async = aio.wrap(create)
+    update_async = aio.wrap(update)
+    delete_async = aio.wrap(delete)
+
+
 store = ScaleStore()
+message_store = MessageStore()

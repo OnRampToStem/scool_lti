@@ -1,3 +1,4 @@
+import enum
 import datetime
 from typing import Any, List, Mapping, Optional, Union
 
@@ -9,6 +10,12 @@ from pydantic import (
     SecretStr,
     validator,
 )
+
+
+class EntryStatus(enum.IntEnum):
+    active = 1
+    inactive = 0
+    deleted = -1
 
 
 class Platform(BaseModel):
@@ -54,11 +61,33 @@ class AuthUser(BaseModel):
         orm_mode = True
 
 
+class ScaleUser(BaseModel):
+    email: EmailStr
+    roles: List[str] = []
+
+
+class ScaleUserImpersonationRequest(ScaleUser):
+    secret_key: SecretStr
+
+
 class AuthJsonWebKey(BaseModel):
     kid: str
     data: SecretStr
     valid_from: datetime.datetime
     valid_to: Optional[datetime.datetime]
+
+    class Config:
+        orm_mode = True
+
+
+class Message(BaseModel):
+    id: str
+    subject: str
+    header: Optional[str]
+    body: Optional[str]
+    status: EntryStatus
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
 
     class Config:
         orm_mode = True
