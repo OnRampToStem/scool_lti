@@ -106,7 +106,7 @@ class Message(Base):
     subject = sa.Column(sa.String(255), index=True)
     header = sa.Column(sa.Text, nullable=True)
     body = sa.Column(sa.Text)
-    status = sa.Column(sa.Enum(schemas.EntryStatus), default=schemas.EntryStatus.active)
+    status = sa.Column(sa.String(10), default='active')
     created_at = sa.Column(sa.DateTime, default=sa.func.now())
     updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
 
@@ -222,7 +222,7 @@ class MessageStore:
     def messages(self, subject: str) -> List[schemas.Message]:
         stmt = sa.select(Message).where(
             Message.subject == subject,
-            Message.status == schemas.EntryStatus.active,
+            Message.status == 'active',
         )
         with SessionLocal.begin() as session:
             result = session.execute(stmt)
@@ -266,7 +266,7 @@ class MessageStore:
             if not msg:
                 raise LookupError(msg_id)
             assert msg.subject == subject, f'{msg.subject} != {subject}'
-            msg.status = schemas.EntryStatus.deleted
+            msg.status = 'deleted'
             session.flush()
             return schemas.Message.from_orm(msg)
 

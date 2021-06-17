@@ -12,12 +12,6 @@ from pydantic import (
 )
 
 
-class EntryStatus(enum.IntEnum):
-    active = 1
-    inactive = 0
-    deleted = -1
-
-
 class Platform(BaseModel):
     id: str
     name: str
@@ -85,7 +79,7 @@ class Message(BaseModel):
     subject: str
     header: Optional[str]
     body: Optional[str]
-    status: EntryStatus
+    status: str = 'active'
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
