@@ -62,7 +62,6 @@ class AuthUser(Base):
     client_secret_hash = sa.Column(sa.String(128), nullable=True)
     scopes = sa.Column(sa.Text, nullable=True)
     is_active = sa.Column(sa.Boolean(), default=True)
-    is_superuser = sa.Column(sa.Boolean, default=False)
     is_verified = sa.Column(sa.Boolean, default=False)
 
     def __repr__(self) -> str:
@@ -70,7 +69,6 @@ class AuthUser(Base):
             'AuthUser('
             f'client_id={self.client_id!r}'
             f', is_active={self.is_active}'
-            f', is_superuser={self.is_superuser}'
             f', is_verified={self.is_verified}'
             ')'
         )

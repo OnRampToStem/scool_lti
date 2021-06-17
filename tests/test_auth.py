@@ -69,12 +69,11 @@ class ScopeAuthUserAccessTestCase(unittest.TestCase):
             'client_secret_hash': 'none',
             'is_active': True,
             'is_verified': False,
-            'is_superuser': False,
             'scopes': [],
         }
 
     def test_superuser_access(self):
-        self.test_user['is_superuser'] = True
+        self.test_user['scopes'].append('role:superuser')
         user = schemas.AuthUser(**self.test_user)
         self.assertTrue(auth.can_access(user, ['org']))
 

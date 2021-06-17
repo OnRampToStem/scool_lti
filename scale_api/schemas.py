@@ -1,4 +1,3 @@
-import enum
 import datetime
 from typing import Any, List, Mapping, Optional, Union
 
@@ -34,7 +33,6 @@ class AuthUser(BaseModel):
     client_id: str
     client_secret_hash: str
     is_active: bool = True
-    is_superuser: bool = False
     is_verified: bool = False
     scopes: Optional[List[str]]
 
@@ -47,6 +45,10 @@ class AuthUser(BaseModel):
         elif isinstance(v, list):
             return v
         raise ValueError(v)
+
+    @property
+    def is_superuser(self) -> bool:
+        return self.scopes and 'role:superuser' in self.scopes
 
     def session_dict(self):
         return self.dict(exclude_defaults=True)

@@ -149,7 +149,6 @@ def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) ->
             for x in auth_user.scopes
             if x.startswith('role:')
         ],
-        'is_superuser': auth_user.is_superuser,
     }
     return create_token(payload, expires_in)
 
@@ -184,7 +183,6 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
         id=claims['sub'],
         client_id=claims['unique_name'],
         client_secret_hash='None',
-        is_superuser=claims['is_superuser'],
         scopes=claims['scopes'],
     )
     return auth_user
