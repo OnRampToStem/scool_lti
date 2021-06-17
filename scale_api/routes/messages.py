@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import List
 
@@ -37,17 +38,19 @@ async def get_message(subject: str, msg_id: str):
 
 
 @router.post('/{subject}.json', response_model=schemas.Message)
-async def create_message(request: Request, subject: str, body: str = Body(...)):
+async def create_message(request: Request, subject: str, body: dict = Body(...)):
     check_access(request, subject, 'post')
     # TODO: extract header from body?
+    body = json.dumps(body)
     msg = await db.message_store.create_async(subject, body)
     return msg
 
 
 @router.put('/{subject}/{msg_id}.json', response_model=schemas.Message)
-async def update_message(request: Request, subject: str, msg_id: str, body: str = Body(...)):
+async def update_message(request: Request, subject: str, msg_id: str, body: dict = Body(...)):
     check_access(request, subject, 'put')
     try:
+        body = json.dumps(body)
         msg = await db.message_store.update_async(msg_id, subject, body)
     except LookupError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -72,6 +75,6 @@ def check_access(request: Request, subject: str, action: str) -> None:
     if auth_user.is_superuser:
         return
     for scope in auth_user.scopes:
-        if scope in ('role:dev', 'role:admin'):
+        if scope in ('role:dev', 'role:admin', 'role:instructor'):
             return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)

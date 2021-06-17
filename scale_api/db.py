@@ -1,4 +1,3 @@
-import json
 import logging
 import uuid
 from typing import List
@@ -166,32 +165,6 @@ class ScaleStore:
             user = schemas.AuthUser.from_orm(result)
         return user
 
-    def firebase_entries(self, object_name: str) -> dict:
-        # TODO: handle pagination
-        stmt = sa.text("""
-            select "Id", "Data"
-            from "FirebaseCompatEntries"
-            where "ObjectName" = :object_name        
-        """)
-        # TODO: should we validate object_name matches something expected?
-        bind_params = {'object_name': object_name}
-        with SessionLocal.begin() as session:
-            result = session.execute(stmt, bind_params)
-            return {guid: json.loads(data) for guid, data in result}
-
-    def firebase_entry(self, object_name: str, object_guid: str) -> dict:
-        stmt = sa.text("""
-            select "Data"
-            from "FirebaseCompatEntries"
-            where "Id" = :object_guid
-              and "ObjectName" = :object_name
-        """)
-        bind_params = {'object_guid': object_guid, 'object_name': object_name}
-        with SessionLocal.begin() as session:
-            result = session.execute(stmt, bind_params)
-            # TODO: what if not found? 404 or other error, has does dotnet handle it?
-            return json.loads(result.scalar())
-
     def json_web_keys(self) -> List[schemas.AuthJsonWebKey]:
         with SessionLocal.begin() as session:
             stmt = sa.select(AuthJsonWeKey).where(
@@ -212,8 +185,6 @@ class ScaleStore:
     platform_async = aio.wrap(platform)
     user_async = aio.wrap(user)
     user_by_client_id_async = aio.wrap(user_by_client_id)
-    firebase_entries_async = aio.wrap(firebase_entries)
-    firebase_entry_async = aio.wrap(firebase_entry)
     json_web_keys_async = aio.wrap(json_web_keys)
 
 
