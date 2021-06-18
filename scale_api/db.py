@@ -122,8 +122,8 @@ class Message(Base):
 class ScaleStore:
 
     def platforms(self) -> List[schemas.Platform]:
-        with SessionLocal.begin() as session:
-            stmt = sa.select(Platform)
+        stmt = sa.select(Platform)
+        with SessionLocal() as session:
             result = session.execute(stmt)
             platforms = [
                 schemas.Platform.from_orm(row)
@@ -133,50 +133,52 @@ class ScaleStore:
         return platforms
 
     def platform(self, platform_id) -> schemas.Platform:
-        with SessionLocal.begin() as session:
-            stmt = sa.select(Platform).where(Platform.id == platform_id)
+        stmt = sa.select(Platform).where(Platform.id == platform_id)
+        with SessionLocal() as session:
             result = session.execute(stmt).scalar()
             if not result:
                 raise LookupError(platform_id)
             platform = schemas.Platform.from_orm(result)
+
         return platform
 
     def user(self, user_id: str) -> schemas.AuthUser:
-        with SessionLocal.begin() as session:
+        with SessionLocal() as session:
             result = session.get(AuthUser, user_id)
-            logger.info('user(%s)==%s', user_id, result)
             if not result:
                 raise LookupError(user_id)
             user = schemas.AuthUser.from_orm(result)
+
         return user
 
     def user_by_client_id(self, client_id: str) -> schemas.AuthUser:
-        with SessionLocal.begin() as session:
-            stmt = sa.select(AuthUser).where(
-                sa.func.lower(AuthUser.client_id) == client_id.lower()
-                and not AuthUser.disabled
-            )
+        stmt = sa.select(AuthUser).where(
+            sa.func.lower(AuthUser.client_id) == client_id.lower()
+            and not AuthUser.disabled
+        )
+        with SessionLocal() as session:
             result = session.execute(stmt).scalar()
-            logger.info('user_by_client_id(%s)==%s', client_id, result)
             if not result:
                 raise LookupError(client_id)
             user = schemas.AuthUser.from_orm(result)
+
         return user
 
     def json_web_keys(self) -> List[schemas.AuthJsonWebKey]:
-        with SessionLocal.begin() as session:
-            stmt = sa.select(AuthJsonWeKey).where(
-                AuthJsonWeKey.valid_from <= sa.func.now(),
-                sa.or_(
-                    AuthJsonWeKey.valid_to == None,
-                    AuthJsonWeKey.valid_to > sa.func.now(),
-                )
+        stmt = sa.select(AuthJsonWeKey).where(
+            AuthJsonWeKey.valid_from <= sa.func.now(),
+            sa.or_(
+                AuthJsonWeKey.valid_to == None,
+                AuthJsonWeKey.valid_to > sa.func.now(),
             )
+        )
+        with SessionLocal() as session:
             result = session.execute(stmt).scalars()
             keys = [
                 schemas.AuthJsonWebKey.from_orm(row)
                 for row in result
             ]
+
         return keys
 
     platforms_async = aio.wrap(platforms)
@@ -193,7 +195,7 @@ class MessageStore:
             Message.subject == subject,
             Message.status == 'active',
         )
-        with SessionLocal.begin() as session:
+        with SessionLocal() as session:
             result = session.execute(stmt)
             entry_list = [
                 schemas.Message.from_orm(row)
@@ -203,7 +205,7 @@ class MessageStore:
         return entry_list
 
     def message(self, msg_id: str, subject: str) -> schemas.Message:
-        with SessionLocal.begin() as session:
+        with SessionLocal() as session:
             msg = session.get(Message, msg_id)
             if not msg:
                 raise LookupError(msg_id)
