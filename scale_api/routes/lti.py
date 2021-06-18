@@ -17,7 +17,6 @@ from scale_api import (
     settings,
     schemas,
     templates,
-    urls,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,8 +39,8 @@ async def lti_home(request: Request):
 async def lti_config(request: Request, platform_id: str):
     platform = await platform_or_404(platform_id)
     tool_url = request.url_for(lti_config.__qualname__, platform_id=platform.id)
-    tool_url, _ = urls.parse(tool_url)
-    provider_url, _ = urls.parse(platform.issuer)
+    tool_url, _ = urls_parse(tool_url)
+    provider_url, _ = urls_parse(platform.issuer)
     tool_id = 'OR2STEM'
     tool_title = 'On-Ramp to STEM'
     tool_description = (
@@ -309,3 +308,20 @@ def scale_user_from_resource_link(message: Mapping[str, Any]) -> schemas.ScaleUs
         email=email,
         roles=roles,
     )
+
+
+def urls_parse(url: str):
+    import urllib.parse
+
+    parsed = urllib.parse.urlparse(url)
+    params = {}
+    if qs := parsed.query:
+        for param in qs.split('&'):
+            parts = param.split('=')
+            if len(parts) == 2:
+                params[parts[0]] = urllib.parse.unquote_plus(parts[1])
+            elif len(parts) == 1:
+                params[parts[0]] = None
+            else:
+                raise ValueError(f'Invalid querystring param: {param}')
+    return parsed, params
