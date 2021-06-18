@@ -75,6 +75,6 @@ def check_access(request: Request, subject: str, action: str) -> None:
     if auth_user.is_superuser:
         return
     for scope in auth_user.scopes:
-        if scope in ('role:dev', 'role:admin', 'role:instructor'):
+        if scope.lower() in ('role:dev', 'role:admin', 'role:instructor'):
             return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
