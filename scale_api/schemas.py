@@ -1,10 +1,9 @@
 import datetime
-from typing import Any, List, Mapping, Optional, Union
+from typing import List, Optional, Union
 
 from pydantic import (
     BaseModel,
     EmailStr,
-    Field,
     HttpUrl,
     SecretStr,
     validator,
@@ -20,9 +19,6 @@ class Platform(BaseModel):
     jwks_url: HttpUrl
     client_id: Optional[str]
     client_secret: Optional[SecretStr]
-
-    # TODO: track deployments??
-    # deployments: List[str]
 
     class Config:
         orm_mode = True
@@ -70,7 +66,12 @@ class ScaleUser(BaseModel):
         roles = [
             r.split(':', 1)[1]
             for r in auth_user.scopes
-            if r in ('role:instructor', 'role:student', 'role:teacher')
+            if r.lower() in (
+                'role:instructor',
+                'role:student',
+                'role:teacher',
+                'role:learner',
+            )
         ]
         return cls(id=auth_user.id, email=auth_user.client_id, roles=roles)
 
@@ -100,56 +101,3 @@ class Message(BaseModel):
 
     class Config:
         orm_mode = True
-
-
-class LtiUser(BaseModel):
-    roles: List[str] = Field(..., alias='https://purl.imsglobal.org/spec/lti/claim/roles')
-    email: Optional[EmailStr]
-
-    # TODO: populate from an SIS
-    majors: List[str] = []
-    pronouns: List[str] = []
-    grade_level: Optional[str]
-
-    @validator('roles', each_item=True)
-    def parse_roles(cls, v: str) -> str:
-        _, sep, role = v.rpartition('/')
-        return role.lower()
-
-    @classmethod
-    def from_id_token(cls, id_token: Mapping[str, Any]) -> 'LtiUser':
-        return cls.parse_obj(id_token)
-
-
-class LtiResourceLink(BaseModel):
-    __namespace__ = 'https://purl.imsglobal.org/spec/lti/claim/resource_link'
-
-    id: str
-    title: Optional[str]
-    description: Optional[str]
-
-    @classmethod
-    def from_id_token(cls, id_token: Mapping[str, Any]) -> 'LtiResourceLink':
-        content = id_token[cls.__namespace__]
-        return cls.parse_obj(content)
-
-
-class LtiContext(BaseModel):
-    __namespace__ = 'https://purl.imsglobal.org/spec/lti/claim/context'
-
-    id: str
-    label: str
-    title: str
-    type: List[str]
-    deployment_id: Optional[str]
-
-    user: LtiUser
-    resource_link: LtiResourceLink
-
-    @classmethod
-    def from_id_token(cls, id_token: Mapping[str, Any]) -> 'LtiContext':
-        user = LtiUser.from_id_token(id_token)
-        resource_link = LtiResourceLink.from_id_token(id_token)
-        context = id_token[cls.__namespace__]
-        context['deployment_id'] = id_token.get('https://purl.imsglobal.org/spec/lti/claim/deployment_id')
-        return cls(**context, user=user, resource_link=resource_link)
