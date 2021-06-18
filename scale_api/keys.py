@@ -34,7 +34,7 @@ async def private_keys() -> List:
     ]
 
 
-async def private_key() -> jose.JsonWebKey:
+async def private_key() -> jose.RSAKey:
     web_keys = db.store.json_web_keys()
     main_key = web_keys[0]
     if len(web_keys) > 1:

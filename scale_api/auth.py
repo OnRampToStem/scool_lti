@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import logging
 import secrets
+import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Union
 
@@ -19,6 +20,7 @@ from passlib.context import CryptContext
 
 from scale_api import (
     app_config,
+    keys,
     schemas,
 )
 
@@ -247,3 +249,17 @@ def sha256(data: Union[bytes, str]) -> str:
     hashed = hashlib.sha256(data).digest()
     encoded = base64.urlsafe_b64encode(hashed)
     return encoded.rstrip(b'=').decode('ascii')
+
+
+async def create_platform_token(platform: schemas.Platform) -> str:
+    payload = {
+        'iss': platform.client_id,
+        'sub': platform.client_id,
+        'aud': str(platform.auth_token_url),
+        'iat': datetime.datetime.utcnow() - datetime.timedelta(seconds=10),
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=60),
+        'jti': str(uuid.uuid4()),
+    }
+    private_key = await keys.private_key()
+    header = {'typ': 'JWT', 'alg': 'RS256', 'kid': private_key.thumbprint()}
+    return jose.jwt.encode(header, payload, private_key).decode('ascii')
