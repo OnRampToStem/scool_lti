@@ -1,14 +1,21 @@
+import datetime
 import logging
-import time
 import urllib.parse
 from typing import Any, Mapping
 
 from authlib import jose
 from authlib.oidc.core import IDToken
-from fastapi import APIRouter, Form, HTTPException, Query, Request, status
+from fastapi import (
+    APIRouter,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import RedirectResponse
 
-import scale_api
 from scale_api import (
     app_config,
     auth,
@@ -39,8 +46,8 @@ async def lti_home(request: Request):
 async def lti_config(request: Request, platform_id: str):
     platform = await platform_or_404(platform_id)
     tool_url = request.url_for(lti_config.__qualname__, platform_id=platform.id)
-    tool_url, _ = urls_parse(tool_url)
-    provider_url, _ = urls_parse(platform.issuer)
+    tool_domain = urllib.parse.urlparse(tool_url).hostname
+    provider_domain = urllib.parse.urlparse(platform.issuer).hostname
     tool_id = 'OR2STEM'
     tool_title = 'On-Ramp to STEM'
     tool_description = (
@@ -66,9 +73,9 @@ async def lti_config(request: Request, platform_id: str):
         ],
         "extensions": [
             {
-                "domain": tool_url.hostname,
+                "domain": tool_domain,
                 "tool_id": tool_id,
-                "platform": provider_url.hostname,
+                "platform": provider_domain,
                 "settings": {
                     "privacy_level": "public",
                     "placements": [
@@ -125,7 +132,7 @@ async def launch_query(
         state,
         id_token,
         error,
-        error_description
+        error_description,
     )
 
 
@@ -141,11 +148,10 @@ async def launch_form(
     if id_token is None:
         logger.error('Error code: %s, description: %s',
                      error, error_description)
-        return {'error': error, 'description': error_description}
+        return {'error': error, 'error_description': error_description}
 
     platform = await platform_or_404(platform_id)
     logger.info('id_token: %s, %s', id_token, platform)
-    logger.info('state: %s, %s', state, platform)
     id_token_opts = {
         'iss': {
             'essential': True,
@@ -159,36 +165,37 @@ async def launch_form(
             'essential': True,
         }
     }
+
     # TODO - handle case where we need to re-fetch the jwks url
     key_set = await keys.get_jwks_from_url(platform.jwks_url)
     claims = JWT.decode(id_token, key_set, claims_cls=IDToken, claims_options=id_token_opts)
+    logger.info(claims)
     claims.validate(leeway=5)
+
     hashed_nonce = claims.get('nonce')
     proof_key = auth.ProofKey(request.cookies[f'launch-{platform_id}'])
     assert proof_key.verify(hashed_nonce)
-    # TODO: compare state target uri with something
+
     state_token_opts = {
         'iss': {
             'essential': True,
-            'value': platform.issuer
+            'value': platform.client_id,
         },
-        'uri': {
+        'aud': {
             'essential': True,
+            'value': claims['https://purl.imsglobal.org/spec/lti/claim/target_link_uri'],
         },
     }
     jwt_key = f'{proof_key.verifier}:{app_config.SECRET_KEY}'
     state_token = jose.jwt.decode(state, jwt_key, claims_options=state_token_opts)
     state_token.validate(leeway=5)
-    logger.info(claims)
+
     # TODO: determine where to redirect based on IDToken context
     # TODO: how to associate context with question/quiz/course in scale?
-    lti_context = schemas.LtiContext.from_id_token(claims)
-    logger.error(lti_context)
-    session_key = f'{lti_context.id}/{lti_context.resource_link.id}'
-    if deploy_id := lti_context.deployment_id:
-        session_key += f'/{deploy_id}'
-    request.session[session_key] = lti_context.dict(exclude_unset=True, exclude_none=True)
-    request.session['scale_user'] = scale_user_from_resource_link(claims)
+    # TODO: save LtiResourceLinkMessage and put a ref to it in the `scale_user`
+    scale_user = scale_user_from_resource_link(claims)
+    logger.info('Adding scale_user to session: %s', scale_user)
+    request.session['scale_user'] = scale_user.session_dict()
     response = RedirectResponse(
         request.url_for('lti_home'),
         headers=settings.NO_CACHE_HEADERS,
@@ -201,6 +208,7 @@ async def launch_form(
 @router.get('/{platform_id}/login_initiations', include_in_schema=False)
 async def login_initiations_query(
         request: Request,
+        response: Response,
         platform_id: str,
         iss: str = Query(...),
         login_hint: str = Query(...),
@@ -212,19 +220,21 @@ async def login_initiations_query(
 ):
     return await login_initiations_form(
         request,
+        response,
         platform_id,
         iss,
         login_hint,
         target_link_uri,
         lti_message_hint,
         lti_deployment_id,
-        client_id
+        client_id,
     )
 
 
 @router.post('/{platform_id}/login_initiations')
 async def login_initiations_form(
         request: Request,
+        response: Response,
         platform_id: str,
         iss: str = Form(...),
         login_hint: str = Form(...),
@@ -234,18 +244,48 @@ async def login_initiations_form(
         client_id: str = Form(None),
 ):
     platform = await platform_or_404(platform_id)
-    logger.info(platform)
-    logger.info('iss: %s, login_hint: %s, target_link_uri: %s, lti_message_hint: %s',
-                iss, login_hint, target_link_uri, lti_message_hint)
-    logger.info('lti_deployment_id: %s, client_id: %s',
+    logger.info('login_initiations(iss=%s, login_hint=%s, target_link_uri=%s, '
+                'lti_message_hint=%s, lti_deployment_id=%s, client_id=%s)',
+                iss, login_hint, target_link_uri, lti_message_hint,
                 lti_deployment_id, client_id)
-    assert platform.issuer == iss
-    assert client_id is None or client_id == platform.client_id
-    # TODO - validate target_link_uri
+
+    if platform.issuer != iss:
+        logger.error('Request issuer [%s] does not match Platform [%s]',
+                     iss, platform.issuer)
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {
+            'error': 'invalid_request_object',
+            'error_description': 'Invalid issuer'
+        }
+
+    if client_id and client_id != platform.client_id:
+        logger.error('Request client_id [%s] does not match Platform [%s]',
+                     client_id, platform.client_id)
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {
+            'error': 'invalid_request_object',
+            'error_description': 'Invalid client_id'
+        }
+
+    expect_target_uri = request.url_for('launch_form', platform_id=platform_id)
+    if expect_target_uri != target_link_uri:
+        logger.error('Request target_link_uri [%s] does not match Platform [%s]',
+                     target_link_uri, expect_target_uri)
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {
+            'error': 'invalid_request_object',
+            'error_description': 'Invalid target_link_uri'
+        }
+
     jwt_header = {'alg': 'HS256', 'type': 'JWT'}
-    jwt_state = {'iss': iss, 'uri': target_link_uri, 'exp': time.time() + 60}
+    jwt_state = {
+        'iss': platform.client_id,
+        'aud': target_link_uri,
+        'iat': datetime.datetime.utcnow() - datetime.timedelta(minutes=1),
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5),
+    }
     proof_key = auth.ProofKey()
-    jwt_key = f'{proof_key.verifier}:{scale_api.app_config.SECRET_KEY}'
+    jwt_key = f'{proof_key.verifier}:{app_config.SECRET_KEY}'
     state = jose.jwt.encode(jwt_header, jwt_state, jwt_key)
     query_string = {
         'response_type': 'id_token',
@@ -259,14 +299,19 @@ async def login_initiations_form(
         'nonce': proof_key.challenge,
         'prompt': 'none',
     }
-    oidc_auth_req_url = platform.oidc_auth_url
+
     encoded_query_string = urllib.parse.urlencode(query_string)
-    target_url = f'{oidc_auth_req_url}?{encoded_query_string}'
+    target_url = f'{platform.oidc_auth_url}?{encoded_query_string}'
+
     response = RedirectResponse(
-        target_url,
-        headers=settings.NO_CACHE_HEADERS,
+        url=target_url,
+        headers={
+            **settings.NO_CACHE_HEADERS,
+            'X-Frame-Options': 'DENY',
+        },
         status_code=status.HTTP_302_FOUND
     )
+
     response.set_cookie(
         key=f'launch-{platform_id}',
         value=proof_key.verifier,
@@ -275,8 +320,8 @@ async def login_initiations_form(
         samesite='none',
         max_age=180,
     )
+
     logger.info('Redirecting to %s', target_url)
-    # TODO: frame-busting
     return response
 
 
@@ -294,34 +339,19 @@ def scale_user_from_resource_link(message: Mapping[str, Any]) -> schemas.ScaleUs
     tool_platform = message['https://purl.imsglobal.org/spec/lti/claim/tool_platform']
     user_id = message['sub'] + '@' + tool_platform['guid']
     roles = [
-        r.rsplit('#')[1].lower()
+        r.rsplit('#')[1]
         for r in message['https://purl.imsglobal.org/spec/lti/claim/roles']
         if r.startswith('http://purl.imsglobal.org/vocab/lis/v2/membership#')
     ]
     email = message.get('email')
     if not email:
-        if tool_platform['name'] == 'Fresno State':
+        if 'fresno' in tool_platform['name'].lower():
             login_id = message['https://purl.imsglobal.org/spec/lti/claim/custom']['canvas_user_login_id']
-            email = f'{login_id.lower()}@mail.fresnostate.edu'
+            email = login_id.lower()
+            if '@' not in email:
+                email += '@mail.fresnostate.edu'
     return schemas.ScaleUser(
         id=user_id,
         email=email,
         roles=roles,
     )
-
-
-def urls_parse(url: str):
-    import urllib.parse
-
-    parsed = urllib.parse.urlparse(url)
-    params = {}
-    if qs := parsed.query:
-        for param in qs.split('&'):
-            parts = param.split('=')
-            if len(parts) == 2:
-                params[parts[0]] = urllib.parse.unquote_plus(parts[1])
-            elif len(parts) == 1:
-                params[parts[0]] = None
-            else:
-                raise ValueError(f'Invalid querystring param: {param}')
-    return parsed, params
