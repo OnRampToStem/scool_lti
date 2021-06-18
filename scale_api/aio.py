@@ -8,11 +8,13 @@ import typing
 import httpx
 from starlette.concurrency import run_in_threadpool
 
+from scale_api import app_config
+
 T = typing.TypeVar('T')
 
 logger = logging.getLogger(__name__)
 
-http_client = httpx.AsyncClient()
+http_client = httpx.AsyncClient(verify=app_config.is_production)
 
 
 def wrap(fn: typing.Callable[..., T]) -> typing.Callable[..., typing.Awaitable[T]]:
