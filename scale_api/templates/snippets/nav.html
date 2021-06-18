@@ -13,7 +13,7 @@
             <li class="nav-item">
                 {% if request.session.au %}
                 <a class="nav-link text-dark" id="logout" href="{{ url_for('logout') }}">Logout</a>
-                {% else %}
+                {% elif not request.session.scale_user %}
                 Login Required
                 {% endif %}
             </li>
