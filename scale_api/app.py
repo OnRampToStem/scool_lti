@@ -68,20 +68,17 @@ async def startup_event():
     app.state.thread_pool_executor = executor
     loop = asyncio.get_running_loop()
     loop.set_default_executor(executor)
-    task_scheduler = tasks.Scheduler()
-    task_scheduler.start()
-    app.state.task_scheduler = task_scheduler
 
 
 @app.on_event('shutdown')
 async def shutdown_event():
     logger.info('Shutdown event')
     app.state.thread_pool_executor.shutdown()
-    app.state.task_scheduler.stop()
     await aio.http_client.aclose()
 
 
 def on_startup_main() -> None:
+    tasks.task_scheduler.start()
     if app_config.ENV == 'local':
         import alembic.command
         import alembic.config
@@ -100,7 +97,7 @@ def on_startup_main() -> None:
 
 
 def on_shutdown_main() -> None:
-    pass
+    tasks.task_scheduler.stop()
 
 
 @app.get('/', include_in_schema=False)

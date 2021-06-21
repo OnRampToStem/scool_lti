@@ -15,7 +15,7 @@ class Scheduler:
 
     def __init__(self) -> None:
         self._thread = None
-        self._working = True
+        self._working = False
 
     def start(self) -> None:
         self._thread = threading.Thread(
@@ -24,12 +24,14 @@ class Scheduler:
             name='task_scheduler',
             daemon=True,
         )
+        self._working = True
         self._thread.start()
 
     def stop(self) -> None:
         self._working = False
 
     def run(self) -> None:
+        logger.info('Running Task Scheduler')
         while self._working:
             self.execute(purge_expired_cache_rows)
             time.sleep(DELAY_HOUR)
@@ -49,3 +51,6 @@ def purge_expired_cache_rows() -> None:
         logger.info('Rows purged: %s', rows_purged)
     except Exception as exc:
         logger.error('CacheStore.purge_expired failed: %r', exc)
+
+
+task_scheduler = Scheduler()
