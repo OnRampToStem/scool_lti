@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import urllib.parse
 from typing import Any, Mapping
@@ -193,9 +194,17 @@ async def launch_form(
     # TODO: determine where to redirect based on IDToken context
     # TODO: how to associate context with question/quiz/course in scale?
     # TODO: save LtiResourceLinkMessage and put a ref to it in the `scale_user`
+    # TODO: handle DeepLinking request Messages
     scale_user = scale_user_from_resource_link(claims)
     logger.info('Adding scale_user to session: %s', scale_user)
     request.session['scale_user'] = scale_user.session_dict()
+    await db.cache_store.put_async(
+        scale_user.id,
+        json.dumps(claims),
+        ttl=3600,
+        ttl_type=db.cache_store.TTL_TYPE_ROLLING,
+    )
+
     response = RedirectResponse(
         request.url_for('lti_home'),
         headers=settings.NO_CACHE_HEADERS,
