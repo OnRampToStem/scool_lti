@@ -1,16 +1,19 @@
-# Environment, valid values are local, dev, stage, prod
+# Environment, see `scale_api.settings.VALID_ENVIRONMENTS` for a list of
+# valid values.
 SCALE_ENV=local
 
 # SQLAlchemy Database URL (REQUIRED)
 # POSTGRES database connection information used by the Docker image
-POSTGRES_USER=scale_api
-POSTGRES_PASSWORD=change_me
-POSTGRES_HOST=localhost
-POSTGRES_DB=swa
-SCALE_DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
+#POSTGRES_USER=scale_api
+#POSTGRES_PASSWORD=change_me
+#POSTGRES_HOST=localhost
+#POSTGRES_DB=swa
+#SCALE_DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
 
-# To use sqlite locally for quick testing, uncomment the following:
-# SCALE_DB_URL=sqlite:///c:/projects/scale_api/scale_db.sqlite?check_same_thread=False
+# Sqlite is used by default for the `local` environment. The sqlite file will
+# created in the root project directory. To specify another location uncomment
+# setting below and provide the desired path:
+#SCALE_DB_URL=sqlite:///c:/projects/scale_api/scale_db.sqlite?check_same_thread=False
 
 # Turns on debug mode and sqlalchemy echo, defaults to False
 SCALE_DEBUG_DB=False

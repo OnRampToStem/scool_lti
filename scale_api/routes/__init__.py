@@ -1,3 +1,8 @@
+"""
+API Endpoints
+
+Contains the configuration for all API endpoint routers.
+"""
 from fastapi import APIRouter, Security
 
 from .auth import index_api as index_api

@@ -1,3 +1,13 @@
+"""
+SCALE database init script.
+
+Used to seed a newly created SCALE database with data. By default, the
+script will looking for the following file in the same directory:
+
+    scale_initdb.json
+
+See the provided `./scale_initdb-example.json` file for the required format.
+"""
 import json
 import sys
 from pathlib import Path

@@ -1,3 +1,8 @@
+"""
+Application Settings and Configuration
+
+Application-wide configuration settings that are read in from the Environment.
+"""
 import secrets
 from pathlib import Path
 from typing import List, Union

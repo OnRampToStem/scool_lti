@@ -12,7 +12,11 @@ DELAY_DAY = DELAY_HOUR * 24
 
 # TODO: use a Task Scheduling library
 class Scheduler:
+    """Task Scheduler
 
+    Runs tasks in a separate thread in order to perform periodic
+    maintenance tasks.
+    """
     def __init__(self) -> None:
         self._thread = None
         self._working = False
