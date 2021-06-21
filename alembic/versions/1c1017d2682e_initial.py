@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: 9de6e354eda5
+Revision ID: 1c1017d2682e
 Revises: 
-Create Date: 2021-06-21 11:35:06.578714
+Create Date: 2021-06-21 12:07:31.506828
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '9de6e354eda5'
+revision = '1c1017d2682e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -34,7 +34,8 @@ def upgrade():
     sa.Column('is_verified', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('client_id')
     )
     op.create_table('cache_objects',
     sa.Column('key', sa.String(length=255), nullable=False),
