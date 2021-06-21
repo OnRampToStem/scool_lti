@@ -34,7 +34,6 @@ AUTH_USER_TOKEN_OPTS = {
     'iss': {'essential': True, 'value': app_config.JWT_ISSUER},
     'aud': {'essential': True, 'value': app_config.JWT_ISSUER},
     'sub': {'essential': True},
-    'unique_name': {'essential': True}
 }
 
 JWT = jose.JsonWebToken([app_config.JWT_ALGORITHM])
