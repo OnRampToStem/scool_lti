@@ -14,7 +14,6 @@ from scale_api import (
     aio,
     db,
     settings,
-    tasks,
 )
 from scale_api.routes import api_router, index_api
 
@@ -78,7 +77,6 @@ async def shutdown_event():
 
 
 def on_startup_main() -> None:
-    tasks.task_scheduler.start()
     if app_config.ENV == 'local':
         import alembic.command
         import alembic.config
@@ -97,7 +95,7 @@ def on_startup_main() -> None:
 
 
 def on_shutdown_main() -> None:
-    tasks.task_scheduler.stop()
+    pass
 
 
 @app.get('/', include_in_schema=False)
