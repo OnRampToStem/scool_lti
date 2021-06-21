@@ -1,8 +1,10 @@
+import datetime
 import logging
 import uuid
-from typing import List
+from typing import Callable, List, Mapping, TypeVar, Union
 
 import sqlalchemy as sa
+import sqlalchemy.exc
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 
@@ -11,6 +13,8 @@ from scale_api import (
     app_config,
     schemas,
 )
+
+T = TypeVar('T')
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +123,25 @@ class Message(Base):
         )
 
 
+class Cache(Base):
+    __tablename__ = 'cache_objects'
+
+    key = sa.Column(sa.String(255), primary_key=True)
+    ttl = sa.Column(sa.Integer, default=3600)
+    ttl_type = sa.Column(sa.String(10), default='fixed')
+    expire_at = sa.Column(sa.DateTime)
+    value = sa.Column(sa.Text)
+
+    def __repr__(self) -> str:
+        return (
+            f'Cached(key={self.key!r}, '
+            f'ttl={self.ttl}, '
+            f'ttl_type={self.ttl_type}, '
+            f'expire_at={self.expire_at}, '
+            f')'
+        )
+
+
 class ScaleStore:
 
     def platforms(self) -> List[schemas.Platform]:
@@ -132,7 +155,7 @@ class ScaleStore:
 
         return platforms
 
-    def platform(self, platform_id) -> schemas.Platform:
+    def platform(self, platform_id: str) -> schemas.Platform:
         stmt = sa.select(Platform).where(Platform.id == platform_id)
         with SessionLocal() as session:
             result = session.execute(stmt).scalar()
@@ -248,5 +271,116 @@ class MessageStore:
     delete_async = aio.wrap(delete)
 
 
+class CacheStore:
+
+    TTL_DEFAULT = 3600
+    TTL_TYPE_FIXED = 'fixed'
+    TTL_TYPE_ROLLING = 'rolling'
+
+    def __init__(self,
+                 now_func: Callable[..., datetime.datetime] = datetime.datetime.utcnow) -> None:
+        self.now = now_func
+
+    def _calc_expires(self, ttl: int) -> datetime.datetime:
+        return self.now() + datetime.timedelta(seconds=ttl)
+
+    def guid(self, prefix: str = '') -> str:
+        return f'{prefix}{new_uuid()}'
+
+    def put(self, key: str, value: str, *,
+            ttl: int = TTL_DEFAULT,
+            ttl_type: str = TTL_TYPE_FIXED,
+            append_guid: bool = False) -> str:
+        key = self.guid(key) if append_guid else key
+        self.put_many({key: value}, ttl=ttl, ttl_type=ttl_type)
+        return key
+
+    def put_many(self, data: Mapping[str, str], *,
+                 ttl: int = TTL_DEFAULT,
+                 ttl_type: str = TTL_TYPE_FIXED) -> None:
+        expire_at = self._calc_expires(ttl)
+        entries = [
+            Cache(
+                key=k,
+                value=v,
+                ttl=ttl,
+                ttl_type=ttl_type,
+                expire_at=expire_at,
+            )
+            for k, v in data.items()
+        ]
+        with SessionLocal() as session:
+            try:
+                session.add_all(entries)
+                session.commit()
+            except sqlalchemy.exc.IntegrityError:
+                session.rollback()
+                for new_entry in entries:
+                    entry = session.get(Cache, new_entry.key)
+                    if entry is None:
+                        session.add(new_entry)
+                    else:
+                        entry.value = new_entry.value
+                        entry.ttl = ttl
+                        entry.ttl_type = ttl_type
+                        entry.expire_at = expire_at
+                session.commit()
+
+    def get(self, key: str, default: T = None) -> Union[str, T]:
+        with SessionLocal() as session:
+            entry = session.get(Cache, key)
+            if entry:
+                if entry.expire_at > self.now():
+                    if entry.ttl_type == 'rolling':
+                        entry.expire_at = self._calc_expires(entry.ttl)
+                        session.commit()
+                    value = entry.value
+                else:
+                    session.delete(entry)
+                    session.commit()
+                    value = default
+            else:
+                value = default
+
+        return value
+
+    def get_many(self, key_prefix: str) -> Mapping[str, str]:
+        now = self.now()
+        stmt = sa.select(Cache).where(Cache.key.ilike(key_prefix + '%'))
+        with SessionLocal.begin() as session:
+            entries = {}
+            for entry in session.execute(stmt).scalars():
+                if entry.expire_at > now:
+                    entries[entry.key] = entry.value
+                    if entry.ttl_type == 'rolling':
+                        entry.expire_at = self._calc_expires(entry.ttl)
+                else:
+                    session.delete(entry)
+        return entries
+
+    def pop(self, key: str, default: T = None) -> Union[str, T]:
+        with SessionLocal.begin() as session:
+            entry = session.get(Cache, key)
+            if entry is None:
+                return default
+            value = entry.value if entry.expire_at > self.now() else default
+            session.delete(entry)
+        return value
+
+    def purge_expired(self) -> int:
+        stmt = sa.delete(Cache).where(Cache.expire_at <= self.now())
+        with SessionLocal.begin() as session:
+            rows_purged = session.execute(stmt).rowcount
+        return rows_purged
+
+    put_async = aio.wrap(put)
+    put_many_async = aio.wrap(put_many)
+    get_async = aio.wrap(get)
+    get_many_async = aio.wrap(get_many)
+    pop_async = aio.wrap(pop)
+    purge_expired_async = aio.wrap(purge_expired)
+
+
 store = ScaleStore()
 message_store = MessageStore()
+cache_store = CacheStore()

@@ -13,6 +13,7 @@ from scale_api import (
     app_config,
     aio,
     db,
+    tasks,
 )
 from scale_api.routes import api_router, index_api
 
@@ -66,12 +67,16 @@ async def startup_event():
     app.state.thread_pool_executor = executor
     loop = asyncio.get_running_loop()
     loop.set_default_executor(executor)
+    task_scheduler = tasks.Scheduler()
+    task_scheduler.start()
+    app.state.task_scheduler = task_scheduler
 
 
 @app.on_event('shutdown')
 async def shutdown_event():
     logger.info('Shutdown event')
     app.state.thread_pool_executor.shutdown()
+    app.state.task_scheduler.stop()
     await aio.http_client.aclose()
 
 
