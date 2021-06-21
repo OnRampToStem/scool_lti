@@ -89,7 +89,7 @@ class AuthJsonWeKey(Base):
 
     kid = sa.Column(sa.String(64), primary_key=True)
     data = sa.Column(sa.Text, nullable=False)
-    valid_from = sa.Column(sa.DateTime, server_default=sa.func.now())
+    valid_from = sa.Column(sa.DateTime, default=sa.func.now())
     valid_to = sa.Column(sa.DateTime, nullable=True)
 
     def __repr__(self) -> str:

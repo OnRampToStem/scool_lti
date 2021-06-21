@@ -13,6 +13,7 @@ from scale_api import (
     app_config,
     aio,
     db,
+    settings,
     tasks,
 )
 from scale_api.routes import api_router, index_api
@@ -82,6 +83,13 @@ async def shutdown_event():
 
 def on_startup_main() -> None:
     if app_config.ENV == 'local':
+        import alembic.command
+        import alembic.config
+
+        alembic_cfg = alembic.config.Config(settings.BASE_PATH / 'alembic.ini')
+        alembic_cfg.set_main_option('script_location', str(settings.BASE_PATH / 'alembic'))
+        alembic.command.upgrade(alembic_cfg, 'head')
+
         import scale_initdb
         import scale_api.settings
 

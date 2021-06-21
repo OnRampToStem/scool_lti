@@ -5,8 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
+import scale_api
 import scale_api.db
-import scale_api.settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -26,7 +26,7 @@ target_metadata = scale_api.db.Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-config.set_main_option('sqlalchemy.url', scale_api.settings.app_config.DB_URL)
+config.set_main_option('sqlalchemy.url', scale_api.app_config.DB_URL)
 
 
 def run_migrations_offline():
