@@ -1,9 +1,12 @@
+"""
+SCALE API (OR2STEM)
+"""
 import logging.config
 import os
 
 from . import settings
 
-__version__ = '21.6.21'
+__version__ = '21.7.5'
 
 LOGGING = {
     'version': 1,

@@ -1,3 +1,8 @@
+"""
+FastAPI main entry point
+
+This modules configures our FastAPI application.
+"""
 import asyncio
 import concurrent.futures
 import logging
@@ -35,6 +40,9 @@ app = FastAPI(
 
 logger.info('Adding Session middleware with max age (in secs): %s',
             app_config.SESSION_MAX_AGE)
+# Session middleware allows use of ``request.session`` as a dict and is used
+# to store SCALE user info. The session cookie is a JWT, so information
+# stored is not encrypted (just signed).
 app.add_middleware(
     SessionMiddleware,
     secret_key=app_config.SECRET_KEY,
@@ -45,6 +53,9 @@ app.add_middleware(
 
 logger.info('Adding CORS middleware for origins: %s',
             app_config.BACKEND_CORS_ORIGINS)
+# CORS middleware allows for making xhr requests to the API from the
+# front-end webapp. This is used mainly for development so that the front-end
+# can be run on ``http://localhost:8080`` and able to make calls to the API.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[str(u) for u in app_config.BACKEND_CORS_ORIGINS],
@@ -56,6 +67,13 @@ app.add_middleware(
 
 @app.on_event('startup')
 async def startup_event():
+    """Runs at startup for each web worker process.
+
+    Since most non-async code will be database IO bound, we set our own
+    ThreadPoolExecutor with a configured number of workers. We want at
+    least ~10 workers, but if using the default executor on a smallish
+    EC2 instance would only have on ~5.
+    """
     loop = asyncio.get_running_loop()
     logger.info('Starting up in loop [%r]', loop)
     workers = app_config.THREAD_POOL_WORKERS
@@ -71,12 +89,27 @@ async def startup_event():
 
 @app.on_event('shutdown')
 async def shutdown_event():
+    """Runs on shutdown for each web worker process.
+
+    Since we manually configured a ThreadPoolExecutor on startup we shut
+    it down here along with any other resources that may have been started
+    on startup on during execution.
+    """
     logger.info('Shutdown event')
     app.state.thread_pool_executor.shutdown()
     await aio.http_client.aclose()
 
 
 def on_startup_main() -> None:
+    """Runs once before any web worker processes are started.
+
+    This code runs before any processing spawning/forking occurs, so no
+    threads should be started here or if so they should complete before
+    this function ends.
+
+    We use this startup event to create and seed the database for local
+    development.
+    """
     if app_config.ENV == 'local':
         import alembic.command
         import alembic.config
@@ -95,6 +128,7 @@ def on_startup_main() -> None:
 
 
 def on_shutdown_main() -> None:
+    """Runs once before any web worker processes are started."""
     pass
 
 
@@ -106,6 +140,7 @@ async def index(request: Request):
 
 @app.get(f'{app_config.PATH_PREFIX}/lb-status', include_in_schema=False)
 async def health_check():
+    """Provides a health check endpoint for the Load Balancer."""
     return {
         'app_version': __version__,
         'framework_version': fastapi_version,
@@ -115,6 +150,7 @@ async def health_check():
     }
 
 
+# All routes are defined in ``scale_api.routes``
 app.include_router(api_router, prefix=app_config.PATH_PREFIX)
 
 

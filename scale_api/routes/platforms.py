@@ -1,3 +1,6 @@
+"""
+Platforms routes
+"""
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Request, status

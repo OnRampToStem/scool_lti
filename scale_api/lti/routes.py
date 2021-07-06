@@ -1,8 +1,17 @@
-import datetime
-import json
+"""
+LTI 1.3 Endpoint
+
+This route handles the OIDC Login Initiation request from the Platform
+and the Launch Request.
+
+The Launch Request route is responsible for generating a ``ScaleUser``
+that is used throughout the application.
+
+see https://www.imsglobal.org/spec/lti/v1p3
+"""
 import logging
 import urllib.parse
-from typing import Any, Mapping
+import uuid
 
 from authlib import jose
 from authlib.oidc.core import IDToken
@@ -19,13 +28,13 @@ from fastapi.responses import RedirectResponse
 
 from scale_api import (
     app_config,
-    auth,
     db,
     keys,
     settings,
     schemas,
     templates,
 )
+from scale_api.lti import messages
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +54,12 @@ async def lti_home(request: Request):
 
 @router.get('/{platform_id}/config')
 async def lti_config(request: Request, platform_id: str):
+    """Canvas LTI Configuration.
+
+    This route provides configuration information for the Canvas LMS. When
+    creating a LTI Developer Key in Canvas, the URL to this route can be
+    provided in order to automate the set up.
+    """
     platform = await platform_or_404(platform_id)
     tool_url = request.url_for(lti_config.__qualname__, platform_id=platform.id)
     tool_domain = urllib.parse.urlparse(tool_url).hostname
@@ -121,14 +136,21 @@ async def lti_config(request: Request, platform_id: str):
 @router.get('/{platform_id}/launches', include_in_schema=False)
 async def launch_query(
         request: Request,
+        response: Response,
         platform_id: str,
         state: str = Query(...),
         id_token: str = Query(None),
         error: str = Query(None),
         error_description: str = Query(None),
 ):
+    """LTI Launch endpoint.
+
+    This route is provided for compatibility only. Launch requests SHOULD
+    normally be a POST request since the IDToken value can be quite large.
+    """
     return await launch_form(
         request,
+        response,
         platform_id,
         state,
         id_token,
@@ -140,12 +162,20 @@ async def launch_query(
 @router.post('/{platform_id}/launches')
 async def launch_form(
         request: Request,
+        response: Response,
         platform_id: str,
         state: str = Form(...),
         id_token: str = Form(None),
         error: str = Form(None),
         error_description: str = Form(None),
 ):
+    """LTI Launch endpoint.
+
+    This handle the Launch Requests from the LMS. The LMS must have this
+    ``redirect_uri`` configured and will return the user to this endpoint
+    after the OIDC login initiation is performed.
+    """
+    # Always expect an IDToken
     if id_token is None:
         logger.error('Error code: %s, description: %s',
                      error, error_description)
@@ -153,6 +183,17 @@ async def launch_form(
 
     platform = await platform_or_404(platform_id)
     logger.info('id_token: %s, %s', id_token, platform)
+
+    # Match up the state provided in the OIDC login initiation with the
+    # state store in a cookie. This ensure this request is associated with
+    # this user-agent.
+    state_cookie = request.cookies.get(f'lti1p3-state-{platform_id}')
+    if state_cookie != state:
+        logger.error('State cookie value [%s] does not match state [%s]',
+                     state_cookie, state)
+        return {'error': 'invalid_state'}
+
+    # Some basic jwt claims validation options
     id_token_opts = {
         'iss': {
             'essential': True,
@@ -167,51 +208,77 @@ async def launch_form(
         }
     }
 
+    # Since the IDToken is being provided by the user-agent and not from
+    # a direct call from our application, we MUST validate the sig.
     # TODO - handle case where we need to re-fetch the jwks url
     key_set = await keys.get_jwks_from_url(platform.jwks_url)
     claims = JWT.decode(id_token, key_set, claims_cls=IDToken, claims_options=id_token_opts)
     logger.info(claims)
     claims.validate(leeway=5)
 
-    hashed_nonce = claims.get('nonce')
-    proof_key = auth.ProofKey(request.cookies[f'launch-{platform_id}'])
-    assert proof_key.verify(hashed_nonce)
+    # To avoid replay attacks we verify the nonce provided was previously
+    # stored and then we remove from the cache so any future requests with
+    # the same nonce will fail.
+    nonce = claims.get('nonce')
+    cached_nonce_plat = await db.cache_store.pop_async(f'lti1p3-nonce-{nonce}')
+    if not cached_nonce_plat or cached_nonce_plat != platform_id:
+        logger.error('Nonce not found or platform not matched: %s',
+                     cached_nonce_plat)
+        return {'error': 'invalid_nonce'}
 
-    state_token_opts = {
-        'iss': {
-            'essential': True,
-            'value': platform.client_id,
-        },
-        'aud': {
-            'essential': True,
-            'value': claims['https://purl.imsglobal.org/spec/lti/claim/target_link_uri'],
-        },
-    }
-    jwt_key = f'{proof_key.verifier}:{app_config.SECRET_KEY}'
-    state_token = jose.jwt.decode(state, jwt_key, claims_options=state_token_opts)
-    state_token.validate(leeway=5)
-
-    # TODO: determine where to redirect based on IDToken context
-    # TODO: how to associate context with question/quiz/course in scale?
-    # TODO: save LtiResourceLinkMessage and put a ref to it in the `scale_user`
-    # TODO: handle DeepLinking request Messages
-    scale_user = scale_user_from_resource_link(claims)
+    # At this point the IDToken (Launch Request) is valid and we can
+    # build a ``ScaleUser`` from it. We also store it for use later
+    # in order to make calls to the LTI Advantage Services.
+    message_launch = messages.LtiLaunchRequest(platform, claims)
+    scale_user = message_launch.scale_user
     logger.info('Adding scale_user to session: %s', scale_user)
     request.session['scale_user'] = scale_user.session_dict()
     await db.cache_store.put_async(
-        scale_user.id,
-        json.dumps(claims),
+        message_launch.launch_id,
+        message_launch.dumps(),
         ttl=3600,
         ttl_type=db.cache_store.TTL_TYPE_ROLLING,
     )
 
+    # Handle Deep Linking requests separately
+    if message_launch.is_deep_link_launch:
+        return await deep_link_launch(request, response, message_launch)
+
+    # From here we just need to determine where to send the user in
+    # order to being using the SCALE app.
+
+    if app_config.is_local:
+        base_url = 'http://localhost:8080'
+    else:
+        base_url = request.url_for('lti_home')
+
+    if app_config.is_production:
+        course_path = '/question-editor/'
+    elif app_config.is_local:
+        course_path = '/'
+    else:
+        course_path = f'/{app_config.ENV}/question-editor/'
+
+    target_url = urllib.parse.urljoin(base_url, course_path)
+    logger.info('Redirecting to %s', target_url)
     response = RedirectResponse(
-        request.url_for('lti_home'),
+        target_url,
         headers=settings.NO_CACHE_HEADERS,
         status_code=status.HTTP_302_FOUND
     )
-    response.delete_cookie(key=f'launch-{platform_id}')
+    response.delete_cookie(f'lti1p3-state-{platform_id}')
     return response
+
+
+async def deep_link_launch(
+        request: Request,
+        response: Response,
+        message_launch: messages.LtiLaunchRequest
+):
+    """Deep Linking Launch Requests."""
+    # TODO: handle DeepLinking request Messages
+    response.delete_cookie(f'lti1p3-state-{message_launch.platform.id}')
+    return {'error': f'{message_launch.message_type} launches not implemented'}
 
 
 @router.get('/{platform_id}/login_initiations', include_in_schema=False)
@@ -227,6 +294,11 @@ async def login_initiations_query(
         client_id: str = Query(None),
 
 ):
+    """LTI OIDC Login Initiation.
+
+    Provided in order to support either GET or POST requests. This delegates
+    to the POST launch endpoint.
+    """
     return await login_initiations_form(
         request,
         response,
@@ -252,6 +324,12 @@ async def login_initiations_form(
         lti_deployment_id: str = Form(None),
         client_id: str = Form(None),
 ):
+    """LTI OIDC Login Initiation.
+
+    LTI 1.3 uses a modified version of OIDC 3rd Party Login Initiation. The
+    URL is ``Platform`` specific in order to work with multiple configured
+    platforms.
+    """
     platform = await platform_or_404(platform_id)
     logger.info('login_initiations(iss=%s, login_hint=%s, target_link_uri=%s, '
                 'lti_message_hint=%s, lti_deployment_id=%s, client_id=%s)',
@@ -286,31 +364,39 @@ async def login_initiations_form(
             'error_description': 'Invalid target_link_uri'
         }
 
-    jwt_header = {'alg': 'HS256', 'type': 'JWT'}
-    jwt_state = {
-        'iss': platform.client_id,
-        'aud': target_link_uri,
-        'iat': datetime.datetime.utcnow() - datetime.timedelta(minutes=1),
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5),
-    }
-    proof_key = auth.ProofKey()
-    jwt_key = f'{proof_key.verifier}:{app_config.SECRET_KEY}'
-    state = jose.jwt.encode(jwt_header, jwt_state, jwt_key)
+    state = uuid.uuid4().hex  # associate launch with the user-agent (browser)
+    nonce = uuid.uuid4().hex  # prevent replay attacks
+    await db.cache_store.put_async(f'lti1p3-nonce-{nonce}', platform_id, ttl=120)
     query_string = {
+        # only supported type is id_token
         'response_type': 'id_token',
+        # the url registered with the platform
         'redirect_uri': target_link_uri,
+        # since the id_token can be large we ask that it be POST'd
         'response_mode': 'form_post',
+        # client_id provided when our app was registered with the platform
         'client_id': platform.client_id,
+        # must include ``openid``, does not appear any other OIDC scopes such as
+        # ``email`` or ``profile`` can be specified here (at least for Canvas)
         'scope': 'openid',
         'state': state,
-        'login_hint': login_hint,
-        'lti_message_hint': lti_message_hint,
-        'nonce': proof_key.challenge,
+        'nonce': nonce,
+        # since the launch is initiated from the platform and the user is
+        # already authenticated there
         'prompt': 'none',
     }
 
+    # Per the spec, if ``login_hint`` or ``lti_message_hint`` were provided
+    # then they need to be included in the request.
+
+    if login_hint:
+        query_string['login_hint'] = login_hint
+
+    if lti_message_hint:
+        query_string['lti_message_hint'] = lti_message_hint
+
     encoded_query_string = urllib.parse.urlencode(query_string)
-    target_url = f'{platform.oidc_auth_url}?{encoded_query_string}'
+    target_url = urllib.parse.urljoin(str(platform.oidc_auth_url), '?' + encoded_query_string)
 
     response = RedirectResponse(
         url=target_url,
@@ -322,12 +408,11 @@ async def login_initiations_form(
     )
 
     response.set_cookie(
-        key=f'launch-{platform_id}',
-        value=proof_key.verifier,
+        f'lti1p3-state-{platform_id}',
+        state,
+        max_age=120,
         secure=True,
-        httponly=True,
         samesite='none',
-        max_age=180,
     )
 
     logger.info('Redirecting to %s', target_url)
@@ -335,6 +420,7 @@ async def login_initiations_form(
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:
+    """Returns a ``Platform``, else an HTTP 404 if one is not found for the id."""
     try:
         return await db.store.platform_async(platform_id)
     except LookupError:
@@ -342,25 +428,3 @@ async def platform_or_404(platform_id: str) -> schemas.Platform:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Platform {platform_id} not found'
         )
-
-
-def scale_user_from_resource_link(message: Mapping[str, Any]) -> schemas.ScaleUser:
-    tool_platform = message['https://purl.imsglobal.org/spec/lti/claim/tool_platform']
-    user_id = message['sub'] + '@' + tool_platform['guid']
-    roles = [
-        r.rsplit('#')[1]
-        for r in message['https://purl.imsglobal.org/spec/lti/claim/roles']
-        if r.startswith('http://purl.imsglobal.org/vocab/lis/v2/membership#')
-    ]
-    email = message.get('email')
-    if not email:
-        if 'fresno' in tool_platform['name'].lower():
-            login_id = message['https://purl.imsglobal.org/spec/lti/claim/custom']['canvas_user_login_id']
-            email = login_id.lower()
-            if '@' not in email:
-                email += '@mail.fresnostate.edu'
-    return schemas.ScaleUser(
-        id=user_id,
-        email=email,
-        roles=roles,
-    )

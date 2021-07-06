@@ -1,3 +1,9 @@
+"""
+SCALE API Database
+
+This module defines the models and repositories used to store data
+for this application.
+"""
 import datetime
 import logging
 import uuid
@@ -37,10 +43,20 @@ Base = sqlalchemy.ext.declarative.declarative_base()
 
 
 def new_uuid() -> str:
+    """Return a UUID as a 32-character hex string."""
     return uuid.uuid4().hex
 
 
 class Platform(Base):
+    """An Learning Management Systems (LMS) platform.
+
+    This represents an LMS with respect to all the information required
+    in order to connect with it using LTI 1.3.
+
+    Note that some LMS vendors such as Canvas use the same `issuer`` URL
+    for all installations. So the ``issuer`` field can not be assumed to be
+    a unique identifier.
+    """
     __tablename__ = 'platforms'
 
     id = sa.Column(sa.String(32), primary_key=True, default=new_uuid)
@@ -59,6 +75,12 @@ class Platform(Base):
 
 
 class AuthUser(Base):
+    """Authorized User.
+
+    This represents a local user/client account that can be authorized
+    for endpoints. This is distinct from a ``ScaleUser`` which is authorized
+    using LTI.
+    """
     __tablename__ = 'auth_users'
 
     id = sa.Column(sa.String(32), primary_key=True, default=new_uuid)
@@ -72,6 +94,7 @@ class AuthUser(Base):
 
     @sqlalchemy.orm.validates('client_id')
     def normalize_client_id(self, key, value):
+        """Ensure we always store the ``client_id`` in lowercase."""
         return value.lower()
 
     def __repr__(self) -> str:
@@ -85,6 +108,14 @@ class AuthUser(Base):
 
 
 class AuthJsonWeKey(Base):
+    """JSON Web Keys.
+
+    This represents the JSON Web Key(s) used by this application, primarily
+    for LTI integration. When configuring LTI a JSON Web Key or JWKS URL
+    must be provided to the Platform. This key or URL is used by the Platform
+    to validate JWT Bearer tokens provided in order to gain access tokens
+    when calling LTI Advantage Services.
+    """
     __tablename__ = 'auth_jwks'
 
     kid = sa.Column(sa.String(64), primary_key=True)
@@ -103,6 +134,10 @@ class AuthJsonWeKey(Base):
 
 
 class Message(Base):
+    """A generic message store.
+
+    This represents a generic text blob storage.
+    """
     __tablename__ = 'messages'
 
     id = sa.Column(sa.String(36), primary_key=True, default=new_uuid)
@@ -124,6 +159,15 @@ class Message(Base):
 
 
 class Cache(Base):
+    """Cache table.
+
+    Used to temporarily cache entries. This is used in placed of a service
+    like Redis or Memcache and avoids needing to use in-memory storage
+    for cache. While slower, this enables this application to remain
+    stateless and avoids the complexity of relying on other services. Given
+    the anticipated use of this application, using a database-backed cache
+    table seems appropriate.
+    """
     __tablename__ = 'cache_objects'
 
     key = sa.Column(sa.String(255), primary_key=True)
@@ -143,7 +187,7 @@ class Cache(Base):
 
 
 class ScaleStore:
-
+    """SCALE Application Repository."""
     def platforms(self) -> List[schemas.Platform]:
         stmt = sa.select(Platform)
         with SessionLocal() as session:
@@ -212,7 +256,7 @@ class ScaleStore:
 
 
 class MessageStore:
-
+    """Messages Repository."""
     def messages(self, subject: str) -> List[schemas.Message]:
         stmt = sa.select(Message).where(
             Message.subject == subject,
@@ -272,7 +316,7 @@ class MessageStore:
 
 
 class CacheStore:
-
+    """Cache Repository."""
     TTL_DEFAULT = 3600
     TTL_TYPE_FIXED = 'fixed'
     TTL_TYPE_ROLLING = 'rolling'

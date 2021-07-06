@@ -8,11 +8,11 @@ from fastapi import APIRouter, Security
 from .auth import index_api as index_api
 from .auth import router as router_auth
 from .firebase import router as router_firebase
-from .lti import router as router_lti
 from .messages import router as router_messages
 from .platforms import router as router_platforms
 from .well_known import router as router_well_known
 from .. import auth
+from ..lti.routes import router as router_lti
 
 api_router = APIRouter()
 

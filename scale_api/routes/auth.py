@@ -1,4 +1,11 @@
+"""
+Authentication routes
+
+Provides endpoints for authentication for ``AuthUser`` requests
+and token services for ``ScaleUser`` requests.
+"""
 import logging
+import uuid
 from typing import Optional
 
 from fastapi import (
@@ -72,6 +79,18 @@ async def session_user_token(
         request: Request,
         response: Response,
 ):
+    """The ``ScaleUser`` token endpoint.
+
+    This endpoint provides authentication tokens to the front-end
+    webapp. The ``ScaleUser`` is stored in the web session so this
+    requires that the request be generated from the same origin or
+    if from cross-origin that ``withCredentials`` be specified in
+    the xhr call.
+
+    If a ``ScaleUser`` has not previously be set in the web session
+    from an LTI launch, then an ``AuthUser`` will be returned if one
+    is present in the web session.
+    """
     session_user = request.session.get('scale_user')
     if session_user:
         scale_user = schemas.ScaleUser.parse_obj(session_user)
@@ -93,6 +112,13 @@ async def scale_user_token_impersonate(
         response: Response,
         scale_user_request: schemas.ScaleUserImpersonationRequest,
 ):
+    """The ``ScaleUser`` impersonation token endpoint.
+
+    This endpoint provides authentication tokens to the front-end
+    webapp in non-production mode. This allows the developer to
+    provide, via POST'd json payload, the values that they want
+    the returned ``ScaleUser`` token to contain.
+    """
     if app_config.is_production:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
@@ -104,6 +130,7 @@ async def scale_user_token_impersonate(
         id=scale_user_request.id,
         email=scale_user_request.email,
         roles=scale_user_request.roles,
+        context=scale_user_request.context,
     )
 
     request.session['scale_user'] = scale_user.session_dict()
@@ -122,6 +149,11 @@ async def oauth_token(
         client_id: Optional[str] = Form(None),
         client_secret: Optional[str] = Form(None),
 ):
+    """OAuth 2.0 Token Endpoint.
+
+    This endpoint supports the ``client_credentials`` grant type and is
+    used in order to authenticate ``AuthUser`` clients for API calls.
+    """
     if grant_type != 'client_credentials':
         response.status_code = 400
         return {'error': 'invalid_request'}
@@ -156,14 +188,19 @@ async def oauth_token(
     }
 
 
-@router.get('/userinfo', response_model=schemas.AuthUser, dependencies=[Depends(auth.authorize)])
+@router.get('/userinfo', dependencies=[Depends(auth.authorize)])
 def user_info(request: Request):
+    """User Info endpoint."""
+    scale_user = request.session.get('scale_user')
+    if scale_user is not None:
+        return scale_user
     return request.state.auth_user
 
 
 # TODO: indicate what provider (school) this is for so correct target urls can be gotten
 @router.get('/cas', include_in_schema=False)
 async def cas_login(request: Request, ticket: Optional[str] = None):
+    """CAS login."""
     if ticket is not None:
         return await cas_validate(request, ticket)
     # TODO: need to save the sso provider, for now assume Fresno State CAS
@@ -175,9 +212,12 @@ async def cas_login(request: Request, ticket: Optional[str] = None):
 
 @router.post('/cas', include_in_schema=False)
 async def cas_validate(request: Request, ticket: str = Form(...)):
+    """CAS Ticket Validation."""
     service_url = request.url_for('cas_login')
     try:
         cas_user = await cas.cas_client.validate(service_url, ticket)
+        # TODO: we should be able to pull email from the response,
+        # TODO: or we should store the user suffix per sso provider
         auth_user = await db.store.user_by_client_id_async(f'{cas_user}@mail.fresnostate.edu')
     except (LookupError, cas.CasException) as exc:
         logger.error('cas_validate error: %r', exc)
@@ -218,16 +258,20 @@ async def reset_password_change(request: Request):
     return {'p': 'post.reset_password_change'}
 
 
-def verify_request(request: Request, challenge: str) -> None:
+def verify_request(request: Request, form_token: str) -> None:
+    """Verifies the CSRF form token matches the token stored in the web session."""
     csrf_token = request.session.get('csrf_token')
-    pk = auth.ProofKey(csrf_token)
-    if not pk.verify(challenge):
+    if not csrf_token or form_token != csrf_token:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
 
 def build_context(request: Request) -> dict:
+    """Provides a CSRF token for use in a template.
+
+    Returns the CSRF token from the web session if one exists. Else
+    generates a new token and sets it in the web session.
+    """
     csrf_token = request.session.get('csrf_token')
-    pk = auth.ProofKey(csrf_token)
     if csrf_token is None:
-        request.session['csrf_token'] = pk.verifier
-    return {'csrf_token': pk.challenge}
+        request.session['csrf_token'] = csrf_token = uuid.uuid4().hex
+    return {'csrf_token': csrf_token}

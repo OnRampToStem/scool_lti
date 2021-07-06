@@ -1,3 +1,6 @@
+"""
+OAuth/OIDC Well Known routes
+"""
 from fastapi import APIRouter, Request
 
 from scale_api import (
@@ -10,6 +13,7 @@ router = APIRouter()
 
 @router.get('/jwks.json')
 async def jwks():
+    """JSON Web Keyset endpoint."""
     ks = await keys.public_keyset()
     ks_dict = ks.as_dict()
     for entry in ks_dict['keys']:
@@ -22,6 +26,7 @@ async def jwks():
 
 @router.get('/oauth-authorization-server')
 async def oauth_server_metadata(request: Request):
+    """OAuth 2.0 configuration endpoint."""
     return {
         'issuer': app_config.JWT_ISSUER,
         'token_endpoint': request.url_for('oauth_token'),

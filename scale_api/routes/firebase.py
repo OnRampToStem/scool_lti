@@ -1,3 +1,12 @@
+"""
+Firebase entries
+
+This endpoint is provided for compatibility only. It delegates calls to
+the ``messages`` routes. Once the front-end webapp is converted to use
+``messages`` directly or a new scheme for storing the data is defined,
+then this module can be removed.
+"""
+# TODO: remove this after front-end is updated
 import json
 import logging
 

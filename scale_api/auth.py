@@ -1,8 +1,24 @@
+"""
+Authentication and authorization
+
+There are two main types of "users" that are handled by this module.
+
+    AuthUser
+    ScaleUser
+
+An ``AuthUser`` is a user/client defined in this application's database
+and is a user/client that can access the API for development or administration
+of the application. This type of user is authenticated from a username and
+password stored locally or via Single Sign-On (SSO).
+
+A ``ScaleUser`` is a user that launched this application from a Learning
+Management System (LMS) such as Canvas and have been authenticated via
+Learning Tools Interoperability (LTI).
+"""
 import base64
 import datetime
 import hashlib
 import logging
-import secrets
 import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Union
@@ -42,24 +58,25 @@ pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
 @dataclass
-class ProofKey:
-    def __init__(self, verifier: str = None) -> None:
-        if verifier is None:
-            verifier = secrets.token_urlsafe(64)
-        self.verifier = verifier
-
-    @property
-    def challenge(self) -> str:
-        return sha256(self.verifier)
-
-    def verify(self, challenge: str) -> bool:
-        if challenge is None:
-            return False
-        return secrets.compare_digest(self.challenge, challenge)
-
-
-@dataclass
 class ScopePermission:
+    """Represents a permission to a particular resource.
+
+    We use simple colon ``:`` separated strings to represent a permission
+    to a particular resource along with permitted actions and optionally
+    a set of permitted items.
+
+    For example:
+        platform:write (write and implies read)
+        platform:read (read-only)
+        platform:* (read/write/delete)
+        platform:read:ae09b1a3c9ff4102a9953a1301bc9e11,87e927ab1abb46d6868760f7a081c178
+
+    The last scope provides permission to read only the two specified
+    platforms (by id).
+
+    Note that scopes are also used in some cases to store other information
+    such as roles, ``role:Instructor``.
+    """
     resource: str
     actions: Set[str]
     items: Set[str]
@@ -96,6 +113,12 @@ class ScopePermission:
 
 
 class OAuth2ClientCredentials(OAuth2):
+    """OAuth 2.0 Client Credentials flow.
+
+    This is mainly used by the openapi docs in order to prompt for a
+    ``client_id`` and ``client_secret`` when authenticating for the docs
+    "Try It" feature.
+    """
     def __init__(
             self,
             tokenUrl: str,
@@ -123,10 +146,12 @@ oauth2_token = OAuth2ClientCredentials(
 
 
 def hash_password(password_plain: str) -> str:
+    """Returns a hashed string suitable for storing in a database."""
     return pwd_context.hash(password_plain)
 
 
 def verify_password(password_plain: str, password_hash: str) -> bool:
+    """Returns True if the plain string matches the provided hash."""
     return pwd_context.verify(password_plain, password_hash)
 
 
@@ -135,6 +160,13 @@ async def authorize(
         scopes: SecurityScopes,
         bearer_token: str = Depends(oauth2_token),
 ):
+    """Main security dependency for routes requiring authentication.
+
+    All routes defined in ``scale_api.routes`` that require authentication
+    and authorization depend on this function. This function first looks
+    for auth info in the form of a Bearer token in the ``Authorization``
+    HTTP Header. It falls back to looking in the request session.
+    """
     logger.info('authorize(bearer_token=[%s], scopes=[%s])',
                 bearer_token, scopes.scope_str)
 
@@ -159,6 +191,7 @@ async def authorize(
 
 
 def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) -> str:
+    """Returns an access token (JWT) for an ``AuthUser``."""
     payload = {
         'sub': auth_user.id,
         'client_id': auth_user.client_id,
@@ -168,6 +201,11 @@ def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) ->
 
 
 def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1) -> str:
+    """Returns an access token (JWT) for a ``ScaleUser``.
+
+    This token is also used by the front-end web app to gather role and
+    course info for the user.
+    """
     payload = {
         'sub': scale_user.id,
         # TODO: legacy claim used by dotnet
@@ -175,14 +213,21 @@ def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1)
         'unique_name': scale_user.email,
         'email': scale_user.email,
         'roles': scale_user.roles,
+        'context': scale_user.context,
     }
     return create_token(payload, expires_in)
 
 
 def create_token(payload: dict, expires_in: int = -1) -> str:
+    """Returns a JWT signed with a secret key.
+
+    Tokens returned from this function are meant to only be validated
+    by this application and not externally, so that is why an RSA key is
+    not used. The Issuer and Audience for this JWT are set to this app.
+    """
     if expires_in == -1:
         expires_in = app_config.OAUTH_ACCESS_TOKEN_EXPIRY
-    issued_at = datetime.datetime.utcnow() - datetime.timedelta(seconds=30)
+    issued_at = datetime.datetime.utcnow() - datetime.timedelta(seconds=5)
     expires_at = issued_at + datetime.timedelta(seconds=expires_in)
     payload['iat'] = issued_at
     payload['exp'] = expires_at
@@ -197,6 +242,13 @@ def create_token(payload: dict, expires_in: int = -1) -> str:
 
 
 async def auth_user_from_token(token: str) -> schemas.AuthUser:
+    """Returns an ``AuthUser`` from the provided JWT.
+
+    This functions handles tokens that were generated for either an
+    ``AuthUser`` or a ``ScaleUser``. For a ``ScaleUser``, the roles
+    are set as scopes (i.e., role:Learner). This way endpoints can
+    specify role scopes in addition to resource:action based scopes.
+    """
     if not token:
         raise ValueError('token value required')
     claims = JWT.decode(
@@ -223,6 +275,7 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
 
 
 def can_access(auth_user: schemas.AuthUser, scopes: Optional[List[str]]) -> bool:
+    """Returns True if the user has the required scope(s)."""
     if not auth_user.is_active:
         return False
     if auth_user.is_superuser:
@@ -242,20 +295,21 @@ def can_access(auth_user: schemas.AuthUser, scopes: Optional[List[str]]) -> bool
     return True
 
 
-def sha256(data: Union[bytes, str]) -> str:
-    if isinstance(data, str):
-        data = data.encode('utf-8')
-    hashed = hashlib.sha256(data).digest()
-    encoded = base64.urlsafe_b64encode(hashed)
-    return encoded.rstrip(b'=').decode('ascii')
-
-
+# TODO: this might make sense to live in the lti.services module
 async def create_platform_token(platform: schemas.Platform) -> str:
+    """Returns a JWT used to call LTI Advantage Services.
+
+    LTI Advantage Services such as the Names and Role Provisioning,
+    Deep Linking and Assignment and Grade Services use ``client_credentials``
+    flow with the ``urn:ietf:params:oauth:client-assertion-type:jwt-bearer``
+    assertion type. This function generates the appropriate JWT bearer
+    to use for requesting an access token for these services.
+    """
     payload = {
         'iss': platform.client_id,
         'sub': platform.client_id,
         'aud': str(platform.auth_token_url),
-        'iat': datetime.datetime.utcnow() - datetime.timedelta(seconds=10),
+        'iat': datetime.datetime.utcnow() - datetime.timedelta(seconds=5),
         'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=60),
         'jti': str(uuid.uuid4()),
     }

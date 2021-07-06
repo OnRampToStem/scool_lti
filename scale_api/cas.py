@@ -1,3 +1,6 @@
+"""
+Central Authentication Service (CAS) client
+"""
 import logging
 import urllib.parse
 import urllib.request

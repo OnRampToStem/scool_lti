@@ -1,3 +1,9 @@
+"""
+Messages routes
+
+Provides a CRUD interface to the Messages table. Allows for storing
+text blobs, mostly in JSON format, for the front-end webapp.
+"""
 import json
 import logging
 from typing import List

@@ -20,6 +20,11 @@ NO_CACHE_HEADERS = {
 
 
 class ScaleSettings(BaseSettings):
+    """Main app settings.
+
+    The attributes are populated from OS environment variables that are
+    prefixed by ``SCALE_``.
+    """
     ENV: str = 'local'
 
     DB_URL: str = f'sqlite:///{BASE_PATH}/scale_db.sqlite?check_same_thread=False'
@@ -47,6 +52,7 @@ class ScaleSettings(BaseSettings):
 
     @validator('ENV')
     def verify_environment(cls, v: str) -> str:
+        """Raises a ``ValueError`` if the provided environment is not valid."""
         if v not in VALID_ENVIRONMENTS:
             raise ValueError(
                 f'Invalid environment [{v}], must be one of: '
@@ -56,6 +62,7 @@ class ScaleSettings(BaseSettings):
 
     @validator('DB_URL')
     def verify_sqlite_only_local(cls, v: str, values: dict) -> str:
+        """Raises a ``ValueError`` if sqlite is used for a non-local environment."""
         if v.startswith('sqlite') and values['ENV'] != 'local':
             raise ValueError(
                 'Sqlite DB_URL should only be used in local environments'
@@ -64,6 +71,7 @@ class ScaleSettings(BaseSettings):
 
     @validator('BACKEND_CORS_ORIGINS', pre=True)
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
+        """Converts a comma-separated string to a list."""
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
         elif isinstance(v, (list, str)):
@@ -72,7 +80,13 @@ class ScaleSettings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
+        """Returns True if the environment is set to Production mode."""
         return self.ENV == 'prod'
+
+    @property
+    def is_local(self) -> bool:
+        """Returns True if the environment is set to Local model."""
+        return self.ENV == 'local'
 
     class Config:
         env_file = BASE_PATH / '.env'
