@@ -8,10 +8,10 @@ by the course. For details on that process, see
 
 [Canvas Installation](canvas_install.md)
 
-# Assignments
-
-TODO
-
 # Module
+
+[Canvas Module Link Selection](canvas_module.md)
+
+# Assignments
 
 TODO
