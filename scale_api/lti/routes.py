@@ -429,6 +429,10 @@ async def names_role_service(request: Request):
     scale_user = schemas.ScaleUser.from_auth_user(request.state.auth_user)
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     launch_request = await db.cache_store.get_async(launch_id)
+    if not launch_request.is_instructor:
+        logger.error('lti.members unauthorized request from ScaleUser: %s',
+                     scale_user)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     nrps = services.NamesRoleService(launch_request)
     members = await nrps.members()
     return members
