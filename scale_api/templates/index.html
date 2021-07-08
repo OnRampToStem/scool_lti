@@ -15,7 +15,18 @@
 
 <div class="row">
     <div class="col-md-6 col-md-offset-3 mt-5 text-muted">
-        Welcome
+        <h1>Welcome</h1>
+    </div>
+    <div>
+        <p>
+            {% if app_config.is_production %}
+                <a href="/question-editor/">Click here to view the question editor</a>
+            {% elif app_config.is_local %}
+                <a href="http://localhost:8080/">Click here to view the question editor</a>
+            {% else %}
+                <a href="/{{ app_config.ENV }}/question-editor/">Click here to view the question editor</a>
+            {% endif %}
+        </p>
     </div>
 </div>
 

@@ -99,12 +99,7 @@ class ScaleUser(BaseModel):
         roles = [
             r.split(':', 1)[1]
             for r in auth_user.scopes
-            if r.lower() in (
-                'role:instructor',
-                'role:student',
-                'role:teacher',
-                'role:learner',
-            )
+            if r.startswith('role:')
         ]
         return cls(id=auth_user.id, email=auth_user.client_id, roles=roles)
 

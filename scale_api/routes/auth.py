@@ -62,14 +62,17 @@ async def login_post(
     try:
         auth_user = await db.store.user_by_client_id_async(username)
     except LookupError:
+        logger.info('login found no user for: %s', username)
         request.state.login_error = 'Incorrect username or password'
         return await index_api(request)
 
     if not auth.verify_password(password, auth_user.client_secret_hash):
+        logger.error('login invalid password for: %s', username)
         request.state.login_error = 'Incorrect username or password'
         return await index_api(request)
 
     request.session['au'] = auth_user.session_dict()
+    logger.info('Login AuthUser: %s', auth_user)
     index_page_url = request.url_for('index_api')
     return RedirectResponse(url=index_page_url, status_code=302)
 
@@ -94,13 +97,17 @@ async def session_user_token(
     session_user = request.session.get('scale_user')
     if session_user:
         scale_user = schemas.ScaleUser.parse_obj(session_user)
+        logger.info('token request found ScaleUser: %s', scale_user)
     else:
         session_user = request.session.get('au')
         if not session_user:
+            logger.error('token request no AuthUser found')
             response.status_code = status.HTTP_401_UNAUTHORIZED
             return {'error': 'Unable to authenticate'}
         auth_user = schemas.AuthUser.parse_obj(session_user)
         scale_user = schemas.ScaleUser.from_auth_user(auth_user)
+        logger.info('token request found AuthUser: %s', auth_user)
+        logger.info('token request return ScaleUser: %s', scale_user)
 
     user_token = auth.create_scale_user_token(scale_user)
     return {'token': user_token}
@@ -120,9 +127,12 @@ async def scale_user_token_impersonate(
     the returned ``ScaleUser`` token to contain.
     """
     if app_config.is_production:
+        logger.error('token impersonate called in production mode')
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     if not scale_user_request.secret_key.get_secret_value() == app_config.SECRET_KEY:
+        logger.error('token impersonate invalid secret key: %s',
+                     scale_user_request.secret_key.get_secret_value())
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {'error': 'Unable to authenticate'}
 
@@ -135,6 +145,7 @@ async def scale_user_token_impersonate(
 
     request.session['scale_user'] = scale_user.session_dict()
     token = auth.create_scale_user_token(scale_user)
+    logger.info('Return token impersonate for ScaleUser: %s', scale_user)
     return {
         'token': token,
     }
@@ -155,6 +166,8 @@ async def oauth_token(
     used in order to authenticate ``AuthUser`` clients for API calls.
     """
     if grant_type != 'client_credentials':
+        logger.error('oauth token unsupported grant_type [%s] requested',
+                     grant_type)
         response.status_code = 400
         return {'error': 'invalid_request'}
 
@@ -164,6 +177,7 @@ async def oauth_token(
             client_id = basic_auth.username
             client_secret = basic_auth.password
         else:
+            logger.error('oauth token request missing credentials')
             response.status_code = 400
             return {'error': 'invalid_client'}
 
@@ -173,14 +187,17 @@ async def oauth_token(
     try:
         auth_user = await db.store.user_by_client_id_async(client_id)
     except LookupError:
+        logger.error('oauth token client not found: %s', client_id)
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {'error': 'invalid_client'}
 
     if not auth.verify_password(client_secret, auth_user.client_secret_hash):
+        logger.error('oauth token invalid password AuthUser: %s', auth_user)
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {'error': 'invalid_client'}
 
     token = auth.create_auth_user_token(auth_user)
+    logger.info('Return token for AuthUser: %s', auth_user)
     return {
         'access_token': token,
         'token_type': 'bearer',
@@ -225,6 +242,7 @@ async def cas_validate(request: Request, ticket: str = Form(...)):
         return await index_api(request)
     else:
         request.session['au'] = auth_user.session_dict()
+        logger.info('CAS AuthUser: %s', auth_user)
         index_page_url = request.url_for('index_api')
         return RedirectResponse(url=index_page_url, status_code=302)
 
@@ -274,4 +292,7 @@ def build_context(request: Request) -> dict:
     csrf_token = request.session.get('csrf_token')
     if csrf_token is None:
         request.session['csrf_token'] = csrf_token = uuid.uuid4().hex
-    return {'csrf_token': csrf_token}
+    return {
+        'app_config': app_config,
+        'csrf_token': csrf_token,
+    }

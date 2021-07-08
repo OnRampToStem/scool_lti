@@ -15,13 +15,11 @@ A ``ScaleUser`` is a user that launched this application from a Learning
 Management System (LMS) such as Canvas and have been authenticated via
 Learning Tools Interoperability (LTI).
 """
-import base64
 import datetime
-import hashlib
 import logging
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set
 
 import authlib.jose.errors
 from authlib import jose
@@ -173,12 +171,13 @@ async def authorize(
     try:
         if bearer_token:
             auth_user = await auth_user_from_token(bearer_token)
+            logger.info('authorize from bearer token AuthUser: %s', auth_user)
         else:
             session_auth_user = request.session.get('au')
-            logger.info('Session auth_user: %s', session_auth_user)
             auth_user = schemas.AuthUser.parse_obj(session_auth_user)
+            logger.info('authorize from session AuthUser: %s', session_auth_user)
     except (LookupError, ValueError, authlib.jose.errors.JoseError) as exc:
-        logger.info('get_user_task failed: %r', exc)
+        logger.info('authorize failed: %r', exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Incorrect username or password',
@@ -186,6 +185,8 @@ async def authorize(
         )
     else:
         if not can_access(auth_user, scopes.scopes):
+            logger.error('authorize access failure, AuthUser: %s, Scopes: %s',
+                         auth_user, scopes.scopes)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
         request.state.auth_user = auth_user
 
