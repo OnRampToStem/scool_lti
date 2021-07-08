@@ -22,19 +22,24 @@ from fastapi import (
     Query,
     Request,
     Response,
+    Security,
     status,
 )
 from fastapi.responses import RedirectResponse
 
 from scale_api import (
     app_config,
+    auth,
     db,
     keys,
     settings,
     schemas,
     templates,
 )
-from scale_api.lti import messages
+from scale_api.lti import (
+    messages,
+    services,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -417,6 +422,16 @@ async def login_initiations_form(
 
     logger.info('Redirecting to %s', target_url)
     return response
+
+
+@router.get('/members', dependencies=[Security(auth.authorize)])
+async def names_role_service(request: Request):
+    scale_user = schemas.ScaleUser.from_auth_user(request.state.auth_user)
+    launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
+    launch_request = await db.cache_store.get_async(launch_id)
+    nrps = services.NamesRoleService(launch_request)
+    members = await nrps.members()
+    return members
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:

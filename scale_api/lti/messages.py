@@ -5,7 +5,7 @@ This module defines classes that help to model and consume LTI messages
 such as Resource Link and Deep Link request and response messages.
 """
 import json
-from typing import Any, List, Mapping, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from .. import schemas
 
@@ -23,6 +23,7 @@ class LtiLaunchRequest:
     Provides information based on either a ResourceLink or DeepLink request
     message received from an LTI 1.3 IDToken.
     """
+
     def __init__(
             self,
             platform: schemas.Platform,
@@ -100,6 +101,12 @@ class LtiLaunchRequest:
         return False
 
     @property
+    def names_role_service(self) -> Optional[Dict]:
+        return self.message.get(
+            'https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'
+        )
+
+    @property
     def scale_user(self) -> schemas.ScaleUser:
         """Returns a ``ScaleUser`` based on data from the request."""
         tool_platform = self.message[MESSAGE_TOOL_KEY]
@@ -127,8 +134,16 @@ class LtiLaunchRequest:
         return json.dumps(data)
 
     @staticmethod
-    def loads(self, data: str) -> 'LtiLaunchRequest':
+    def loads(data: str) -> 'LtiLaunchRequest':
         """Returns a ``LtiLaunchRequest`` from a json string."""
         content = json.loads(data)
         platform = schemas.Platform.parse_obj(content['platform'])
         return LtiLaunchRequest(platform, content['message'])
+
+    def __str__(self) -> str:
+        return (
+            'LtiLaunchRequest('
+            f'{self.platform.id}, '
+            f'{self.message_type}'
+            ')'
+        )

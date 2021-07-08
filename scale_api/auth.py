@@ -17,7 +17,6 @@ Learning Tools Interoperability (LTI).
 """
 import datetime
 import logging
-import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set
 
@@ -34,7 +33,6 @@ from passlib.context import CryptContext
 
 from scale_api import (
     app_config,
-    keys,
     schemas,
 )
 
@@ -117,6 +115,7 @@ class OAuth2ClientCredentials(OAuth2):
     ``client_id`` and ``client_secret`` when authenticating for the docs
     "Try It" feature.
     """
+
     def __init__(
             self,
             tokenUrl: str,
@@ -294,26 +293,3 @@ def can_access(auth_user: schemas.AuthUser, scopes: Optional[List[str]]) -> bool
         else:
             return False
     return True
-
-
-# TODO: this might make sense to live in the lti.services module
-async def create_platform_token(platform: schemas.Platform) -> str:
-    """Returns a JWT used to call LTI Advantage Services.
-
-    LTI Advantage Services such as the Names and Role Provisioning,
-    Deep Linking and Assignment and Grade Services use ``client_credentials``
-    flow with the ``urn:ietf:params:oauth:client-assertion-type:jwt-bearer``
-    assertion type. This function generates the appropriate JWT bearer
-    to use for requesting an access token for these services.
-    """
-    payload = {
-        'iss': platform.client_id,
-        'sub': platform.client_id,
-        'aud': str(platform.auth_token_url),
-        'iat': datetime.datetime.utcnow() - datetime.timedelta(seconds=5),
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=60),
-        'jti': str(uuid.uuid4()),
-    }
-    private_key = await keys.private_key()
-    header = {'typ': 'JWT', 'alg': 'RS256', 'kid': private_key.thumbprint()}
-    return jose.jwt.encode(header, payload, private_key).decode('ascii')
