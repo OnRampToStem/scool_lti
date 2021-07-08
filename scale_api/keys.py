@@ -37,7 +37,10 @@ async def private_keys() -> List:
     return [
         k
         for k in web_keys
-        if k.valid_from < now < k.valid_to
+        if (
+                k.valid_to is None and k.valid_from < now
+                or k.valid_from < now < k.valid_to
+        )
     ]
 
 
