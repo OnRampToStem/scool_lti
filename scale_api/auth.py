@@ -172,9 +172,15 @@ async def authorize(
             auth_user = await auth_user_from_token(bearer_token)
             logger.info('authorize from bearer token AuthUser: %s', auth_user)
         else:
-            session_auth_user = request.session.get('au')
-            auth_user = schemas.AuthUser.parse_obj(session_auth_user)
-            logger.info('authorize from session AuthUser: %s', session_auth_user)
+            if session_user := request.session.get('au'):
+                auth_user = schemas.AuthUser.parse_obj(session_user)
+                logger.info('authorize from session AuthUser: %s', auth_user)
+            elif session_user := request.session.get('scale_user'):
+                scale_user = schemas.ScaleUser.parse_obj(session_user)
+                auth_user = schemas.AuthUser.from_scale_user(scale_user)
+                logger.info('authorize from session ScaleUser: %s', scale_user)
+            else:
+                raise LookupError('No token or session values found')
     except (LookupError, ValueError, authlib.jose.errors.JoseError) as exc:
         logger.info('authorize failed: %r', exc)
         raise HTTPException(

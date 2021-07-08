@@ -59,6 +59,17 @@ class AuthUser(BaseModel):
         """Returns True if the the ``superuser`` scope is present."""
         return self.scopes and 'role:superuser' in self.scopes
 
+    @classmethod
+    def from_scale_user(cls, scale_user: 'ScaleUser') -> 'AuthUser':
+        """Converts an ``ScaleUser`` to a ``AuthUser``."""
+        roles = ['role:' + r for r in scale_user.roles]
+        return cls(
+            id=scale_user.id,
+            client_id=scale_user.email,
+            client_secret_hash='none',
+            scopes=roles,
+        )
+
     def session_dict(self):
         """Returns a dict object suitable for storing in a web session."""
         return self.dict(exclude_defaults=True)

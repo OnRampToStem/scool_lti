@@ -428,7 +428,8 @@ async def login_initiations_form(
 async def names_role_service(request: Request):
     scale_user = schemas.ScaleUser.from_auth_user(request.state.auth_user)
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
-    launch_request = await db.cache_store.get_async(launch_id)
+    cached_launch = await db.cache_store.get_async(launch_id)
+    launch_request = messages.LtiLaunchRequest.loads(cached_launch)
     if not launch_request.is_instructor:
         logger.error('lti.members unauthorized request from ScaleUser: %s',
                      scale_user)
