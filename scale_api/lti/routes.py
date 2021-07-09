@@ -426,8 +426,13 @@ async def login_initiations_form(
 
 @router.get('/members', dependencies=[Security(auth.authorize)])
 async def names_role_service(request: Request):
-    scale_user = schemas.ScaleUser.from_auth_user(request.state.auth_user)
+    if session_scale_user := request.session.get('scale_user'):
+        scale_user = schemas.ScaleUser.parse_obj(session_scale_user)
+    else:
+        scale_user = schemas.ScaleUser.from_auth_user(request.state.auth_user)
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
+    logger.info('Loading launch message [%s] for ScaleUser: %s',
+                launch_id, scale_user)
     cached_launch = await db.cache_store.get_async(launch_id)
     launch_request = messages.LtiLaunchRequest.loads(cached_launch)
     if not launch_request.is_instructor:

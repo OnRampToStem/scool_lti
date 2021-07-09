@@ -128,10 +128,6 @@ def can_access(
         elif isinstance(body, Mapping) and auth_username == body.get('username'):
             return True
         else:
-            logger.error(
-                'Messages.users username [%s] does not match for body type: %s',
-                auth_username, type(body)
-            )
             return False
     else:
         return action == 'get'
