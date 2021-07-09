@@ -60,10 +60,20 @@ async def private_key() -> jose.RSAKey:
     """
     web_keys = await private_keys()
     main_key = None
+    # Given more than one key, return the key that is valid furthest
+    # in the future. No valid_to implies no end date. If both keys being
+    # compared have no valid_to, then we select the newest key based on
+    # valid_from.
     for key in web_keys:
         if main_key is None:
             main_key = key
-        elif key.valid_to > main_key.valid_to:
+        elif all((key.valid_to, main_key.valid_to)):
+            if key.valid_to > main_key.valid_to:
+                main_key = key
+        elif not any((key.valid_to, main_key.valid_to)):
+            if key.valid_from > main_key.valid_from:
+                main_key = key
+        elif key.valid_to is None:
             main_key = key
 
     if main_key is None:

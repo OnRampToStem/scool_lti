@@ -38,11 +38,11 @@ class CasClient:
             return self.parse_username(cas_response)
 
     def build_login_url(self, service: str) -> str:
-        encoded_service = urllib.parse.quote(service)
+        encoded_service = urllib.parse.quote_plus(service)
         return f'{self.login_url}?method=POST&service={encoded_service}'
 
     def build_validate_url(self, service: str, ticket: str) -> str:
-        encoded_service = urllib.parse.quote(service)
+        encoded_service = urllib.parse.quote_plus(service)
         return f'{self.validate_url}?service={encoded_service}&ticket={ticket}'
 
     def parse_username(self, cas_response: str) -> str:

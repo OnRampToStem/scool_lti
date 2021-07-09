@@ -1,4 +1,7 @@
 import unittest
+from unittest.mock import Mock, patch
+
+from fastapi import HTTPException
 
 from scale_api import (
     auth,
@@ -104,3 +107,65 @@ class ScopeAuthUserAccessTestCase(unittest.TestCase):
         self.test_user['scopes'] = ['foo:bar', 'baz:qux', 'org:read']
         user = schemas.AuthUser(**self.test_user)
         self.assertFalse(auth.can_access(user, ['org:write']))
+
+
+class AuthorizeTestCase(unittest.IsolatedAsyncioTestCase):
+
+    async def test_authorize_raise_if_no_valid_user(self):
+        request = Mock()
+        scopes = Mock()
+        request.session = {}
+        scopes.scopes = []
+        with self.assertRaises(HTTPException) as http_exc:
+            await auth.authorize(request, scopes, '')
+        self.assertTrue(http_exc.exception.status_code, 401)
+
+    @patch('scale_api.auth.can_access')
+    @patch('scale_api.auth.auth_user_from_token')
+    async def test_authorize_from_bearer_token(self, token_mock, can_access_mock):
+        token_mock.return_value = 'test_user'
+        request = Mock()
+        scopes = Mock()
+        request.session = {'au': 'foo', 'scale_user': 'bar'}
+        scopes.scopes = []
+        await auth.authorize(request, scopes, 'test_token')
+        token_mock.assert_called_with('test_token')
+        can_access_mock.assert_called_with('test_user', [])
+
+    @patch('scale_api.auth.can_access')
+    async def test_authorize_from_auth_user_session(
+            self,
+            can_access_mock
+    ):
+        request = Mock()
+        scopes = Mock()
+        request.session = {
+            'au': {
+                'id': '1',
+                'client_id': 'test@test.org',
+                'client_secret_hash': 'none',
+            },
+            'scale_user': {}
+        }
+        scopes.scopes = []
+        await auth.authorize(request, scopes, '')
+        can_access_mock.assert_called_once()
+        self.assertEqual(request.state.auth_user.client_id, 'test@test.org')
+
+    @patch('scale_api.auth.can_access')
+    async def test_authorize_from_scale_user_session(
+            self,
+            can_access_mock
+    ):
+        request = Mock()
+        scopes = Mock()
+        request.session = {
+            'scale_user': {
+                'email': 'test_scale_user@test.org',
+            },
+            'au': {}
+        }
+        scopes.scopes = []
+        await auth.authorize(request, scopes, '')
+        can_access_mock.assert_called_once()
+        self.assertEqual(request.state.auth_user.client_id, 'test_scale_user@test.org')

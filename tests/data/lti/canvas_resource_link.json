@@ -1,0 +1,111 @@
+{
+    "platform": {
+        "id": "7f2308ab9092411aafe7f47279b47dfa",
+        "name": "Fresno Canvas LMS Production",
+        "issuer": "https://canvas.instructure.com",
+        "oidc_auth_url": "https://fresnostate.instructure.com/api/lti/authorize_redirect",
+        "auth_token_url": "https://fresnostate.instructure.com/login/oauth2/token",
+        "jwks_url": "https://fresnostate.instructure.com/api/lti/security/jwks",
+        "client_id": "131990000000000119"
+    },
+    "message": {
+        "https://purl.imsglobal.org/spec/lti/claim/message_type": "LtiResourceLinkRequest",
+        "https://purl.imsglobal.org/spec/lti/claim/version": "1.3.0",
+        "https://purl.imsglobal.org/spec/lti/claim/resource_link": {
+            "id": "cfd70b5da3ce9018402b66c1d4ecfdc6b9d6eeef",
+            "description": null,
+            "title": null,
+            "validation_context": null,
+            "errors": {
+                "errors": {}
+            }
+        },
+        "https://purl.imsglobal.org/spec/lti-ags/claim/endpoint": {
+            "scope": [
+                "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
+                "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly",
+                "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly",
+                "https://purl.imsglobal.org/spec/lti-ags/scope/score"
+            ],
+            "lineitems": "https://fresnostate.instructure.com/api/lti/courses/48069/line_items",
+            "validation_context": null,
+            "errors": {
+                "errors": {}
+            }
+        },
+        "aud": "131990000000000119",
+        "azp": "131990000000000119",
+        "https://purl.imsglobal.org/spec/lti/claim/deployment_id": "4689:335578868be487b8e9542bad5f97daa59469a16f",
+        "exp": 1625764558,
+        "iat": 1625760958,
+        "iss": "https://canvas.instructure.com",
+        "nonce": "a50dfdd0d588485abd426095588fd1c1",
+        "sub": "2b93d9e3-2bc8-4ded-a5a0-81202704e8f7",
+        "https://purl.imsglobal.org/spec/lti/claim/target_link_uri": "https://scale.fresnostate.edu/api/lti/v1.3/7f2308ab9092411aafe7f47279b47dfa/launches",
+        "https://purl.imsglobal.org/spec/lti/claim/context": {
+            "id": "cfd70b5da3ce9018402b66c1d4ecfdc6b9d6eeef",
+            "label": "Devl-MATH6-Pilot",
+            "title": "Development MATH6 Pilot",
+            "type": [
+                "http://purl.imsglobal.org/vocab/lis/v2/course#CourseOffering"
+            ],
+            "validation_context": null,
+            "errors": {
+                "errors": {}
+            }
+        },
+        "https://purl.imsglobal.org/spec/lti/claim/tool_platform": {
+            "guid": "Y6PotwmRhGwXDS1F9jY1vRtqnvUornNn0aTZ5OI3:canvas-lms",
+            "name": "Fresno State",
+            "version": "cloud",
+            "product_family_code": "canvas",
+            "validation_context": null,
+            "errors": {
+                "errors": {}
+            }
+        },
+        "https://purl.imsglobal.org/spec/lti/claim/launch_presentation": {
+            "document_target": "iframe",
+            "height": null,
+            "width": null,
+            "return_url": "https://fresnostate.instructure.com/courses/48069/modules",
+            "locale": "en",
+            "validation_context": null,
+            "errors": {
+                "errors": {}
+            }
+        },
+        "locale": "en",
+        "https://purl.imsglobal.org/spec/lti/claim/roles": [
+            "http://purl.imsglobal.org/vocab/lis/v2/institution/person#Instructor",
+            "http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor",
+            "http://purl.imsglobal.org/vocab/lis/v2/system/person#User"
+        ],
+        "https://purl.imsglobal.org/spec/lti/claim/custom": {
+            "canvas_user_id": 4394,
+            "canvas_user_login_id": "johnwa"
+        },
+        "https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice": {
+            "context_memberships_url": "https://fresnostate.instructure.com/api/lti/courses/48069/names_and_roles",
+            "service_versions": [
+                "2.0"
+            ],
+            "validation_context": null,
+            "errors": {
+                "errors": {}
+            }
+        },
+        "https://purl.imsglobal.org/spec/lti/claim/lti11_legacy_user_id": "082ca12eddf6d3b8b866c78f7403d345c92524ac",
+        "https://purl.imsglobal.org/spec/lti/claim/lti1p1": {
+            "user_id": "082ca12eddf6d3b8b866c78f7403d345c92524ac",
+            "validation_context": null,
+            "errors": {
+                "errors": {}
+            }
+        },
+        "errors": {
+            "errors": {}
+        },
+        "https://www.instructure.com/placement": null
+    }
+}

@@ -63,7 +63,7 @@ class ScaleSettings(BaseSettings):
     @validator('DB_URL')
     def verify_sqlite_only_local(cls, v: str, values: dict) -> str:
         """Raises a ``ValueError`` if sqlite is used for a non-local environment."""
-        if v.startswith('sqlite') and values['ENV'] != 'local':
+        if v.startswith('sqlite') and values.get('ENV') != 'local':
             raise ValueError(
                 'Sqlite DB_URL should only be used in local environments'
             )
