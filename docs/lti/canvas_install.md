@@ -32,6 +32,15 @@ Provide values for the **Key Name** and **Owner Email** fields. The required
 
 ![Edit LTI Developer Key](../img/canvas/admin_lti_dev_key_edit.png)
 
+## Enable Can Access Account Information
+
+The JSON configuration will set most of the permissions required. However, in
+order to retrieve name and email information from the services, the
+admin must edit the key and enable the `Can lookup Account Information`
+setting under the **LTI Advantage Services** section.
+
+![Enable Can Access Account Information](../img/canvas/admin_lti_dev_key_enable_account_info.png)
+
 ## Enable Key
 
 Change the **State** of the Key from **OFF** to **ON**. Under the **Details**
