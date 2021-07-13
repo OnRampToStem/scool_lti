@@ -136,16 +136,12 @@ async def scale_user_token_impersonate(
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {'error': 'Unable to authenticate'}
 
-    scale_user = schemas.ScaleUser(
-        id=scale_user_request.id,
-        email=scale_user_request.email,
-        roles=scale_user_request.roles,
-        context=scale_user_request.context,
-    )
-
-    request.session['scale_user'] = scale_user.session_dict()
-    token = auth.create_scale_user_token(scale_user)
-    logger.info('Return token impersonate for ScaleUser: %s', scale_user)
+    if not scale_user_request.id:
+        scale_user_request.id = uuid.uuid4().hex
+    scale_user_request.id += '@scale_user_token_impersonate'
+    request.session['scale_user'] = scale_user_request.session_dict()
+    token = auth.create_scale_user_token(scale_user_request)
+    logger.info('Return token impersonate for ScaleUser: %s', scale_user_request)
     return {
         'token': token,
     }

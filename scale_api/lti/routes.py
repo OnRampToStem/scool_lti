@@ -178,7 +178,7 @@ async def launch_form(
 ):
     """LTI Launch endpoint.
 
-    This handle the Launch Requests from the LMS. The LMS must have this
+    This handles the Launch Requests from the LMS. The LMS must have this
     ``redirect_uri`` configured and will return the user to this endpoint
     after the OIDC login initiation is performed.
     """
@@ -192,7 +192,7 @@ async def launch_form(
     logger.info('id_token: %s, %s', id_token, platform)
 
     # Match up the state provided in the OIDC login initiation with the
-    # state store in a cookie. This ensure this request is associated with
+    # state store in a cookie to ensure this request is associated with
     # this user-agent.
     state_cookie = request.cookies.get(f'lti1p3-state-{platform_id}')
     if state_cookie != state:

@@ -109,18 +109,12 @@ class LtiLaunchRequest:
     @property
     def scale_user(self) -> schemas.ScaleUser:
         """Returns a ``ScaleUser`` based on data from the request."""
-        tool_platform = self.message[MESSAGE_TOOL_KEY]
-        user_id = self.message['sub'] + '@' + tool_platform['guid']
-        email = self.message.get('email')
-        if not email:
-            if 'fresno' in tool_platform['name'].lower():
-                login_id = self.message[MESSAGE_CUSTOM_KEY]['canvas_user_login_id']
-                email = login_id.lower()
-                if '@' not in email:
-                    email += '@mail.fresnostate.edu'
+        user_id = self.message['sub'] + '@' + self.platform.id
         return schemas.ScaleUser(
             id=user_id,
-            email=email,
+            email=self.message.get('email'),
+            name=self.message.get('name'),
+            picture=self.message.get('picture'),
             roles=self.roles,
             context=self.context,
         )

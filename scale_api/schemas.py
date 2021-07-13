@@ -84,8 +84,10 @@ class ScaleUser(BaseModel):
     This represents a user authenticated via LTI from an LMS such as
     Canvas.
     """
-    id: str = '1'
+    id: Optional[str]
     email: EmailStr
+    name: Optional[str]
+    picture: Optional[str]
 
     # Roles provided by LTI. There are different types of roles such as
     # those the user has in the system overall and those assigned for the
@@ -124,6 +126,10 @@ class ScaleUserImpersonationRequest(ScaleUser):
     custom ``ScaleUser`` values for testing purposes.
     """
     secret_key: SecretStr
+
+    def session_dict(self):
+        """Returns a dict object suitable for storing in a web session."""
+        return self.dict(exclude={'secret_key'}, exclude_defaults=True)
 
 
 class AuthJsonWebKey(BaseModel):
