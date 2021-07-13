@@ -85,12 +85,14 @@ async def lti_config(request: Request, platform_id: str):
         "description": tool_description,
         "oidc_initiation_url": oidc_init_url,
         "target_link_uri": target_link_uri,
+        # see https://github.com/instructure/canvas-lms/blob/master/lib/token_scopes.rb
         "scopes": [
             "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
             "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly",
             "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly",
             "https://purl.imsglobal.org/spec/lti-ags/scope/score",
-            "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly"
+            "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly",
+            "https://canvas.instructure.com/lti/account_lookup/scope/show",
         ],
         "extensions": [
             {
@@ -101,7 +103,7 @@ async def lti_config(request: Request, platform_id: str):
                     "privacy_level": "public",
                     "placements": [
                         {
-                            "text": f"{tool_title} Link Selection",
+                            "text": tool_title,
                             "enabled": True,
                             "placement": "link_selection",
                             "message_type": "LtiResourceLinkRequest",
@@ -114,7 +116,7 @@ async def lti_config(request: Request, platform_id: str):
                             },
                         },
                         {
-                            "text": f"{tool_title} Assignment Selection",
+                            "text": tool_title,
                             "enabled": True,
                             "placement": "assignment_selection",
                             "message_type": "LtiDeepLinkingRequest",
