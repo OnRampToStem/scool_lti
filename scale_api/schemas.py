@@ -116,6 +116,12 @@ class ScaleUser(BaseModel):
         ]
         return cls(id=auth_user.id, email=auth_user.client_id, roles=roles)
 
+    @validator('roles', each_item=True)
+    def normalize_roles(cls, v: str) -> str:
+        if v.startswith('http://purl.imsglobal.org/vocab/lis/v2/membership#'):
+            return v.rsplit('#')[1]
+        return v
+
 
 class ScaleUserImpersonationRequest(ScaleUser):
     """Specialized ScaleUser run-as request.

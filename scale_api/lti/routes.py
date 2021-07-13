@@ -12,6 +12,7 @@ see https://www.imsglobal.org/spec/lti/v1p3
 import logging
 import urllib.parse
 import uuid
+from typing import List
 
 from authlib import jose
 from authlib.oidc.core import IDToken
@@ -426,7 +427,12 @@ async def login_initiations_form(
     return response
 
 
-@router.get('/members', dependencies=[Security(auth.authorize)])
+@router.get(
+    '/members',
+    response_model=List[schemas.ScaleUser],
+    response_model_exclude_unset=True,
+    dependencies=[Security(auth.authorize)],
+)
 async def names_role_service(request: Request):
     if session_scale_user := request.session.get('scale_user'):
         scale_user = schemas.ScaleUser.parse_obj(session_scale_user)
@@ -443,7 +449,13 @@ async def names_role_service(request: Request):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     nrps = services.NamesRoleService(launch_request)
     members = await nrps.members()
-    return members
+    return [
+        schemas.ScaleUser(
+            id=m['user_id'] + '@' + launch_request.platform.id,
+            **m
+        )
+        for m in members if m.get('email')
+    ]
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:
