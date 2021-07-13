@@ -28,5 +28,5 @@ class LaunchMessageTestCase(unittest.TestCase):
 
         self.assertIsNotNone(msg.names_role_service)
 
-        self.assertEqual(msg.scale_user.id, '2b93d9e3-2bc8-4ded-a5a0-81202704e8f7@Y6PotwmRhGwXDS1F9jY1vRtqnvUornNn0aTZ5OI3:canvas-lms')
-        self.assertEqual(msg.scale_user.email, 'johnwa@mail.fresnostate.edu')
+        self.assertEqual(msg.scale_user.id, '2b93d9e3-2bc8-4ded-a5a0-81202704e8f7@7f2308ab9092411aafe7f47279b47dfa')
+        self.assertEqual(msg.scale_user.email, 'johnwa@csufresno.edu')

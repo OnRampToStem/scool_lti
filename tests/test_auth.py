@@ -161,6 +161,7 @@ class AuthorizeTestCase(unittest.IsolatedAsyncioTestCase):
         scopes = Mock()
         request.session = {
             'scale_user': {
+                'id': '123456@789',
                 'email': 'test_scale_user@test.org',
             },
             'au': {}
