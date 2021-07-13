@@ -15,8 +15,8 @@ A ``ScaleUser`` is a user that launched this application from a Learning
 Management System (LMS) such as Canvas and have been authenticated via
 Learning Tools Interoperability (LTI).
 """
-import datetime
 import logging
+import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set
 
@@ -236,8 +236,9 @@ def create_token(payload: dict, expires_in: int = -1) -> str:
     """
     if expires_in == -1:
         expires_in = app_config.OAUTH_ACCESS_TOKEN_EXPIRY
-    issued_at = datetime.datetime.utcnow() - datetime.timedelta(seconds=5)
-    expires_at = issued_at + datetime.timedelta(seconds=expires_in)
+    now = int(time.time())
+    issued_at = now - 5
+    expires_at = now + expires_in
     payload['iat'] = issued_at
     payload['exp'] = expires_at
     payload['iss'] = JWT_ISSUER
