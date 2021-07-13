@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 NEXT_PAGE_REGEX = re.compile(
     r'''^Link:.*<([^>]*)>; ?rel=["']next["']''',
-    re.IGNORECASE,
+    re.IGNORECASE | re.MULTILINE,
 )
 
 CacheItem = namedtuple('TokenCache', 'token expires_at')
@@ -116,8 +116,13 @@ class LtiServicesClient:
         headers['Accept'] = accept
         headers['Content-Type'] = content_type
         r = await aio.http_client.post(url, headers=headers, content=data)
-        m = NEXT_PAGE_REGEX.match(r.headers.get('Link', ''))
-        next_page = m[1] if m else None
+        link_header = r.headers.get('Link')
+        if link_header:
+            logger.info('Looking for next page link:\n%r', link_header)
+            m = NEXT_PAGE_REGEX.search(link_header)
+            next_page = m[1] if m else None
+        else:
+            next_page = None
         return ServiceResponse(r.headers, r.json(), next_page)
 
 
