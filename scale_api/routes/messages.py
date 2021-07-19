@@ -29,7 +29,13 @@ router = APIRouter()
 @router.get('/{subject}.json', response_model=List[schemas.Message])
 async def get_messages(request: Request, subject: str):
     entries = await db.message_store.messages_async(subject)
-    return [e for e in entries if can_access(request, subject, 'get', e.body)]
+    logger.debug('Messages.%s found %s entries in db', subject, len(entries))
+    result = [
+        e for e in entries
+        if can_access(request, subject, 'get', e.body)
+    ]
+    logger.debug('Messages.%s found %s permitted', subject, len(result))
+    return result
 
 
 @router.get('/{subject}/{msg_id}.json', response_model=schemas.Message)
@@ -108,8 +114,9 @@ def can_access(
     if auth_user.is_superuser:
         return True
 
-    for scope in auth_user.scopes:
-        if scope.lower() in ('role:admin', 'role:developer', 'role:editor'):
+    user_scopes = {scope.lower() for scope in auth_user.scopes}
+    for scope in user_scopes:
+        if scope in ('role:admin', 'role:developer', 'role:editor'):
             return True
 
     if action == 'delete':
@@ -117,12 +124,16 @@ def can_access(
                      subject, auth_user)
         return False
 
-    # Allow user to update their own users message
+    # Allow user to update their own users message, or Instructors
     if subject == 'users':
         auth_username = auth_user.client_id
         if not body:
             logger.error('Messages.users body is blank')
             return False
+        elif 'role:instructor' in user_scopes:
+            # TODO: need to add security at some point to they can only see
+            #       students in their course
+            return True
         elif isinstance(body, str) and auth_username in body:
             return True
         elif isinstance(body, Mapping) and auth_username == body.get('username'):
