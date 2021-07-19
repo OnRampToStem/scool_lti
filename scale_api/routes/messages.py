@@ -118,6 +118,10 @@ def can_access(
     for scope in user_scopes:
         if scope in ('role:admin', 'role:developer', 'role:editor'):
             return True
+        if scope == 'role:instructor':
+            # TODO: need to add security at some point to they can only see
+            #       students in their course
+            return True
 
     if action == 'delete':
         logger.error('Messages.%s delete action disallowed for AuthUser: %s',
@@ -130,10 +134,6 @@ def can_access(
         if not body:
             logger.error('Messages.users body is blank')
             return False
-        elif 'role:instructor' in user_scopes:
-            # TODO: need to add security at some point to they can only see
-            #       students in their course
-            return True
         elif isinstance(body, str) and auth_username in body:
             return True
         elif isinstance(body, Mapping) and auth_username == body.get('username'):
