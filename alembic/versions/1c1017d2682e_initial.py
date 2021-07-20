@@ -46,7 +46,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('key')
     )
     op.create_table('messages',
-    sa.Column('id', sa.String(length=36), nullable=False),
+    sa.Column('id', sa.String(length=255), nullable=False),
     sa.Column('subject', sa.String(length=255), nullable=True),
     sa.Column('header', sa.Text(), nullable=True),
     sa.Column('body', sa.Text(), nullable=True),

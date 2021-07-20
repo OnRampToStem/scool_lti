@@ -140,7 +140,7 @@ class Message(Base):
     """
     __tablename__ = 'messages'
 
-    id = sa.Column(sa.String(36), primary_key=True, default=new_uuid)
+    id = sa.Column(sa.String(255), primary_key=True, default=new_uuid)
     subject = sa.Column(sa.String(255), index=True)
     header = sa.Column(sa.Text, nullable=True)
     body = sa.Column(sa.Text)
@@ -188,6 +188,7 @@ class Cache(Base):
 
 class ScaleStore:
     """SCALE Application Repository."""
+
     def platforms(self) -> List[schemas.Platform]:
         stmt = sa.select(Platform)
         with SessionLocal() as session:
@@ -257,6 +258,7 @@ class ScaleStore:
 
 class MessageStore:
     """Messages Repository."""
+
     def messages(self, subject: str) -> List[schemas.Message]:
         stmt = sa.select(Message).where(
             Message.subject == subject,
@@ -276,7 +278,9 @@ class MessageStore:
             msg = session.get(Message, msg_id)
             if not msg:
                 raise LookupError(msg_id)
-            assert msg.subject == subject, f'{msg.subject} != {subject}'
+            if msg.subject != subject:
+                raise ValueError(f'Update subject mismatch: actual %s, expected: %s',
+                                 msg.subject, subject)
             return schemas.Message.from_orm(msg)
 
     def create(self, subject: str, body: str, header: str = None) -> schemas.Message:
@@ -291,25 +295,112 @@ class MessageStore:
             msg = session.get(Message, msg_id)
             if not msg:
                 raise LookupError(msg_id)
-            if not (msg.subject == subject and msg.body == body and msg.header == header):
-                msg.subject = subject
+            if msg.subject != subject:
+                raise ValueError(f'Update subject mismatch: actual %s, expected: %s',
+                                 msg.subject, subject)
+            if msg.header != header:
+                raise ValueError(f'Update header mismatch: actual %s, expected: %s',
+                                 msg.header, header)
+            if msg.body != body:
                 msg.body = body
-                msg.header = header
             session.flush()
             return schemas.Message.from_orm(msg)
 
-    def delete(self, msg_id: str, subject: str) -> schemas.Message:
+    def delete(self, msg_id: str, subject: str, header: str = None) -> schemas.Message:
         with SessionLocal.begin() as session:
             msg = session.get(Message, msg_id)
             if not msg:
                 raise LookupError(msg_id)
-            assert msg.subject == subject, f'{msg.subject} != {subject}'
+            if not msg.subject.startswith(subject):
+                raise ValueError(f'Delete aborted, mismatched subject: '
+                                 'actual: [%s], expected: [%s]',
+                                 msg.subject, subject)
+            if header and msg.header != header:
+                raise ValueError(f'Delete aborted, mismatched header: '
+                                 'actual: [%s], expected: [%s]',
+                                 msg.header, header)
             msg.status = 'deleted'
             session.flush()
             return schemas.Message.from_orm(msg)
 
     messages_async = aio.wrap(messages)
     message_async = aio.wrap(message)
+    create_async = aio.wrap(create)
+    update_async = aio.wrap(update)
+    delete_async = aio.wrap(delete)
+
+
+class UserStore:
+    """Users Repository."""
+
+    def users(self, subject: str) -> List[schemas.Message]:
+        if subject.endswith('%'):
+            stmt = sa.select(Message).where(
+                Message.subject.like(subject),
+                Message.status == 'active',
+            )
+        else:
+            stmt = sa.select(Message).where(
+                Message.subject == subject,
+                Message.status == 'active',
+            )
+        with SessionLocal() as session:
+            result = session.execute(stmt)
+            entry_list = [
+                schemas.Message.from_orm(row)
+                for row in result.scalars()
+            ]
+
+        return entry_list
+
+    def user(self, user_key: str) -> schemas.Message:
+        with SessionLocal() as session:
+            msg = session.get(Message, user_key)
+            if not msg:
+                raise LookupError(user_key)
+            if not msg.subject.startswith('users.'):
+                raise ValueError(f'Not a user entry: %s', msg.subject)
+            return schemas.Message.from_orm(msg)
+
+    def create(self, user_key: str, subject: str, body: str, header: str = None) -> schemas.Message:
+        with SessionLocal.begin() as session:
+            msg = Message(id=user_key, subject=subject, header=header, body=body)
+            session.add(msg)
+            session.flush()
+            return schemas.Message.from_orm(msg)
+
+    def update(self, user_key: str, subject: str, body: str) -> schemas.Message:
+        with SessionLocal.begin() as session:
+            user = session.get(Message, user_key)
+            if not user:
+                raise LookupError(user_key)
+            if not user.subject.startswith(subject):
+                raise ValueError(f'Update subject mismatch: actual %s, expected: %s',
+                                 user.subject, subject)
+            if user.body != body:
+                user.body = body
+            session.flush()
+            return schemas.Message.from_orm(user)
+
+    def delete(self, user_key: str, subject: str, header: str = None) -> schemas.Message:
+        with SessionLocal.begin() as session:
+            user = session.get(Message, user_key)
+            if not user:
+                raise LookupError(user_key)
+            if not user.subject.startswith(subject):
+                raise ValueError(f'Delete aborted, mismatched subject: '
+                                 'actual: [%s], expected: [%s]',
+                                 user.subject, subject)
+            if header and user.header != header:
+                raise ValueError(f'Delete aborted, mismatched header: '
+                                 'actual: [%s], expected: [%s]',
+                                 user.header, header)
+            user.status = 'deleted'
+            session.flush()
+            return schemas.Message.from_orm(user)
+
+    users_async = aio.wrap(users)
+    user_async = aio.wrap(user)
     create_async = aio.wrap(create)
     update_async = aio.wrap(update)
     delete_async = aio.wrap(delete)
@@ -324,6 +415,7 @@ class CacheStore:
     def __init__(self,
                  now_func: Callable[..., datetime.datetime] = datetime.datetime.utcnow) -> None:
         self.now = now_func
+        self.next_purge_time = now_func()
 
     def _calc_expires(self, ttl: int) -> datetime.datetime:
         return self.now() + datetime.timedelta(seconds=ttl)
@@ -331,10 +423,48 @@ class CacheStore:
     def guid(self, prefix: str = '') -> str:
         return f'{prefix}{new_uuid()}'
 
+    def add(self, key: str, value: str, *,
+            ttl: int = TTL_DEFAULT,
+            ttl_type: str = TTL_TYPE_FIXED,
+            append_guid: bool = False) -> str:
+        """Adds an entry to the cache else raises if the entry already exists."""
+        key = self.guid(key) if append_guid else key
+        self.add_many({key: value}, ttl=ttl, ttl_type=ttl_type)
+        return key
+
+    def add_many(self, data: Mapping[str, str], *,
+                 ttl: int = TTL_DEFAULT,
+                 ttl_type: str = TTL_TYPE_FIXED) -> None:
+        """Adds entries to the cache else raises if any entry already exists."""
+        self.purge_expired_safe()
+        expire_at = self._calc_expires(ttl)
+        entries = [
+            Cache(
+                key=k,
+                value=v,
+                ttl=ttl,
+                ttl_type=ttl_type,
+                expire_at=expire_at,
+            )
+            for k, v in data.items()
+        ]
+        try:
+            with SessionLocal() as session:
+                session.add_all(entries)
+                session.commit()
+        except Exception as exc:
+            logger.warning('Cache.add_many failed, trying purge: %r', exc)
+            self.purge_expired()
+            # Retry after purging cache
+            with SessionLocal() as session:
+                session.add_all(entries)
+                session.commit()
+
     def put(self, key: str, value: str, *,
             ttl: int = TTL_DEFAULT,
             ttl_type: str = TTL_TYPE_FIXED,
             append_guid: bool = False) -> str:
+        """Updates an entry in the cache else creates a new entry."""
         key = self.guid(key) if append_guid else key
         self.put_many({key: value}, ttl=ttl, ttl_type=ttl_type)
         return key
@@ -342,6 +472,8 @@ class CacheStore:
     def put_many(self, data: Mapping[str, str], *,
                  ttl: int = TTL_DEFAULT,
                  ttl_type: str = TTL_TYPE_FIXED) -> None:
+        """Updates entries in the cache else creates new entries."""
+        self.purge_expired_safe()
         expire_at = self._calc_expires(ttl)
         entries = [
             Cache(
@@ -359,6 +491,8 @@ class CacheStore:
                 session.commit()
             except sqlalchemy.exc.IntegrityError:
                 session.rollback()
+                # Do a purge so we don't try to update expired entries
+                self.purge_expired()
                 for new_entry in entries:
                     entry = session.get(Cache, new_entry.key)
                     if entry is None:
@@ -371,6 +505,7 @@ class CacheStore:
                 session.commit()
 
     def get(self, key: str, default: T = None) -> Union[str, T]:
+        """Returns an entry from the cache else ``default`` if no entry exists."""
         with SessionLocal() as session:
             entry = session.get(Cache, key)
             if entry:
@@ -389,6 +524,11 @@ class CacheStore:
         return value
 
     def get_many(self, key_prefix: str) -> Mapping[str, str]:
+        """Returns entries from the cache.
+
+        The entries are returned in a dict where they key is the cache key
+        and the value is cache value.
+        """
         now = self.now()
         stmt = sa.select(Cache).where(Cache.key.ilike(key_prefix + '%'))
         with SessionLocal.begin() as session:
@@ -403,6 +543,10 @@ class CacheStore:
         return entries
 
     def pop(self, key: str, default: T = None) -> Union[str, T]:
+        """Returns an entry from the cache else ``default``.
+
+        If the entry exists it will be removed from the cache.
+        """
         with SessionLocal.begin() as session:
             entry = session.get(Cache, key)
             if entry is None:
@@ -412,11 +556,24 @@ class CacheStore:
         return value
 
     def purge_expired(self) -> int:
+        """Removes all entries that are expired."""
         stmt = sa.delete(Cache).where(Cache.expire_at <= self.now())
         with SessionLocal.begin() as session:
             rows_purged = session.execute(stmt).rowcount
         return rows_purged
 
+    def purge_expired_safe(self) -> None:
+        if self.now() < self.next_purge_time:
+            return
+        self.next_purge_time = self.now() + datetime.timedelta(seconds=self.TTL_DEFAULT)
+        try:
+            purge_count = self.purge_expired()
+            logger.info('Cache.purge_expired count %s', purge_count)
+        except Exception as exc:
+            logger.warning('Cache.purge_expired failed: %r', exc)
+
+    add_async = aio.wrap(add)
+    add_many_async = aio.wrap(add_many)
     put_async = aio.wrap(put)
     put_many_async = aio.wrap(put_many)
     get_async = aio.wrap(get)
@@ -427,4 +584,5 @@ class CacheStore:
 
 store = ScaleStore()
 message_store = MessageStore()
+user_store = UserStore()
 cache_store = CacheStore()

@@ -6,7 +6,7 @@ text blobs, mostly in JSON format, for the front-end webapp.
 """
 import json
 import logging
-from typing import List, Mapping, Union
+from typing import List, Union
 
 from fastapi import (
     APIRouter,
@@ -128,17 +128,8 @@ def can_access(
                      subject, auth_user)
         return False
 
-    # Allow user to update their own users message, or Instructors
     if subject == 'users':
-        auth_username = auth_user.client_id
-        if not body:
-            logger.error('Messages.users body is blank')
-            return False
-        elif isinstance(body, str) and auth_username in body:
-            return True
-        elif isinstance(body, Mapping) and auth_username == body.get('username'):
-            return True
-        else:
-            return False
+        logger.error('Messages.users called but not expected')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     else:
         return action == 'get'

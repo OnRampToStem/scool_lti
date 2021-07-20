@@ -42,6 +42,7 @@ class AuthUser(BaseModel):
     is_active: bool = True
     is_verified: bool = False
     scopes: Optional[List[str]]
+    context: Optional[Mapping[str, str]]
 
     @validator('scopes', pre=True)
     def assemble_scopes(cls, v: Union[str, List[str]]) -> List[str]:
@@ -68,6 +69,7 @@ class AuthUser(BaseModel):
             client_id=scale_user.email,
             client_secret_hash='none',
             scopes=roles,
+            context=scale_user.context,
         )
 
     def session_dict(self):
@@ -106,6 +108,39 @@ class ScaleUser(BaseModel):
         """Returns a dict object suitable for storing in a web session."""
         return self.dict(exclude_defaults=True)
 
+    @property
+    def user_id(self) -> str:
+        """Returns the Platform uuid for this user."""
+        user_id, sep, other = self.id.rpartition('@')
+        return user_id if sep else other
+
+    @property
+    def platform_id(self) -> str:
+        """Returns the Platform Id for this user."""
+        user_id, sep, plat_id = self.id.rpartition('@')
+        return plat_id if sep else 'scale_api'
+
+    @property
+    def context_id(self) -> str:
+        """Returns the LMS Context (Course) Id for this user."""
+        return self.context['id'] if self.context else 'scale_api'
+
+    @property
+    def is_instructor(self) -> bool:
+        """Returns True if this request contains an instructor role."""
+        lower_roles = {r.lower() for r in self.roles}
+        if {'instructor', 'teacher'} & lower_roles:
+            return True
+        return False
+
+    @property
+    def is_student(self) -> bool:
+        """Returns True if this request contains the learner role."""
+        lower_roles = {r.lower() for r in self.roles}
+        if {'learner', 'student'} & lower_roles:
+            return True
+        return False
+
     @classmethod
     def from_auth_user(cls, auth_user: AuthUser) -> 'ScaleUser':
         """Converts an ``AuthUser`` to a ``ScaleUser``."""
@@ -114,7 +149,12 @@ class ScaleUser(BaseModel):
             for r in auth_user.scopes
             if r.startswith('role:')
         ]
-        return cls(id=auth_user.id, email=auth_user.client_id, roles=roles)
+        return cls(
+            id=auth_user.id,
+            email=auth_user.client_id,
+            roles=roles,
+            context=auth_user.context,
+        )
 
     @validator('roles', each_item=True)
     def normalize_roles(cls, v: str) -> str:

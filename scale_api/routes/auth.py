@@ -15,6 +15,7 @@ from fastapi import (
     HTTPException,
     Request,
     Response,
+    Security,
     status,
 )
 from fastapi.responses import RedirectResponse
@@ -77,7 +78,11 @@ async def login_post(
     return RedirectResponse(url=index_page_url, status_code=302)
 
 
-@router.get('/token', include_in_schema=False)
+@router.get(
+    '/token',
+    include_in_schema=False,
+    dependencies=[Security(auth.authorize)],
+)
 async def session_user_token(
         request: Request,
         response: Response,
@@ -89,26 +94,9 @@ async def session_user_token(
     requires that the request be generated from the same origin or
     if from cross-origin that ``withCredentials`` be specified in
     the xhr call.
-
-    If a ``ScaleUser`` has not previously be set in the web session
-    from an LTI launch, then an ``AuthUser`` will be returned if one
-    is present in the web session.
     """
-    session_user = request.session.get('scale_user')
-    if session_user:
-        scale_user = schemas.ScaleUser.parse_obj(session_user)
-        logger.info('token request found ScaleUser: %s', scale_user)
-    else:
-        session_user = request.session.get('au')
-        if not session_user:
-            logger.error('token request no AuthUser found')
-            response.status_code = status.HTTP_401_UNAUTHORIZED
-            return {'error': 'Unable to authenticate'}
-        auth_user = schemas.AuthUser.parse_obj(session_user)
-        scale_user = schemas.ScaleUser.from_auth_user(auth_user)
-        logger.info('token request found AuthUser: %s', auth_user)
-        logger.info('token request return ScaleUser: %s', scale_user)
-
+    scale_user = request.state.scale_user
+    logger.info('token request found ScaleUser: %s', scale_user)
     user_token = auth.create_scale_user_token(scale_user)
     return {'token': user_token}
 
@@ -138,7 +126,7 @@ async def scale_user_token_impersonate(
 
     if not scale_user_request.id:
         scale_user_request.id = uuid.uuid4().hex
-    scale_user_request.id += '@scale_user_token_impersonate'
+    scale_user_request.id += '@scale_api'
     request.session['scale_user'] = scale_user_request.session_dict()
     token = auth.create_scale_user_token(scale_user_request)
     logger.info('Return token impersonate for ScaleUser: %s', scale_user_request)

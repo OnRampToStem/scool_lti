@@ -2,8 +2,8 @@
 Firebase entries
 
 This endpoint is provided for compatibility only. It delegates calls to
-the ``messages`` routes. Once the front-end webapp is converted to use
-``messages`` directly or a new scheme for storing the data is defined,
+the ``messages`` and ``users`` routes. Once the front-end webapp is converted
+to use those routes directly or a new scheme for storing the data is defined,
 then this module can be removed.
 """
 # TODO: remove this after front-end is updated
@@ -13,15 +13,59 @@ import logging
 from fastapi import (
     APIRouter,
     Body,
+    Depends,
     Request,
-    status
+    status,
 )
 
-from scale_api.routes import messages
+from scale_api import (
+    auth,
+    schemas,
+)
+from scale_api.routes import messages, users
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get('/users.json')
+async def get_users(
+        scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
+):
+    return await users.get_users(scale_user)
+
+
+@router.get('/users/{user_key}.json')
+async def get_user(
+        user_key: str,
+        scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
+):
+    return await users.get_user(user_key, scale_user)
+
+
+@router.post('/users.json')
+async def create_user(
+        data: dict = Body(...),
+        scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
+):
+    return await users.create_user(data, scale_user)
+
+
+@router.put('/users/{user_key}.json')
+async def update_entry(
+        user_key: str, data: dict = Body(...),
+        scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
+):
+    return await users.update_user(user_key, data, scale_user)
+
+
+@router.delete('/users/{user_key}.json', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_entry(
+        user_key: str,
+        scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
+):
+    await users.delete_user(user_key, scale_user)
 
 
 @router.get('/{object_name}.json')

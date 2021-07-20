@@ -239,8 +239,27 @@ async def launch_form(
     # in order to make calls to the LTI Advantage Services.
     message_launch = messages.LtiLaunchRequest(platform, claims)
     scale_user = message_launch.scale_user
+
+    # Check to see whether user already has a launch from another context
+    if session_scale_user := request.session.get('scale_user'):
+        logger.warning('User has existing launch: ScaleUser(%s)',
+                       session_scale_user)
+        session_scale_user = schemas.ScaleUser(**session_scale_user)
+        if (
+                session_scale_user.id != scale_user.id or
+                session_scale_user.context != scale_user.context
+        ):
+            logger.error('Aborting attempt to launch for a different context'
+                         'Session: %s, Launch: %s',
+                         session_scale_user.context, scale_user.context)
+            return {
+                'error': 'invalid_request',
+                'error_description': 'Attempting to launch for a different context',
+            }
+
     logger.info('Adding scale_user to session: %s', scale_user)
     request.session['scale_user'] = scale_user.session_dict()
+
     await db.cache_store.put_async(
         message_launch.launch_id,
         message_launch.dumps(),
@@ -434,10 +453,7 @@ async def login_initiations_form(
     dependencies=[Security(auth.authorize)],
 )
 async def names_role_service(request: Request):
-    if session_scale_user := request.session.get('scale_user'):
-        scale_user = schemas.ScaleUser.parse_obj(session_scale_user)
-    else:
-        scale_user = schemas.ScaleUser.from_auth_user(request.state.auth_user)
+    scale_user = request.state.scale_user
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info('Loading launch message [%s] for ScaleUser: %s',
                 launch_id, scale_user)

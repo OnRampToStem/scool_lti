@@ -152,6 +152,11 @@ def verify_password(password_plain: str, password_hash: str) -> bool:
     return pwd_context.verify(password_plain, password_hash)
 
 
+async def request_scale_user(request: Request) -> schemas.ScaleUser:
+    """Dependency that routes can use that depend on a ``scale_user``."""
+    return request.state.scale_user
+
+
 async def authorize(
         request: Request,
         scopes: SecurityScopes,
@@ -163,22 +168,32 @@ async def authorize(
     and authorization depend on this function. This function first looks
     for auth info in the form of a Bearer token in the ``Authorization``
     HTTP Header. It falls back to looking in the request session.
+
+    If the request is both authenticated and authorized the following state
+    values will be set on the request:
+
+        request.state.auth_user
+        request.state.scale_user
+
+    If no ``scale_user`` is found the ``auth_user`` will be converted to a
+    ``scale_user`` so both state values will always be set for any routes
+    that use this as a dependency.
     """
     logger.info('authorize(bearer_token=[%s], scopes=[%s])',
                 bearer_token, scopes.scope_str)
-
+    auth_user = scale_user = None
     try:
         if bearer_token:
             auth_user = await auth_user_from_token(bearer_token)
             logger.info('authorize from bearer token AuthUser: %s', auth_user)
         else:
-            if session_user := request.session.get('au'):
-                auth_user = schemas.AuthUser.parse_obj(session_user)
-                logger.info('authorize from session AuthUser: %s', auth_user)
-            elif session_user := request.session.get('scale_user'):
+            if session_user := request.session.get('scale_user'):
                 scale_user = schemas.ScaleUser.parse_obj(session_user)
                 auth_user = schemas.AuthUser.from_scale_user(scale_user)
                 logger.info('authorize from session ScaleUser: %s', scale_user)
+            elif session_user := request.session.get('au'):
+                auth_user = schemas.AuthUser.parse_obj(session_user)
+                logger.info('authorize from session AuthUser: %s', auth_user)
             else:
                 raise LookupError('No token or session values found')
     except (LookupError, ValueError, authlib.jose.errors.JoseError) as exc:
@@ -194,6 +209,9 @@ async def authorize(
                          auth_user, scopes.scopes)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
         request.state.auth_user = auth_user
+        if not scale_user:
+            scale_user = schemas.ScaleUser.from_auth_user(auth_user)
+        request.state.scale_user = scale_user
 
 
 def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) -> str:
@@ -202,6 +220,7 @@ def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) ->
         'sub': auth_user.id,
         'client_id': auth_user.client_id,
         'scopes': auth_user.scopes,
+        'context': auth_user.context,
     }
     return create_token(payload, expires_in)
 
@@ -273,13 +292,15 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
             client_id=claims['client_id'],
             client_secret_hash='none',
             scopes=claims['scopes'],
+            context=claims['context'],
         )
     else:
         auth_user = schemas.AuthUser(
             id=claims['sub'],
             client_id=claims['email'],
             client_secret_hash='none',
-            scopes=[f'role:{r}' for r in claims['roles']]
+            scopes=[f'role:{r}' for r in claims['roles']],
+            context=claims['context'],
         )
     return auth_user
 

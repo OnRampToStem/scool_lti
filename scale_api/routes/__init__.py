@@ -10,6 +10,7 @@ from .auth import router as router_auth
 from .firebase import router as router_firebase
 from .messages import router as router_messages
 from .platforms import router as router_platforms
+from .users import router as router_users
 from .well_known import router as router_well_known
 from .. import auth
 from ..lti.routes import router as router_lti
@@ -40,6 +41,13 @@ api_router.include_router(
     prefix='/v1/platforms',
     tags=['Platforms'],
     dependencies=[Security(auth.authorize, scopes=['plat'])],
+)
+
+api_router.include_router(
+    router_users,
+    prefix='/v1/users',
+    tags=['Users'],
+    dependencies=[Security(auth.authorize)],
 )
 
 api_router.include_router(
