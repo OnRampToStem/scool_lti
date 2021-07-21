@@ -144,11 +144,14 @@ class ScaleUser(BaseModel):
     @classmethod
     def from_auth_user(cls, auth_user: AuthUser) -> 'ScaleUser':
         """Converts an ``AuthUser`` to a ``ScaleUser``."""
-        roles = [
-            r.split(':', 1)[1]
-            for r in auth_user.scopes
-            if r.startswith('role:')
-        ]
+        if auth_user.scopes:
+            roles = [
+                r.split(':', 1)[1]
+                for r in auth_user.scopes
+                if r.startswith('role:')
+            ]
+        else:
+            roles = []
         return cls(
             id=auth_user.id,
             email=auth_user.client_id,
