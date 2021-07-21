@@ -17,6 +17,11 @@ from scale_api import (
     db,
     keys,
 )
+from scale_api.db.models import (
+    AuthJsonWeKey,
+    AuthUser,
+    Platform,
+)
 
 
 def init_platforms(data):
@@ -26,7 +31,7 @@ def init_platforms(data):
         return
     with db.SessionLocal.begin() as session:
         for platform in data['platforms']:
-            new_plat = db.Platform(**platform)
+            new_plat = Platform(**platform)
             session.add(new_plat)
 
 
@@ -36,7 +41,7 @@ def init_auth_users(data):
             for user in data['auth_users']:
                 secret = user.pop('client_secret')
                 user['client_secret_hash'] = auth.hash_password(secret)
-                new_user = db.AuthUser(**user)
+                new_user = AuthUser(**user)
                 session.add(new_user)
     except Exception as exc:
         print('AuthUsers update failed', repr(exc))
@@ -49,7 +54,7 @@ def init_auth_json_web_keys(data):
         return
     with db.SessionLocal.begin() as session:
         web_key = keys.generate_private_key()
-        jwk = db.AuthJsonWeKey(
+        jwk = AuthJsonWeKey(
             kid=web_key.kid,
             data=web_key.data.get_secret_value(),
         )
