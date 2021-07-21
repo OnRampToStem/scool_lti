@@ -120,9 +120,15 @@ class AuthorizeTestCase(unittest.IsolatedAsyncioTestCase):
             await auth.authorize(request, scopes, '')
         self.assertTrue(http_exc.exception.status_code, 401)
 
+    @patch('scale_api.schemas.ScaleUser')
     @patch('scale_api.auth.can_access')
     @patch('scale_api.auth.auth_user_from_token')
-    async def test_authorize_from_bearer_token(self, token_mock, can_access_mock):
+    async def test_authorize_from_bearer_token(
+            self,
+            token_mock,
+            can_access_mock,
+            scale_user_mock,
+    ):
         token_mock.return_value = 'test_user'
         request = Mock()
         scopes = Mock()
@@ -131,6 +137,7 @@ class AuthorizeTestCase(unittest.IsolatedAsyncioTestCase):
         await auth.authorize(request, scopes, 'test_token')
         token_mock.assert_called_with('test_token')
         can_access_mock.assert_called_with('test_user', [])
+        scale_user_mock.from_auth_user.assert_called_with('test_user')
 
     @patch('scale_api.auth.can_access')
     async def test_authorize_from_auth_user_session(
