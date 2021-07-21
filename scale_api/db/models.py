@@ -144,3 +144,30 @@ class Cache(Base):
             f'expire_at={self.expire_at}, '
             f')'
         )
+
+
+class BinData(Base):
+    """Binary Data table.
+
+    Designed to store any arbitrary binary data, but primarily used in order
+    to store file attachments.
+    """
+    __tablename__ = 'bin_data'
+
+    id = sa.Column(sa.String(255), primary_key=True, default=new_uuid)
+    content_type = sa.Column(sa.String(255), default='application/octet-stream')
+    name = sa.Column(sa.String(255), nullable=True)
+    status = sa.Column(sa.String(10), default='active')
+    created_at = sa.Column(sa.DateTime, default=sa.func.now())
+    updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
+    data = sa.Column(sa.LargeBinary())
+
+    def __repr__(self) -> str:
+        return (
+            'BinData('
+            f'id={self.id!r}'
+            f', content_type={self.content_type!r}'
+            f', name={self.name!r}'
+            f', status={self.status!r}'
+            ')'
+        )

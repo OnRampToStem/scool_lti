@@ -210,3 +210,20 @@ class Message(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class BinaryFile(BaseModel):
+    """Binary File.
+
+    A standalone schema class for ``scale_api.db.BinData``.
+    """
+    id: str
+    content_type: str = 'application/octet-stream'
+    name: Optional[str]
+    status: str = 'active'
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+    data: bytes
+
+    class Config:
+        orm_mode = True

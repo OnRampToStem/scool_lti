@@ -7,6 +7,7 @@ from fastapi import APIRouter, Security
 
 from .auth import index_api as index_api
 from .auth import router as router_auth
+from .files import router as router_files
 from .firebase import router as router_firebase
 from .messages import router as router_messages
 from .platforms import router as router_platforms
@@ -61,5 +62,12 @@ api_router.include_router(
     router_messages,
     prefix='/v1/messages',
     tags=['Messages'],
+    dependencies=[Security(auth.authorize)],
+)
+
+api_router.include_router(
+    router_files,
+    prefix='/v1/files',
+    tags=['Files'],
     dependencies=[Security(auth.authorize)],
 )

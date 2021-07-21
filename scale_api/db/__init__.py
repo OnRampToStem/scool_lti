@@ -11,6 +11,7 @@ from .core import (
 )
 
 from .stores import (
+    BinaryStore,
     CacheStore,
     MessageStore,
     ScaleStore,
@@ -18,6 +19,7 @@ from .stores import (
 )
 
 store = ScaleStore()
+bin_store = BinaryStore()
 cache_store = CacheStore()
 message_store = MessageStore()
 user_store = UserStore()
