@@ -4,6 +4,7 @@ Authentication routes
 Provides endpoints for authentication for ``AuthUser`` requests
 and token services for ``ScaleUser`` requests.
 """
+import base64
 import logging
 import uuid
 from typing import Optional
@@ -124,9 +125,13 @@ async def scale_user_token_impersonate(
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {'error': 'Unable to authenticate'}
 
-    if not scale_user_request.id:
-        scale_user_request.id = uuid.uuid4().hex
-    scale_user_request.id += '@scale_api'
+    # We generate a id based on the provided email address. We don't use the
+    # email directly so that the id remains opaque and not something to be
+    # relied on for something useful.
+    test_email = scale_user_request.email.encode('utf-8')
+    test_id = base64.urlsafe_b64encode(test_email).strip(b'=').decode('ascii')
+    scale_user_request.id = test_id + '@scale_api'
+
     request.session['scale_user'] = scale_user_request.session_dict()
     token = auth.create_scale_user_token(scale_user_request)
     logger.info('Return token impersonate for ScaleUser: %s', scale_user_request)
