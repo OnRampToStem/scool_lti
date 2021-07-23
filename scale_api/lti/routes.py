@@ -9,6 +9,7 @@ that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
 """
+import json
 import logging
 import urllib.parse
 import uuid
@@ -28,6 +29,7 @@ from fastapi import (
 )
 from fastapi.responses import RedirectResponse
 
+import scale_api.routes.users as users_route
 from scale_api import (
     app_config,
     auth,
@@ -454,6 +456,12 @@ async def login_initiations_form(
 )
 async def names_role_service(request: Request):
     scale_user = request.state.scale_user
+
+    # If launched from the console or from an impersonation token we won't
+    # have a LTI service to call, so we take a different path.
+    if scale_user.platform_id == 'scale_api':
+        return await test_names_role_service(scale_user)
+
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info('Loading launch message [%s] for ScaleUser: %s',
                 launch_id, scale_user)
@@ -472,6 +480,41 @@ async def names_role_service(request: Request):
         )
         for m in members if m.get('email')
     ]
+
+
+async def test_names_role_service(scale_user: schemas.ScaleUser):
+    """Returns users from the local scale database.
+
+    If the endpoint is called from outside the LTI context such as when
+    testing, the users that are already stored in the database are
+    returned and not LTI call is attempted.
+    """
+    if not (
+            scale_user.is_instructor
+            or
+            set(scale_user.roles) and users_route.ROLES_ALL_USERS
+    ):
+        logger.error('lti.members unauthorized request from ScaleUser: %s',
+                     scale_user)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+    subject = users_route.users_subject(scale_user)
+    users = await db.user_store.users_async(subject)
+    results = []
+    for user in users:
+        user_id = user.header + '@scale_api'
+        _, _, context_id = user.subject.split('.', maxsplit=2)
+        body = json.loads(user.body)
+        member = schemas.ScaleUser(
+            id=user_id,
+            email=body['username'],
+            name=body.get('name'),
+            picture=body.get('pic'),
+            roles=[body.get('role', 'Learner')],
+            context={'id': context_id, 'title': ''},
+        )
+        results.append(member)
+    return results
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:
