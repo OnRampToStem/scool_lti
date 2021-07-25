@@ -35,7 +35,9 @@ class UserStore:
         with SessionLocal() as session:
             msg = session.get(Message, user_key)
             if not msg:
-                raise LookupError(user_key)
+                raise LookupError(f'{user_key} not found')
+            if msg.status != 'active':
+                raise LookupError(f'{user_key} not active')
             if not msg.subject.startswith('users.'):
                 raise ValueError(f'Not a user entry: %s', msg.subject)
             return schemas.Message.from_orm(msg)
@@ -55,6 +57,8 @@ class UserStore:
             if not user.subject.startswith(subject):
                 raise ValueError(f'Update subject mismatch: actual %s, expected: %s',
                                  user.subject, subject)
+            if user.status != 'active':
+                user.status = 'active'
             if user.body != body:
                 user.body = body
             session.flush()
@@ -73,8 +77,9 @@ class UserStore:
                 raise ValueError(f'Delete aborted, mismatched header: '
                                  'actual: [%s], expected: [%s]',
                                  user.header, header)
-            user.status = 'deleted'
-            session.flush()
+            if user.status != 'deleted':
+                user.status = 'deleted'
+                session.flush()
             return schemas.Message.from_orm(user)
 
     users_async = aio.wrap(users)
