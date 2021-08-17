@@ -251,13 +251,9 @@ async def launch_form(
                 session_scale_user.id != scale_user.id or
                 session_scale_user.context != scale_user.context
         ):
-            logger.error('Aborting attempt to launch for a different context'
-                         'Session: %s, Launch: %s',
-                         session_scale_user.context, scale_user.context)
-            return {
-                'error': 'invalid_request',
-                'error_description': 'Attempting to launch for a different context',
-            }
+            logger.warning('Attempt to launch for a different context'
+                           'Session: %s, Launch: %s',
+                           session_scale_user.context, scale_user.context)
 
     logger.info('Adding scale_user to session: %s', scale_user)
     request.session['scale_user'] = scale_user.session_dict()
