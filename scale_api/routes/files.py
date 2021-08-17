@@ -2,6 +2,7 @@
 Files routes
 """
 import logging
+import uuid
 
 from fastapi import (
     APIRouter,
@@ -73,6 +74,11 @@ async def get_file(file_id: str):
             headers=headers,
             media_type=result.content_type
         )
+
+
+@router.post('/', dependencies=[Depends(access_check)])
+async def post_file(file: UploadFile = File(...)):
+    return await put_file(uuid.uuid4().hex, file)
 
 
 @router.put('/{file_id}', dependencies=[Depends(access_check)])
