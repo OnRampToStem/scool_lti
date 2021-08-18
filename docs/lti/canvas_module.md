@@ -12,7 +12,7 @@ Click the plus sign icon `[+]` to add the module link.
 # Module Link Selection
 
 Select **External Tool** as the add type. Scroll through the list of tools and
-select **On-Ramp to STEM List Selection**.
+select **On-Ramp to STEM**.
 
 The **URL** and **Page Name** will be populated automatically. Change the
 **Page Name** as appropriate.
