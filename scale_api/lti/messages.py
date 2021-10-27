@@ -110,10 +110,20 @@ class LtiLaunchRequest:
     def scale_user(self) -> schemas.ScaleUser:
         """Returns a ``ScaleUser`` based on data from the request."""
         user_id = self.message['sub'] + '@' + self.platform.id
+        lms_name = self.message.get('name')
+        if not (lms_email := self.message.get('email')):
+            # Special handling for using the Student view in Canvas
+            if (
+                    lms_name == 'Test Student' and
+                    self.message['iss'] == 'https://canvas.instructure.com'
+            ):
+                lms_email = 'test_student@canvas.instructure.com'
+            else:
+                raise ValueError('LtiLaunchRequest missing required attribute: email')
         return schemas.ScaleUser(
             id=user_id,
-            email=self.message.get('email'),
-            name=self.message.get('name'),
+            email=lms_email,
+            name=lms_name,
             picture=self.message.get('picture'),
             roles=self.roles,
             context=self.context,

@@ -240,7 +240,11 @@ async def launch_form(
     # build a ``ScaleUser`` from it. We also store it for use later
     # in order to make calls to the LTI Advantage Services.
     message_launch = messages.LtiLaunchRequest(platform, claims)
-    scale_user = message_launch.scale_user
+    try:
+        scale_user = message_launch.scale_user
+    except ValueError as ve:
+        logger.error('Failed to get Scale user from LtiLaunchRequest: %r', ve)
+        return {'error': 'invalid_launch', 'description': str(ve)}
 
     # Check to see whether user already has a launch from another context
     if session_scale_user := request.session.get('scale_user'):
