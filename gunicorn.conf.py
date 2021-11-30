@@ -5,7 +5,7 @@ from gunicorn import glogging
 
 import scale_api
 
-WORKER_COUNT = (os.cpu_count() * 2) + 1
+WORKER_COUNT = int(os.getenv('WEB_CONCURRENCY', os.cpu_count() * 2))
 
 
 class HealthCheckFilter(logging.Filter):
@@ -40,6 +40,5 @@ forwarded_allow_ips = '*'
 proxy_allow_ips = '*'
 bind = ':8000'
 worker_class = 'uvicorn.workers.UvicornWorker'
-workers = min(2, WORKER_COUNT)
-# keyfile = "/etc/ssl/key.pem"
-# certfile = "/etc/ssl/cert.pem"
+# Start at least 2 but no more than 8 workers
+workers = max(2, min(8, WORKER_COUNT))

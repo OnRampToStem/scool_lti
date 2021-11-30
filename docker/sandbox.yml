@@ -7,6 +7,7 @@ services:
     image: scale_api_sandbox
     environment:
       SCALE_ENV: sandbox
+      WEB_CONCURRENCY: 2
     env_file:
       - ../.env.sandbox
     networks:
