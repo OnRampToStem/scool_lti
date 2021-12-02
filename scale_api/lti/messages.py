@@ -5,6 +5,7 @@ This module defines classes that help to model and consume LTI messages
 such as Resource Link and Deep Link request and response messages.
 """
 import json
+import logging
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from .. import schemas
@@ -15,6 +16,8 @@ MESSAGE_CONTEXT_KEY = 'https://purl.imsglobal.org/spec/lti/claim/context'
 MESSAGE_ROLES_KEY = 'https://purl.imsglobal.org/spec/lti/claim/roles'
 MESSAGE_TOOL_KEY = 'https://purl.imsglobal.org/spec/lti/claim/tool_platform'
 MESSAGE_CUSTOM_KEY = 'https://purl.imsglobal.org/spec/lti/claim/custom'
+
+logger = logging.getLogger(__name__)
 
 
 class LtiLaunchRequest:
@@ -109,25 +112,33 @@ class LtiLaunchRequest:
     @property
     def scale_user(self) -> schemas.ScaleUser:
         """Returns a ``ScaleUser`` based on data from the request."""
-        user_id = self.message['sub'] + '@' + self.platform.id
-        lms_name = self.message.get('name')
-        if not (lms_email := self.message.get('email')):
-            # Special handling for using the Student view in Canvas
-            if (
-                    lms_name == 'Test Student' and
-                    self.message['iss'] == 'https://canvas.instructure.com'
-            ):
+        lms_userid = self.message['sub'] + '@' + self.platform.id
+        lms_email = self.message.get('email') or self._custom_field('email')
+        lms_name = self.message.get('name') or self._custom_field('name')
+        lms_picture = self.message.get('picture') or self._custom_field('picture')
+        if not lms_email:
+            # Special handling for using the "Student View" feature in Canvas
+            if lms_name == 'Test Student' and self.message['iss'] == 'https://canvas.instructure.com':
                 lms_email = 'test_student@canvas.instructure.com'
             else:
                 raise ValueError('LtiLaunchRequest missing required attribute: email')
         return schemas.ScaleUser(
-            id=user_id,
+            id=lms_userid,
             email=lms_email,
             name=lms_name,
-            picture=self.message.get('picture'),
+            picture=lms_picture,
             roles=self.roles,
             context=self.context,
         )
+
+    def _custom_field(self, field_name: str) -> Optional[str]:
+        """Returns the value of the given custom field name, if present.
+
+        See the Troubleshooting section of `docs/lti/canvas_install.md` for
+        details on how to add the custom fields.
+        """
+        logger.warning('Looking for custom field [%s]', field_name)
+        return self.message.get(MESSAGE_CUSTOM_KEY, {}).get(field_name)
 
     def dumps(self) -> str:
         """Serializes the request to a string suitable for storing."""

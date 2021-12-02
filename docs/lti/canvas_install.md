@@ -104,3 +104,19 @@ option
 Provide this identifier to the Tool owner.
 
 ![Confirm App Deployment Id Show](../img/canvas/course_settings_deployid_show.png)
+
+# Troubleshooting
+
+If the `email`, `name` and `picture` claims are not present in the Launch
+Request, ensure that the **Privacy Level** is on the Developer Key is set to
+**PUBLIC** (under "Additional Settings"). This setting may need to be updated
+using the API.
+
+As a work-around, the following "Custom Fields" can be added to the
+"Additional Settings" section of the Developer Key.
+
+```
+email=$Person.email.primary
+name=$Person.name.display
+picture=$User.image
+```
