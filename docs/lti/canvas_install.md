@@ -112,6 +112,15 @@ Request, ensure that the **Privacy Level** is on the Developer Key is set to
 **PUBLIC** (under "Additional Settings"). This setting may need to be updated
 using the API.
 
+Below is an example of an API call to enable the setting for a specific course:
+
+```bash
+curl -X PUT 'https://<canvas>/api/v1/courses/<course_id>/external_tools/<external_tool_id>' \
+     -H "Authorization: Bearer <token>" \
+     -F 'name=OR2STEM' \
+     -F 'privacy_level=public'
+```
+
 As a work-around, the following "Custom Fields" can be added to the
 "Additional Settings" section of the Developer Key.
 
