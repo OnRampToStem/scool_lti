@@ -3,21 +3,22 @@ Async utilities
 """
 import functools
 import logging
-import typing
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
 
 import httpx
 from starlette.concurrency import run_in_threadpool
 
 from scale_api import app_config
 
-T = typing.TypeVar('T')
+T = TypeVar('T')
 
 logger = logging.getLogger(__name__)
 
 http_client = httpx.AsyncClient(verify=app_config.is_production)
 
 
-def wrap(fn: typing.Callable[..., T]) -> typing.Callable[..., typing.Awaitable[T]]:
+def wrap(fn: Callable[..., T]) -> Callable[..., Awaitable[T]]:
     """Decorator that runs the function in a threadpool.
 
     Uses the Starlette ``run_in_threadpool`` function to turn a sync function
@@ -32,6 +33,7 @@ def wrap(fn: typing.Callable[..., T]) -> typing.Callable[..., typing.Awaitable[T
     async def my_async_func():
         await my_sync_func()
     """
+
     @functools.wraps(fn)
     async def inner(*args, **kwargs) -> T:
         return await run_in_threadpool(fn, *args, **kwargs)
