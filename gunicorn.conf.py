@@ -10,13 +10,14 @@ WORKER_COUNT = int(os.getenv('WEB_CONCURRENCY', os.cpu_count() * 2))
 
 class HealthCheckFilter(logging.Filter):
     def filter(self, record):
-        return 'GET /lb-status' not in record.getMessage()
+        prefix = scale_api.app_config.PATH_PREFIX
+        return f'GET {prefix}/lb-status' not in record.getMessage()
 
 
 class CustomGunicornLogger(glogging.Logger):
     def setup(self, cfg):
         super().setup(cfg)
-        logger = logging.getLogger("gunicorn.access")
+        logger = logging.getLogger("uvicorn.access")
         logger.addFilter(HealthCheckFilter())
 
 
