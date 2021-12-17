@@ -49,6 +49,11 @@ router = APIRouter()
 
 JWT = jose.JsonWebToken(['RS256', 'RS512'])
 
+NO_CACHE_HEADERS = {
+    'Cache-Control': 'no-store',
+    'Pragma': 'no-cache',
+}
+
 
 @router.get('/', include_in_schema=False)
 async def lti_home(request: Request):
@@ -291,7 +296,7 @@ async def launch_form(
     logger.info('Redirecting to %s', target_url)
     response = RedirectResponse(
         target_url,
-        headers=settings.NO_CACHE_HEADERS,
+        headers=NO_CACHE_HEADERS,
         status_code=status.HTTP_302_FOUND
     )
     response.delete_cookie(f'lti1p3-state-{platform_id}')
@@ -429,7 +434,7 @@ async def login_initiations_form(
     response = RedirectResponse(
         url=target_url,
         headers={
-            **settings.NO_CACHE_HEADERS,
+            **NO_CACHE_HEADERS,
             'X-Frame-Options': 'DENY',
         },
         status_code=status.HTTP_302_FOUND

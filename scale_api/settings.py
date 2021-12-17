@@ -13,11 +13,6 @@ BASE_PATH = Path(__file__).parent.parent
 
 VALID_ENVIRONMENTS = ('local', 'sandbox', 'dev', 'prod')
 
-NO_CACHE_HEADERS = {
-    'Cache-Control': 'no-store',
-    'Pragma': 'no-cache',
-}
-
 
 class ScaleSettings(BaseSettings):
     """Main app settings.
