@@ -13,12 +13,17 @@ TEMPLATE_PATH = Path(__file__).parent / 'templates'
 _templates = Jinja2Templates(directory=str(TEMPLATE_PATH))
 
 
-def render(request: Request, template: str, context: dict = None, **kwargs) -> Response:
+def render(
+        request: Request,
+        template: str,
+        context: dict = None,
+        **kwargs
+) -> Response:
     """Returns a Response with the content rendered from a template.
 
     Renders a `text/html` response using the given template and context. If
-    the provide context does not contain the `request` key, one will be created
-    using the provided request object.
+    the provided context does not contain the `request` key, one will be
+    created using the provided request object.
     """
     if context is None:
         context = {'request': request}
