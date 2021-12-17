@@ -18,7 +18,7 @@ Learning Tools Interoperability (LTI).
 import logging
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set
+from typing import Optional
 
 import authlib.jose.errors
 from authlib import jose
@@ -74,8 +74,8 @@ class ScopePermission:
     such as roles, ``role:Instructor``.
     """
     resource: str
-    actions: Set[str]
-    items: Set[str]
+    actions: set[str]
+    items: set[str]
 
     @classmethod
     def from_string(cls, scope_str: str) -> 'ScopePermission':
@@ -120,7 +120,7 @@ class OAuth2ClientCredentials(OAuth2):
             self,
             tokenUrl: str,
             scheme_name: Optional[str] = None,
-            scopes: Optional[Dict[str, str]] = None,
+            scopes: Optional[dict[str, str]] = None,
             auto_error: bool = False,
     ):
         if not scopes:
@@ -305,7 +305,7 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
     return auth_user
 
 
-def can_access(auth_user: schemas.AuthUser, scopes: Optional[List[str]]) -> bool:
+def can_access(auth_user: schemas.AuthUser, scopes: Optional[list[str]]) -> bool:
     """Returns True if the user has the required scope(s)."""
     if not auth_user.is_active:
         return False

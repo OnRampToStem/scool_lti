@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from scale_api import aio, schemas
 from ..core import SessionLocal, sa
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 class UserStore:
     """Users Repository."""
 
-    def users(self, subject: str) -> List[schemas.Message]:
+    def users(self, subject: str) -> list[schemas.Message]:
         if subject.endswith('%'):
             stmt = sa.select(Message).where(
                 Message.subject.like(subject),

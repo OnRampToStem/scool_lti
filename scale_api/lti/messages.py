@@ -6,7 +6,8 @@ such as Resource Link and Deep Link request and response messages.
 """
 import json
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any, Optional, Union
 
 from .. import schemas
 
@@ -56,7 +57,7 @@ class LtiLaunchRequest:
         return f'lti-launch-request-{scale_user.id}'
 
     @property
-    def roles(self) -> List[str]:
+    def roles(self) -> list[str]:
         """Returns a list of roles for this context."""
         return [
             r.rsplit('#')[1]
@@ -104,7 +105,7 @@ class LtiLaunchRequest:
         return False
 
     @property
-    def names_role_service(self) -> Optional[Dict]:
+    def names_role_service(self) -> Optional[dict]:
         return self.message.get(
             'https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'
         )

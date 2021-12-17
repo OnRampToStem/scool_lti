@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from scale_api import aio, schemas
 from ..core import SessionLocal, sa
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 class ScaleStore:
     """SCALE Application Repository."""
 
-    def platforms(self) -> List[schemas.Platform]:
+    def platforms(self) -> list[schemas.Platform]:
         stmt = sa.select(Platform)
         with SessionLocal() as session:
             result = session.execute(stmt)
@@ -54,7 +53,7 @@ class ScaleStore:
 
         return user
 
-    def json_web_keys(self) -> List[schemas.AuthJsonWebKey]:
+    def json_web_keys(self) -> list[schemas.AuthJsonWebKey]:
         stmt = sa.select(AuthJsonWeKey).where(
             AuthJsonWeKey.valid_from <= sa.func.now(),
             sa.or_(

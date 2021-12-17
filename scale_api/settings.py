@@ -5,7 +5,7 @@ Application-wide configuration settings that are read in from the Environment.
 """
 import secrets
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 from pydantic import AnyHttpUrl, BaseSettings, validator
 
@@ -41,7 +41,7 @@ class ScaleSettings(BaseSettings):
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
+    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = [
         'http://localhost',
         'http://localhost:8080'
     ]
@@ -70,7 +70,7 @@ class ScaleSettings(BaseSettings):
         return v
 
     @validator('BACKEND_CORS_ORIGINS', pre=True)
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
+    def assemble_cors_origins(cls, v: Union[str, list[str]]) -> Union[list[str], str]:
         """Converts a comma-separated string to a list."""
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]

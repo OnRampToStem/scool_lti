@@ -13,7 +13,6 @@ import json
 import logging
 import urllib.parse
 import uuid
-from typing import List
 
 from authlib import jose
 from authlib.oidc.core import IDToken
@@ -450,7 +449,7 @@ async def login_initiations_form(
 
 @router.get(
     '/members',
-    response_model=List[schemas.ScaleUser],
+    response_model=list[schemas.ScaleUser],
     response_model_exclude_unset=True,
     dependencies=[Security(auth.authorize)],
 )

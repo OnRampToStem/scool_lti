@@ -2,7 +2,8 @@
 SCALE Application schemas
 """
 import datetime
-from typing import List, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -41,11 +42,11 @@ class AuthUser(BaseModel):
     client_secret_hash: str
     is_active: bool = True
     is_verified: bool = False
-    scopes: Optional[List[str]]
+    scopes: Optional[list[str]]
     context: Optional[Mapping[str, str]]
 
     @validator('scopes', pre=True)
-    def assemble_scopes(cls, v: Union[str, List[str]]) -> List[str]:
+    def assemble_scopes(cls, v: Union[str, list[str]]) -> list[str]:
         """Converts a space separated scope string to a list."""
         if v is None:
             return []
@@ -97,7 +98,7 @@ class ScaleUser(BaseModel):
     # assigned for the Context.
     #
     # see https://www.imsglobal.org/spec/lti/v1p3#context-claim
-    roles: List[str] = []
+    roles: list[str] = []
 
     # Context is the term used by LTI to represent a Course in the LMS.
     # We keep the same terminology in our schema. Context provides both

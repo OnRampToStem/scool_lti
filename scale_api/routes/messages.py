@@ -6,7 +6,7 @@ text blobs, mostly in JSON format, for the front-end webapp.
 """
 import json
 import logging
-from typing import List, Union
+from typing import Union
 
 from fastapi import (
     APIRouter,
@@ -26,9 +26,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get('/{subject}.json', response_model=List[schemas.Message])
+@router.get('/{subject}.json', response_model=list[schemas.Message])
 async def get_messages(request: Request, subject: str):
     entries = await db.message_store.messages_async(subject)
+    print(subject, '----->here<-----')
     logger.debug('Messages.%s found %s entries in db', subject, len(entries))
     result = [
         e for e in entries

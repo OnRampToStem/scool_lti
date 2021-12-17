@@ -1,9 +1,8 @@
 import logging
-from typing import List
 
 from scale_api import aio, schemas
 from .. import errors
-from ..core import SessionLocal, sa
+from ..core import SessionLocal
 from ..models import BinData
 
 logger = logging.getLogger(__name__)
@@ -11,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 class BinaryStore:
     """Binary data Repository."""
+
     def get(self, file_id: str) -> schemas.BinaryFile:
         with SessionLocal() as session:
             entry = session.get(BinData, file_id)

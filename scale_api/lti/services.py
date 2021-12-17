@@ -6,7 +6,7 @@ import re
 import time
 import uuid
 from collections import namedtuple
-from typing import Dict, Sequence
+from collections.abc import Sequence
 
 from authlib import jose
 
@@ -56,7 +56,7 @@ class LtiServicesClient:
 
     def __init__(self, platform: schemas.Platform) -> None:
         self.platform = platform
-        self.token_cache: Dict[str, CacheItem] = {}
+        self.token_cache: dict[str, CacheItem] = {}
 
     async def _access_token(self, scopes: Sequence[str]) -> str:
         """Returns an OAuth access_token."""
@@ -86,7 +86,7 @@ class LtiServicesClient:
         )
         return access_token
 
-    async def authorize_header(self, scopes: Sequence[str]) -> Dict[str, str]:
+    async def authorize_header(self, scopes: Sequence[str]) -> dict[str, str]:
         token = await self._access_token(scopes)
         return {'Authorization': 'Bearer ' + token}
 

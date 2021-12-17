@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from scale_api import aio, schemas
 from ..core import SessionLocal, sa
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 class MessageStore:
     """Messages Repository."""
 
-    def messages(self, subject: str) -> List[schemas.Message]:
+    def messages(self, subject: str) -> list[schemas.Message]:
         stmt = sa.select(Message).where(
             Message.subject == subject,
             Message.status == 'active',

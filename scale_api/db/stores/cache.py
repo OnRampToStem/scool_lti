@@ -1,6 +1,7 @@
 import datetime
 import logging
-from typing import Callable, Mapping, TypeVar, Union
+from collections.abc import Callable, Mapping
+from typing import TypeVar, Union
 
 from scale_api import aio
 from .. import errors

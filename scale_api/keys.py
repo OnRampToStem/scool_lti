@@ -3,7 +3,6 @@ JSON Web Keys
 """
 import datetime
 import logging
-from typing import List
 
 from authlib import jose
 
@@ -30,7 +29,7 @@ async def get_jwks_from_url(url: str) -> jose.KeySet:
         raise
 
 
-async def private_keys() -> List:
+async def private_keys() -> list:
     """Returns a list of private ``AuthJsonWebKeys`` from the database."""
     web_keys = await db.store.json_web_keys_async()
     now = datetime.datetime.utcnow()
@@ -44,7 +43,7 @@ async def private_keys() -> List:
     ]
 
 
-async def json_web_private_keys() -> List:
+async def json_web_private_keys() -> list:
     web_keys = await private_keys()
     return [
         jose.JsonWebKey.import_key(k.data.get_secret_value())
@@ -83,7 +82,7 @@ async def private_key() -> jose.RSAKey:
 
 
 # TODO: cache to speed up our ``/jwks.json`` endpoint
-async def public_keys() -> List:
+async def public_keys() -> list:
     """Returns a list of public JSON Web Keys."""
     privates = await json_web_private_keys()
     return [
