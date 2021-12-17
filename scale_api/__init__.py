@@ -6,7 +6,7 @@ import os
 
 from . import settings
 
-__version__ = '21.12.2'
+__version__ = '21.12.17'
 
 LOGGING = {
     'version': 1,
@@ -28,11 +28,6 @@ LOGGING = {
         '': {
             'handlers': ['console'],
             'level': os.getenv('SCALE_LOG_LEVEL', 'WARNING'),
-        },
-        'uvicorn': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
         },
         'scale_api': {
             'handlers': ['console'],
