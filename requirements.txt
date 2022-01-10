@@ -10,9 +10,9 @@ pydantic[email, dotenv]==1.9.0
 python-multipart==0.0.5
 jinja2==3.0.3
 
-fastapi==0.70.1
-starlette==0.16.0
+fastapi==0.71.0
+starlette==0.17.1
 uvicorn[standard]==0.16.0
 gunicorn==20.1.0
 
-httpx==0.21.1
+httpx==0.21.3
