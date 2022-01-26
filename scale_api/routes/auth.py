@@ -9,6 +9,7 @@ import logging
 import uuid
 from typing import Optional
 
+import cassyy
 from fastapi import (
     APIRouter,
     Depends,
@@ -23,9 +24,9 @@ from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBasic
 
 from scale_api import (
+    aio,
     app_config,
     auth,
-    cas,
     db,
     schemas,
     templates,
@@ -38,6 +39,9 @@ router = APIRouter()
 # Use this just for extracting the basic auth for the client_credentials auth
 http_basic = HTTPBasic(auto_error=False)
 
+# TODO: use settings or make dynamic per provider
+cas_client = cassyy.CASClient.from_base_url('https://cas.csufresno.edu')
+
 
 @router.get('/', include_in_schema=False)
 async def index_api(request: Request):
@@ -47,10 +51,13 @@ async def index_api(request: Request):
 
 @router.get('/logout', include_in_schema=False)
 async def logout(request: Request):
-    # TODO: handle SSO logout?
+    auth_source = request.session.get('auth_source')
     request.session.clear()
-    index_page_url = request.url_for('index_api')
-    return RedirectResponse(url=index_page_url, status_code=302)
+    target_url = request.url_for('index_api')
+    if auth_source == 'CAS':
+        target_url = cas_client.build_logout_url(target_url)
+    logger.info('logout redirecting to: %s', target_url)
+    return RedirectResponse(url=target_url, status_code=302)
 
 
 @router.post('/login', include_in_schema=False)
@@ -211,7 +218,7 @@ async def cas_login(request: Request, ticket: Optional[str] = None):
         return await cas_validate(request, ticket)
     # TODO: need to save the sso provider, for now assume Fresno State CAS
     service_url = request.url_for('cas_login')
-    cas_login_url = cas.cas_client.build_login_url(service_url)
+    cas_login_url = cas_client.build_login_url(service_url, callback_post=True)
     logger.info('Redirecting to CAS URL %s', cas_login_url)
     return RedirectResponse(url=cas_login_url)
 
@@ -221,22 +228,26 @@ async def cas_validate(request: Request, ticket: str = Form(...)):
     """CAS Ticket Validation."""
     service_url = request.url_for('cas_login')
     try:
-        cas_user = await cas.cas_client.validate(service_url, ticket)
-        # TODO: we should be able to pull email from the response,
+        cas_user = await aio.run_in_threadpool(cas_client.validate,
+                                               service_url, ticket)
+        request.session['auth_source'] = 'CAS'
         # TODO: or we should store the user suffix per sso provider
-        auth_user = await db.store.user_by_client_id_async(f'{cas_user}@mail.fresnostate.edu')
-    except (LookupError, cas.CasException) as exc:
-        logger.error('cas_validate error: %r', exc)
-        request.state.sso_error = 'Not authorized'
+        client_id = f'{cas_user.userid}@mail.fresnostate.edu'
+        auth_user = await db.store.user_by_client_id_async(client_id)
+    except cassyy.CASError as exc:
+        logger.error('CAS validate error: %r', exc)
+        request.state.sso_error = 'Error validating the request'
         return await index_api(request)
+    except LookupError as exc:
+        logger.error('AuthUser lookup error: %r', exc)
+        request.state.sso_error = 'Not authorized'
+        return await logout(request)
     else:
         request.session['au'] = auth_user.session_dict()
         logger.info('CAS AuthUser: %s', auth_user)
         index_page_url = request.url_for('index_api')
         return RedirectResponse(url=index_page_url, status_code=302)
 
-
-# TODO: handle CAS logout?
 
 @router.get('/forgot-password', include_in_schema=False)
 async def forgot_password(request: Request):

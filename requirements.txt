@@ -5,6 +5,7 @@ cryptography==36.0.1
 passlib[bcrypt]==1.7.4
 authlib==0.15.5
 itsdangerous==2.0.1
+cassyy>=0.0.5
 
 pydantic[email, dotenv]==1.9.0
 python-multipart==0.0.5
