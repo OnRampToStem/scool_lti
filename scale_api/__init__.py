@@ -6,7 +6,7 @@ import os
 
 from . import settings
 
-__version__ = '22.1.26'
+__version__ = '22.1.28'
 
 LOGGING = {
     'version': 1,
@@ -30,9 +30,7 @@ LOGGING = {
             'level': os.getenv('SCALE_LOG_LEVEL', 'WARNING'),
         },
         'scale_api': {
-            'handlers': ['console'],
             'level': os.getenv('SCALE_LOG_LEVEL_APP', 'INFO'),
-            'propagate': False,
         },
     },
 }
