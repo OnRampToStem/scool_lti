@@ -21,7 +21,7 @@ SCALE_DEBUG_DB=False
 # Turns on debug mode for FastAPI and uvicorn
 SCALE_DEBUG_APP=False
 
-# Used to stored signed cookies using Starlette Session Middleware
+# Used to stored signed cookies using Session Middleware
 # If not set, a random secret will be generated for use.
 SCALE_SECRET_KEY=change_me
 

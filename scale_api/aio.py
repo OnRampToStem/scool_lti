@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from typing import TypeVar
 
 import httpx
-from starlette.concurrency import run_in_threadpool
+from fastapi.concurrency import run_in_threadpool
 
 from scale_api import app_config
 
@@ -21,10 +21,10 @@ http_client = httpx.AsyncClient(verify=app_config.is_production)
 def wrap(fn: Callable[..., T]) -> Callable[..., Awaitable[T]]:
     """Decorator that runs the function in a threadpool.
 
-    Uses the Starlette ``run_in_threadpool`` function to turn a sync function
+    Uses the FastAPI ``run_in_threadpool`` function to turn a sync function
     into an Awaitable.
 
-    Use as a decorator for a sync function so it can be awaited in an async
+    Use as a decorator for a sync function, so it can be awaited in an async
     function:
 
     @aio.wrap
