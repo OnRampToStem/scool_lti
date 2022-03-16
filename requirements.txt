@@ -1,10 +1,10 @@
 sqlalchemy[postgresql]==1.4.32
-alembic==1.7.6
+alembic==1.7.7
 
-cryptography==36.0.1
+cryptography==36.0.2
 passlib[bcrypt]==1.7.4
-authlib==0.15.5
-itsdangerous==2.1.0
+authlib==1.0.0
+itsdangerous==2.1.1
 cassyy>=0.0.5
 
 pydantic[email, dotenv]==1.9.0
@@ -12,7 +12,7 @@ python-multipart==0.0.5
 jinja2==3.0.3
 
 fastapi==0.75.0
-uvicorn[standard]==0.17.5
+uvicorn[standard]==0.17.6
 gunicorn==20.1.0
 
 httpx==0.22.0
