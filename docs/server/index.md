@@ -16,3 +16,28 @@ accessed from the on-campus network or the campus VPN using SFTP.
 | **port**     | 22 (default)                                      |
 | **username** | scale                                             |
 | **password** | see LastPass **STEM-SCALE Project** shared folder |
+
+### /etc/ssh/sshd_config
+
+The following changes were made to the `sshd_config` to enable SFTP
+for the `scale` user in a *chrooted* environment and to allow password
+authentication. The SFTP subsystem is also changed to `internal-sftp`, which
+is an in-process server and does not require running a separate process.
+
+```
+#Subsystem sftp /usr/libexec/openssh/sftp-server
+Subsystem sftp internal-sftp
+
+Match User scale
+        ChrootDirectory /var/www/scale.fresnostate.edu
+        PasswordAuthentication yes
+        ForceCommand internal-sftp
+        X11Forwarding no
+        AllowTcpForwarding no
+```
+
+#### IMPORTANT NOTE
+
+For the `ChrootDirectory` command to work, all parts of the path must be
+`root` owned and no other user/group can have `write` access to any portion
+of the path.
