@@ -41,3 +41,29 @@ Match User scale
 For the `ChrootDirectory` command to work, all parts of the path must be
 `root` owned and no other user/group can have `write` access to any portion
 of the path.
+
+## PHP
+
+The Dynamic Questions module (`/var/www/scale.fresnostate.edu/html/dyna`) uses
+Laravel 9 and requires PHP 8.0+ and the following extensions to be installed.
+It also requires the PostgreSQL driver for PHP in order to connect to the
+Scale database as the `scale_dyna` user.
+
+```bash
+sudo amazon-linux-extras enable php8.0
+
+sudo yum install -y php-cli \
+  php-curl \
+  php-bcmath \
+  php-mbstring \
+  php-xml \
+  php-tokenizer \
+  php-pdo \
+  php-pcre \
+  php-openssl \
+  php-json \
+  php-fileinfo \
+  php-dom \
+  php-ctype \
+  php-pgsql
+```
