@@ -1,7 +1,7 @@
-sqlalchemy[postgresql]==1.4.35
+sqlalchemy[postgresql]==1.4.36
 alembic==1.7.7
 
-cryptography==36.0.2
+cryptography==37.0.0
 passlib[bcrypt]==1.7.4
 authlib==1.0.1
 itsdangerous==2.1.2
