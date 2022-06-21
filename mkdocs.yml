@@ -9,3 +9,6 @@ site_dir: temp/docs
 
 nav:
   - 'index.md'
+
+theme:
+  name: 'material'

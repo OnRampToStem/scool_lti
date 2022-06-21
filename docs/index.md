@@ -1,8 +1,8 @@
-# OR2STEM API
+# On-Ramp to STEM
 
 # Overview
 
-See the [On-Ramp to STEM Project Site](project_site) for the overall project
+See the [On-Ramp to STEM Project Site][project_site] for the overall project
 details. This API is one component of the overall project that helps to provide
 the "adaptive learning technology" by providing certain technical integrations
 that are required for the learning tool being developed.

@@ -10,13 +10,6 @@ Python FastAPI application. The Apache site serves as a reverse proxy.
 The web directory (`/var/www/scale.fresnostate.edu`) served by Apache can be
 accessed from the on-campus network or the campus VPN using SFTP.
 
-|              |                                                   |
-|--------------|---------------------------------------------------|
-| **host**     | stem-scale-app1.priv.fresnostate.edu              |
-| **port**     | 22 (default)                                      |
-| **username** | scale                                             |
-| **password** | see LastPass **STEM-SCALE Project** shared folder |
-
 ### /etc/ssh/sshd_config
 
 The following changes were made to the `sshd_config` to enable SFTP

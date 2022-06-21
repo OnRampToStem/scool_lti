@@ -13,60 +13,9 @@
 * [VitalSource Example Setup](https://success.vitalsource.com/hc/en-gb/articles/360052315753-LTI-1-3-Tool-Setup-Instructions-for-Canvas)
 
 
-# Test Suite
+# Samples
 
-In order to verify our LTI 1.3 integration we used the IMS Reference
-Implementation to set up a test Platform that could be used to test
-the OpenID Connect (OIDC) flow.
-
-## Platform
-
-https://lti-ri.imsglobal.org/platforms/2095
-
-https://lti-ri.imsglobal.org/platforms/2095/resource_links
-
-### OAuth2 Access Token URL:
-
-https://lti-ri.imsglobal.org/platforms/2095/access_tokens
-
-### OIDC Auth URL:
-
-https://lti-ri.imsglobal.org/platforms/2095/authorizations/new
-
-### Deployment ID: 1
-
-`client_id` - stem_scale_7984546158
-
-`well-known/jwks URL` - https://lti-ri.imsglobal.org/platforms/2095/platform_keys/1987.json
-
-
-## Tool
-
-https://lti-ri.imsglobal.org/lti/tools/1916
-
-https://lti-ri.imsglobal.org/lti/tools/1916/edit
-
-### Client Id:
-
-stem_scale_7984546158
-
-### Tool launch URL:
-
-https://lti-ri.imsglobal.org/lti/tools/1916/launches
-
-### Tool Deep Link URL:
-
-https://lti-ri.imsglobal.org/lti/tools/1916/deep_link_launches
-
-### Tool OIDC Login Initiation URL:
-
-https://lti-ri.imsglobal.org/lti/tools/1916/login_initiations
-
-### Tool JWT Key Set URL:
-
-https://lti-ri.imsglobal.org/lti/tools/1916/.well-known/jwks.json
-
-# Sample LtiResourceLinkRequest
+## Sample LtiResourceLinkRequest
 
 Using the IMS RI, the following is an example IDToken that is returned from a
 resource link launch request.
@@ -156,7 +105,7 @@ resource link launch request.
 }
 ```
 
-# Sample Canvas Tool Config
+## Sample Canvas Tool Config
 
 https://canvas.instructure.com/doc/api/file.lti_dev_key_config.html#anatomy-of-a-json-configuration
 
