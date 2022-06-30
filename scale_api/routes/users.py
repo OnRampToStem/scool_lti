@@ -44,11 +44,18 @@ async def get_users(
 
     if can_access_all_users(scale_user):
         subject = 'users.%'
+        logger.info('Users.get_users::ScaleUser(%s) - admin access',
+                    scale_user.email)
     else:
         # Instructors subject will return users for their course (context)
         subject = users_subject(scale_user)
+        logger.info('Users.get_users::ScaleUser(%s) - instructor access: %s',
+                    scale_user.email, subject)
 
     users = await db.user_store.users_async(subject)
+    logger.info('Users.get_users::ScaleUser(%s) - total users: %s',
+                scale_user.email, len(users))
+
     return {user.id: json.loads(user.body) for user in users}
 
 
