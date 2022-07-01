@@ -9,6 +9,7 @@ that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
 """
+import asyncio
 import json
 import logging
 import urllib.parse
@@ -34,7 +35,6 @@ from scale_api import (
     auth,
     db,
     keys,
-    settings,
     schemas,
     templates,
 )
@@ -503,22 +503,25 @@ async def test_names_role_service(scale_user: schemas.ScaleUser):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     subject = users_route.users_subject(scale_user)
-    users = await db.user_store.users_async(subject)
-    results = []
-    for user in users:
-        user_id = user.header + '@scale_api'
-        _, _, context_id = user.subject.split('.', maxsplit=2)
-        body = json.loads(user.body)
-        member = schemas.ScaleUser(
-            id=user_id,
-            email=body['username'],
-            name=body.get('name'),
-            picture=body.get('pic'),
-            roles=[body.get('role', 'Learner')],
-            context={'id': context_id, 'title': ''},
-        )
-        results.append(member)
-    return results
+
+    def iter_users() -> list[schemas.ScaleUser]:
+        results = []
+        for user in db.user_store.users(subject):
+            user_id = user.header + '@scale_api'
+            _, _, context_id = user.subject.split('.', maxsplit=2)
+            body = json.loads(user.body)
+            member = schemas.ScaleUser(
+                id=user_id,
+                email=body['username'],
+                name=body.get('name'),
+                picture=body.get('pic'),
+                roles=[body.get('role', 'Learner')],
+                context={'id': context_id, 'title': ''},
+            )
+            results.append(member)
+        return results
+
+    return await asyncio.to_thread(iter_users)
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:

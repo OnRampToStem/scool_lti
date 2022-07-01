@@ -44,4 +44,4 @@ worker_class = 'uvicorn.workers.UvicornWorker'
 # Start at least 2 but no more than 8 workers
 workers = max(2, min(8, WORKER_COUNT))
 # Increase beyond the default of 30 due to time it takes to load users
-timeout = 120
+timeout = 180

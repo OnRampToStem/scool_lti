@@ -1,7 +1,7 @@
 """
 Users route
 
-We store users so they are easy to retrieve per platform/course.
+We store users to make them easy to retrieve per platform/course.
 
 subject: users.<platform_id>.<context_id>
 header:  scale_user.user_id
@@ -9,6 +9,7 @@ header:  scale_user.user_id
 import hashlib
 import json
 import logging
+from typing import Iterable
 
 from fastapi import (
     APIRouter,
@@ -17,6 +18,7 @@ from fastapi import (
     HTTPException,
     status,
 )
+from fastapi.responses import StreamingResponse
 
 from scale_api import (
     auth,
@@ -29,6 +31,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 ROLES_ALL_USERS = {'superuser', 'admin', 'developer'}
+
+
+def stream_users(subject: str) -> Iterable[bytes]:
+    yield b'{'
+    i = 0
+    for msg in db.user_store.users(subject):
+        if i != 0:
+            yield b','
+        yield f'"{msg.id}":{msg.body}'.encode('utf-8')
+        i += 1
+    yield b'}'
+
+    logger.info('Streamed [%s] users for subject: %s', i, subject)
 
 
 @router.get('/')
@@ -52,11 +67,12 @@ async def get_users(
         logger.info('Users.get_users::ScaleUser(%s) - instructor access: %s',
                     scale_user.email, subject)
 
-    users = await db.user_store.users_async(subject)
-    logger.info('Users.get_users::ScaleUser(%s) - total users: %s',
-                scale_user.email, len(users))
-
-    return {user.id: json.loads(user.body) for user in users}
+    # User objects are large (~5MB), so any more than a single user we stream
+    # them to conserve memory
+    return StreamingResponse(
+        stream_users(subject),
+        media_type='application/json',
+    )
 
 
 @router.get('/{user_key}')
@@ -105,8 +121,8 @@ async def create_user(
     # Make sure a student entry matches on email
     if scale_user.is_student:
         if body.get('username') != scale_user.email:
-            logger.error('Users.create_user mismatch. ''username=%s, email=%s'
-                         , body.get('username'), scale_user.email)
+            logger.error('Users.create_user mismatch. ''username=%s, email=%s',
+                         body.get('username'), scale_user.email)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     # TODO: creating a user depends on the ``scale_user`` that is authenticated
@@ -117,12 +133,15 @@ async def create_user(
     header = scale_user.user_id
     body_text = json.dumps(body)
 
-    # If create fails it is most likely because this user entry already exists
+    # If create fails it is most likely because this user entry already exists,
     # so we fall back to an update
     try:
         user = await db.user_store.create_async(key, subject, body_text, header)
-    except Exception:
-        logger.warning('Users.create_user failed, trying Users.update_user')
+    except Exception as exc:
+        logger.warning(
+            'Users.create_user failed, trying Users.update_user - %r',
+            exc,
+        )
         return await update_user(key, body, scale_user)
     else:
         return {user.id: json.loads(user.body)}

@@ -1,4 +1,5 @@
 import logging
+from typing import Iterable
 
 from scale_api import aio, schemas
 from ..core import SessionLocal, sa
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 class UserStore:
     """Users Repository."""
 
-    def users(self, subject: str) -> list[schemas.Message]:
+    def users(self, subject: str) -> Iterable[schemas.Message]:
         if subject.endswith('%'):
             stmt = sa.select(Message).where(
                 Message.subject.like(subject),
@@ -23,12 +24,8 @@ class UserStore:
             )
         with SessionLocal() as session:
             result = session.execute(stmt)
-            entry_list = [
-                schemas.Message.from_orm(row)
-                for row in result.scalars()
-            ]
-
-        return entry_list
+            for row in result.scalars():
+                yield schemas.Message.from_orm(row)
 
     def user(self, user_key: str) -> schemas.Message:
         with SessionLocal() as session:
