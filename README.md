@@ -23,7 +23,7 @@ If a custom `scale_initdb.json` is not provided, the provided
 
 ## Running with Python
 
-Requires Python 3.9 or higher.
+Requires Python 3.10 or higher.
 
 ### Virtualenv Setup
 
