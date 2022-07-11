@@ -67,8 +67,8 @@ async def update_message(request: Request, subject: str, msg_id: str, body: dict
         old_msg = await db.message_store.message_async(msg_id, subject)
         # Verify request is authorized to replace this specific message
         check_access(request, subject, 'put', old_msg.body)
-        body = json.dumps(body)
-        msg = await db.message_store.update_async(msg_id, subject, body)
+        raw_body = json.dumps(body)
+        msg = await db.message_store.update_async(msg_id, subject, raw_body)
     except LookupError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     else:
@@ -114,7 +114,10 @@ def can_access(
     if auth_user.is_superuser:
         return True
 
-    user_scopes = {scope.lower() for scope in auth_user.scopes}
+    if auth_user.scopes is None:
+        user_scopes = set()
+    else:
+        user_scopes = {scope.lower() for scope in auth_user.scopes}
     for scope in user_scopes:
         if scope in ('role:admin', 'role:developer', 'role:editor'):
             return True

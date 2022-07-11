@@ -32,15 +32,7 @@ async def get_jwks_from_url(url: str) -> jose.KeySet:
 async def private_keys() -> list:
     """Returns a list of private ``AuthJsonWebKeys`` from the database."""
     web_keys = await db.store.json_web_keys_async()
-    now = datetime.datetime.utcnow()
-    return [
-        k
-        for k in web_keys
-        if (
-                k.valid_to is None and k.valid_from < now
-                or k.valid_from < now < k.valid_to
-        )
-    ]
+    return [k for k in web_keys if k.is_valid]
 
 
 async def json_web_private_keys() -> list:

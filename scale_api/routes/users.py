@@ -99,7 +99,8 @@ async def get_user(
         logger.error('Users.get_user(%s) failed: %r', user_key, exc)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     else:
-        result = {user.id: json.loads(user.body)}
+        user_body = json.loads(user.body) if user.body is not None else {}
+        result = {user.id: user_body}
         if can_access_all_users(scale_user):
             return result
         elif scale_user.is_instructor and users_subject(scale_user) == user.subject:
@@ -144,7 +145,8 @@ async def create_user(
         )
         return await update_user(key, body, scale_user)
     else:
-        return {user.id: json.loads(user.body)}
+        user_body = json.loads(user.body) if user.body is not None else {}
+        return {user.id: user_body}
 
 
 @router.put('/{user_key}')
@@ -168,7 +170,8 @@ async def update_user(
 
     body_text = json.dumps(body)
     user = await db.user_store.update_async(user_key, subject, body_text)
-    return {user.id: json.loads(user.body)}
+    user_body = json.loads(user.body) if user.body is not None else {}
+    return {user.id: user_body}
 
 
 @router.delete('/{user_key}', status_code=status.HTTP_202_ACCEPTED)

@@ -114,7 +114,8 @@ def on_startup_main() -> None:
         import alembic.command
         import alembic.config
 
-        alembic_cfg = alembic.config.Config(settings.BASE_PATH / 'alembic.ini')
+        config_file = str(settings.BASE_PATH / 'alembic.ini')
+        alembic_cfg = alembic.config.Config(config_file)
         alembic_cfg.set_main_option('script_location', str(settings.BASE_PATH / 'alembic'))
         alembic.command.upgrade(alembic_cfg, 'head')
 
@@ -162,7 +163,7 @@ def main() -> None:
     from pathlib import Path
     import uvicorn
 
-    run_opts = {
+    run_opts: dict[str, int | bool | str] = {
         'port': 8000,
         'reload': True,
         'debug': app_config.DEBUG_APP,

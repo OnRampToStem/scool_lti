@@ -34,12 +34,14 @@ class LtiLaunchRequest:
             message: Union[str, Mapping[str, Any]]
     ) -> None:
         if isinstance(message, str):
-            message = json.loads(message)
-        if message[MESSAGE_VERSION_KEY] != '1.3.0':
+            message_obj = json.loads(message)
+        else:
+            message_obj = message
+        if message_obj[MESSAGE_VERSION_KEY] != '1.3.0':
             raise ValueError(
-                f'Invalid message version: {message[MESSAGE_VERSION_KEY]}'
+                f'Invalid message version: {message_obj[MESSAGE_VERSION_KEY]}'
             )
-        self.message = message
+        self.message = message_obj
         self.platform = platform
 
     @property
@@ -76,7 +78,7 @@ class LtiLaunchRequest:
     @property
     def message_type(self) -> str:
         """Returns the message type, could be either a resource or deep link type."""
-        return self.message[MESSAGE_TYPE_KEY]
+        return self.message[MESSAGE_TYPE_KEY]  # type: ignore
 
     @property
     def is_resource_link_launch(self) -> bool:
@@ -106,9 +108,10 @@ class LtiLaunchRequest:
 
     @property
     def names_role_service(self) -> Optional[dict]:
-        return self.message.get(
+        result = self.message.get(
             'https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'
         )
+        return result  # type: ignore
 
     @property
     def scale_user(self) -> schemas.ScaleUser:
@@ -139,7 +142,7 @@ class LtiLaunchRequest:
         details on how to add the custom fields.
         """
         logger.warning('Looking for custom field [%s]', field_name)
-        return self.message.get(MESSAGE_CUSTOM_KEY, {}).get(field_name)
+        return self.message.get(MESSAGE_CUSTOM_KEY, {}).get(field_name)  # type: ignore
 
     def dumps(self) -> str:
         """Serializes the request to a string suitable for storing."""

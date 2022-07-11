@@ -58,8 +58,10 @@ class AuthUser(BaseModel):
 
     @property
     def is_superuser(self) -> bool:
-        """Returns True if the the ``superuser`` scope is present."""
-        return self.scopes and 'role:superuser' in self.scopes
+        """Returns True if the ``superuser`` scope is present."""
+        if self.scopes:
+            return 'role:superuser' in self.scopes
+        return False
 
     @classmethod
     def from_scale_user(cls, scale_user: 'ScaleUser') -> 'AuthUser':
@@ -112,14 +114,19 @@ class ScaleUser(BaseModel):
     @property
     def user_id(self) -> str:
         """Returns the Platform uuid for this user."""
-        user_id, sep, other = self.id.rpartition('@')
-        return user_id if sep else other
+        if self.id is not None:
+            user_id, sep, other = self.id.rpartition('@')
+            return user_id if sep else other
+        raise ValueError(f'Unable to determine UUID for this user: {self!r}')
 
     @property
     def platform_id(self) -> str:
-        """Returns the Platform Id for this user."""
-        user_id, sep, plat_id = self.id.rpartition('@')
-        return plat_id if sep else 'scale_api'
+        """Returns the Platform ID for this user."""
+        if self.id:
+            user_id, sep, plat_id = self.id.rpartition('@')
+            if sep:
+                return plat_id
+        return 'scale_api'
 
     @property
     def context_id(self) -> str:
@@ -191,6 +198,13 @@ class AuthJsonWebKey(BaseModel):
     data: SecretStr
     valid_from: datetime.datetime
     valid_to: Optional[datetime.datetime]
+
+    @property
+    def is_valid(self) -> bool:
+        now = datetime.datetime.utcnow()
+        if self.valid_from > now:
+            return False
+        return self.valid_to is None or self.valid_to > now
 
     class Config:
         orm_mode = True

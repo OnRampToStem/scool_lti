@@ -53,7 +53,7 @@ async def create_user(
 
 
 @router.put('/users/{user_key}.json')
-async def update_entry(
+async def update_user_entry(
         user_key: str, data: dict = Body(...),
         scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
 ):
@@ -61,7 +61,7 @@ async def update_entry(
 
 
 @router.delete('/users/{user_key}.json', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_entry(
+async def delete_user_entry(
         user_key: str,
         scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
 ):

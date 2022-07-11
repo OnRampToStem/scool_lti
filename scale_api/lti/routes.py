@@ -470,7 +470,7 @@ async def names_role_service(request: Request):
     logger.info('Loading launch message [%s] for ScaleUser: %s',
                 launch_id, scale_user)
     cached_launch = await db.cache_store.get_async(launch_id)
-    launch_request = messages.LtiLaunchRequest.loads(cached_launch)
+    launch_request = messages.LtiLaunchRequest.loads(cached_launch)  # type: ignore
     if not launch_request.is_instructor:
         logger.error('lti.members unauthorized request from ScaleUser: %s',
                      scale_user)
@@ -507,6 +507,8 @@ async def test_names_role_service(scale_user: schemas.ScaleUser):
     def iter_users() -> list[schemas.ScaleUser]:
         results = []
         for user in db.user_store.users(subject):
+            if user.header is None or user.body is None:
+                continue
             user_id = user.header + '@scale_api'
             _, _, context_id = user.subject.split('.', maxsplit=2)
             body = json.loads(user.body)

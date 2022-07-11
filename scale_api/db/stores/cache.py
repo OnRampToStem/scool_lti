@@ -128,7 +128,7 @@ class CacheStore:
             else:
                 value = default
 
-        return value
+        return value  # type: ignore
 
     def get_many(self, key_prefix: str) -> Mapping[str, str]:
         """Returns entries from the cache.
@@ -149,7 +149,7 @@ class CacheStore:
                     session.delete(entry)
         return entries
 
-    def pop(self, key: str, default: T = None) -> Union[str, T]:
+    def pop(self, key: str, default: T = None) -> str | T | None:
         """Returns an entry from the cache else ``default``.
 
         If the entry exists it will be removed from the cache.
@@ -160,14 +160,14 @@ class CacheStore:
                 return default
             value = entry.value if entry.expire_at > self.now() else default
             session.delete(entry)
-        return value
+        return value  # type: ignore
 
     def purge_expired(self) -> int:
         """Removes all entries that are expired."""
         stmt = sa.delete(Cache).where(Cache.expire_at <= self.now())
         with SessionLocal.begin() as session:
             rows_purged = session.execute(stmt).rowcount
-        return rows_purged
+        return rows_purged  # type: ignore
 
     def purge_expired_safe(self) -> None:
         if self.now() < self.next_purge_time:

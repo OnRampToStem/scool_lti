@@ -24,7 +24,7 @@ NEXT_PAGE_REGEX = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-CacheItem = namedtuple('TokenCache', 'token expires_at')
+TokenCacheItem = namedtuple('TokenCacheItem', 'token expires_at')
 ServiceResponse = namedtuple('ServiceResponse', 'headers body next_page')
 
 
@@ -48,7 +48,7 @@ async def create_platform_token(platform: schemas.Platform) -> str:
     }
     private_key = await keys.private_key()
     header = {'typ': 'JWT', 'alg': 'RS256', 'kid': private_key.thumbprint()}
-    return jose.jwt.encode(header, payload, private_key).decode('ascii')
+    return jose.jwt.encode(header, payload, private_key).decode('ascii')  # type: ignore
 
 
 class LtiServicesClient:
@@ -56,15 +56,19 @@ class LtiServicesClient:
 
     def __init__(self, platform: schemas.Platform) -> None:
         self.platform = platform
-        self.token_cache: dict[str, CacheItem] = {}
+        self.token_cache: dict[str, TokenCacheItem] = {}
 
     async def _access_token(self, scopes: Sequence[str]) -> str:
         """Returns an OAuth access_token."""
         cache_key = ' '.join(sorted(scopes))
         cache_item = self.token_cache.get(cache_key)
         if cache_item and time.time() < (cache_item.expires_at - 10.0):
-            return cache_item.token
+            return cache_item.token  # type: ignore
 
+        if self.platform.auth_token_url is None:
+            raise ValueError('Platform does not have a Token URL')
+
+        auth_url = str(self.platform.auth_token_url)
         jwt = await create_platform_token(self.platform)
         auth_data = {
             'grant_type': 'client_credentials',
@@ -72,7 +76,6 @@ class LtiServicesClient:
             'client_assertion': jwt,
             'scope': cache_key,
         }
-        auth_url = self.platform.auth_token_url
         headers = {'Accept': 'application/json'}
         r = await aio.http_client.post(auth_url, headers=headers, data=auth_data)
         r.raise_for_status()
@@ -80,11 +83,11 @@ class LtiServicesClient:
         access_token = grant_response['access_token']
         expires_in = grant_response['expires_in']
 
-        self.token_cache[cache_key] = CacheItem(
+        self.token_cache[cache_key] = TokenCacheItem(
             token=access_token,
             expires_at=time.time() + expires_in,
         )
-        return access_token
+        return access_token  # type: ignore
 
     async def authorize_header(self, scopes: Sequence[str]) -> dict[str, str]:
         token = await self._access_token(scopes)

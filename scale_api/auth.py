@@ -144,17 +144,17 @@ oauth2_token = OAuth2ClientCredentials(
 
 def hash_password(password_plain: str) -> str:
     """Returns a hashed string suitable for storing in a database."""
-    return pwd_context.hash(password_plain)
+    return pwd_context.hash(password_plain)  # type: ignore
 
 
 def verify_password(password_plain: str, password_hash: str) -> bool:
     """Returns True if the plain string matches the provided hash."""
-    return pwd_context.verify(password_plain, password_hash)
+    return pwd_context.verify(password_plain, password_hash)  # type: ignore
 
 
 async def request_scale_user(request: Request) -> schemas.ScaleUser:
     """Dependency that routes can use that depend on a ``scale_user``."""
-    return request.state.scale_user
+    return request.state.scale_user  # type: ignore
 
 
 async def authorize(
@@ -267,7 +267,7 @@ def create_token(payload: dict, expires_in: int = -1) -> str:
         payload=payload,
         key=app_config.SECRET_KEY
     )
-    return token.decode(encoding='ascii')
+    return token.decode(encoding='ascii')  # type: ignore
 
 
 async def auth_user_from_token(token: str) -> schemas.AuthUser:

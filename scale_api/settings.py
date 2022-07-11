@@ -37,8 +37,8 @@ class ScaleSettings(BaseSettings):
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = [
-        'http://localhost',
-        'http://localhost:8080'
+        'http://localhost',  # type: ignore
+        'http://localhost:8080',  # type: ignore
     ]
     SESSION_MAX_AGE: int = 60 * 60 * 12  # 12 hours
     THREAD_POOL_WORKERS: int = 10
