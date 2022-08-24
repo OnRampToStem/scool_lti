@@ -54,9 +54,9 @@ sudo yum install -y php-cli \
   php-pdo \
   php-pcre \
   php-openssl \
-  php-json \
   php-fileinfo \
   php-dom \
   php-ctype \
-  php-pgsql
+  php-pgsql \
+  php-mysqlnd
 ```
