@@ -69,8 +69,8 @@ async def lti_config(request: Request, platform_id: str):
     """Canvas LTI Configuration.
 
     This route provides configuration information for the Canvas LMS. When
-    creating a LTI Developer Key in Canvas, the URL to this route can be
-    provided in order to automate the set up.
+    creating an LTI Developer Key in Canvas, the URL to this route can be
+    provided in order to automate the set-up.
     """
     platform = await platform_or_404(platform_id)
     tool_url = request.url_for(lti_config.__qualname__, platform_id=platform.id)
@@ -201,11 +201,27 @@ async def launch_form(
     # Match up the state provided in the OIDC login initiation with the
     # state store in a cookie to ensure this request is associated with
     # this user-agent.
-    state_cookie = request.cookies.get(f'lti1p3-state-{platform_id}')
-    if state_cookie != state:
-        logger.error('State cookie value [%s] does not match state [%s]',
-                     state_cookie, state)
-        return {'error': 'invalid_state'}
+    state_cookie_key = f'lti1p3-state-{platform_id}'
+    state_cookie_val = request.cookies.get(state_cookie_key)
+    if state_cookie_val != state:
+        logger.error('State [%s] does not match Cookie [%s] -- '
+                     'client=[%s], user-agent=[%s], id_token=[%s]',
+                     state, state_cookie_val,
+                     request.client,
+                     request.headers.get('user-agent'),
+                     id_token)
+        state_cookie_val = request.session.get(state_cookie_key)
+        if state_cookie_val != state:
+            logger.error('State [%s] does not match Session [%s] -- '
+                         'client=[%s], user-agent=[%s], id_token=[%s]',
+                         state, state_cookie_val,
+                         request.client,
+                         request.headers.get('user-agent'),
+                         id_token)
+            response.status_code = status.HTTP_409_CONFLICT
+            return {'error': 'invalid_state'}
+        else:
+            logger.info('State [%s] matched in Session as a fallback')
 
     # Some basic jwt claims validation options
     id_token_opts = {
@@ -231,7 +247,7 @@ async def launch_form(
     claims.validate(leeway=5)
 
     # To avoid replay attacks we verify the nonce provided was previously
-    # stored and then we remove from the cache so any future requests with
+    # stored, and then we remove from the cache so any future requests with
     # the same nonce will fail.
     nonce = claims.get('nonce')
     cached_nonce_plat = await db.cache_store.pop_async(f'lti1p3-nonce-{nonce}')
@@ -240,7 +256,7 @@ async def launch_form(
                      cached_nonce_plat)
         return {'error': 'invalid_nonce'}
 
-    # At this point the IDToken (Launch Request) is valid and we can
+    # At this point the IDToken (Launch Request) is valid, and we can
     # build a ``ScaleUser`` from it. We also store it for use later
     # in order to make calls to the LTI Advantage Services.
     message_launch = messages.LtiLaunchRequest(platform, claims)
@@ -278,7 +294,7 @@ async def launch_form(
         return await deep_link_launch(request, response, message_launch)
 
     # From here we just need to determine where to send the user in
-    # order to being using the SCALE app.
+    # order to begin using the SCALE app.
 
     if app_config.is_local:
         base_url = 'http://localhost:8080'
@@ -300,6 +316,8 @@ async def launch_form(
         status_code=status.HTTP_302_FOUND
     )
     response.delete_cookie(f'lti1p3-state-{platform_id}')
+    # TODO: as a fallback also remove the Session state
+    request.session.pop(f'lti1p3-state-{platform_id}', None)
     return response
 
 
@@ -406,7 +424,7 @@ async def login_initiations_form(
         'response_type': 'id_token',
         # the url registered with the platform
         'redirect_uri': target_link_uri,
-        # since the id_token can be large we ask that it be POST'd
+        # since the id_token can be large we ask that it be sent in a POST
         'response_mode': 'form_post',
         # client_id provided when our app was registered with the platform
         'client_id': platform.client_id,
@@ -446,8 +464,13 @@ async def login_initiations_form(
         state,
         max_age=600,
         secure=True,
+        httponly=True,
         samesite='None',
     )
+    # TODO: to debug why the stand-alone cookie is not working, also store
+    #   the state value in the session, so we can detect if the session
+    #   will survive the redirect.
+    request.session[f'lti1p3-state-{platform_id}'] = state
 
     logger.info('Redirecting to %s', target_url)
     return response
@@ -463,7 +486,7 @@ async def names_role_service(request: Request):
     scale_user = request.state.scale_user
 
     # If launched from the console or from an impersonation token we won't
-    # have a LTI service to call, so we take a different path.
+    # have an LTI service to call, so we take a different path.
     if scale_user.platform_id == 'scale_api':
         return await test_names_role_service(scale_user)
 
