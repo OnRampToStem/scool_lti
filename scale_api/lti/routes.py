@@ -310,7 +310,8 @@ async def deep_link_launch(
 ):
     """Deep Linking Launch Requests."""
     # TODO: handle DeepLinking request Messages
-    response.delete_cookie(f'lti1p3-state-{message_launch.platform.id}')
+    logger.error('Unexpected launch type [%s]', message_launch.message_type)
+    # TODO: remove the `f'lti1p3-state-{message_launch.platform.id}'` cookie
     return {'error': f'{message_launch.message_type} launches not implemented'}
 
 
@@ -443,9 +444,9 @@ async def login_initiations_form(
     response.set_cookie(
         f'lti1p3-state-{platform_id}',
         state,
-        max_age=120,
+        max_age=600,
         secure=True,
-        samesite='none',
+        samesite='None',
     )
 
     logger.info('Redirecting to %s', target_url)
