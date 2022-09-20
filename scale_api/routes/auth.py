@@ -104,7 +104,8 @@ async def session_user_token(
     the xhr call.
     """
     scale_user = request.state.scale_user
-    logger.info('token request found ScaleUser: %s', scale_user)
+    logger.info('[%s]: token request found ScaleUser: %s',
+                request.client.host, scale_user)
     user_token = auth.create_scale_user_token(scale_user)
     return {'token': user_token}
 

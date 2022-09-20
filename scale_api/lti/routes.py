@@ -189,39 +189,56 @@ async def launch_form(
     ``redirect_uri`` configured and will return the user to this endpoint
     after the OIDC login initiation is performed.
     """
-    # Always expect an IDToken
+    logger.info('[%s]: LTI Launch: platform [%r]: IDToken=[%s]',
+                state, platform_id, id_token)
+
     if id_token is None:
-        logger.error('Error code: %s, description: %s',
-                     error, error_description)
-        return {'error': error, 'error_description': error_description}
+        logger.error('[%s]: missing IDToken: error code=[%s], description=[%s]',
+                     state, error, error_description)
+        response.status_code = status.HTTP_403_FORBIDDEN
+        return {
+            'error': error,
+            'error_description': error_description,
+            'error_state': state,
+        }
 
     platform = await platform_or_404(platform_id)
-    logger.info('id_token: %s, %s', id_token, platform)
+    logger.info('[%s]: %r', state, platform)
 
     # Match up the state provided in the OIDC login initiation with the
     # state store in a cookie to ensure this request is associated with
     # this user-agent.
+    # TODO: this includes fallback checks due to some issues of some user
+    #   agents not returning the cookie as expected, can clean this up once
+    #   that issue is resolved
     state_cookie_key = f'lti1p3-state-{platform_id}'
     state_cookie_val = request.cookies.get(state_cookie_key)
     if state_cookie_val != state:
-        logger.error('State [%s] does not match Cookie [%s] -- '
-                     'client=[%s], user-agent=[%s], id_token=[%s]',
-                     state, state_cookie_val,
-                     request.client,
-                     request.headers.get('user-agent'),
-                     id_token)
+        logger.error('[%s]: state does not match Cookie [%s]',
+                     state, state_cookie_val)
         state_cookie_val = request.session.get(state_cookie_key)
         if state_cookie_val != state:
-            logger.error('State [%s] does not match Session [%s] -- '
-                         'client=[%s], user-agent=[%s], id_token=[%s]',
-                         state, state_cookie_val,
-                         request.client,
-                         request.headers.get('user-agent'),
-                         id_token)
-            response.status_code = status.HTTP_409_CONFLICT
-            return {'error': 'invalid_state'}
+            logger.error('[%s]: state does not match Session [%s]',
+                         state, state_cookie_val)
+            state_cookie_val = request.cookies.get(f'lti1p3-state-fb-{platform_id}')
+            if state_cookie_val != state:
+                logger.error('[%s]: state does not match Fallback Cookie [%s]',
+                             state, state_cookie_val)
+                logger.error('[%s]: request headers: %r',
+                             state, request.headers)
+                logger.error('[%s]: aborting launch, failed to validate state',
+                             state)
+                response.status_code = status.HTTP_409_CONFLICT
+                return {
+                    'error': 'invalid_state',
+                    'error_state': state,
+                }
+            else:
+                logger.info('[%s]: state matched in Fallback Cookie', state)
         else:
-            logger.info('State [%s] matched in Session as a fallback')
+            logger.info('[%s]: state matched in Session', state)
+    else:
+        logger.info('[%s]: state matched in Cookie', state)
 
     # Some basic jwt claims validation options
     id_token_opts = {
@@ -243,7 +260,7 @@ async def launch_form(
     # TODO - handle case where we need to re-fetch the jwks url
     key_set = await keys.get_jwks_from_url(platform.jwks_url)
     claims = JWT.decode(id_token, key_set, claims_cls=IDToken, claims_options=id_token_opts)
-    logger.info(claims)
+    logger.info('[%s]: IDToken claims: %r', state, claims)
     claims.validate(leeway=5)
 
     # To avoid replay attacks we verify the nonce provided was previously
@@ -252,9 +269,14 @@ async def launch_form(
     nonce = claims.get('nonce')
     cached_nonce_plat = await db.cache_store.pop_async(f'lti1p3-nonce-{nonce}')
     if not cached_nonce_plat or cached_nonce_plat != platform_id:
-        logger.error('Nonce not found or platform not matched: %s',
-                     cached_nonce_plat)
-        return {'error': 'invalid_nonce'}
+        logger.error('[%s]: nonce not found or platform not matched: %s',
+                     state, cached_nonce_plat)
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {
+            'error': 'invalid_nonce',
+            'error_description': 'nonce not found or platform not matched',
+            'error_state': state,
+        }
 
     # At this point the IDToken (Launch Request) is valid, and we can
     # build a ``ScaleUser`` from it. We also store it for use later
@@ -263,23 +285,28 @@ async def launch_form(
     try:
         scale_user = message_launch.scale_user
     except ValueError as ve:
-        logger.error('Failed to get Scale user from LtiLaunchRequest: %r', ve)
-        return {'error': 'invalid_launch', 'description': str(ve)}
+        logger.error('[%s]: failed to get ScaleUser from LtiLaunchRequest: %r',
+                     state, ve)
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {
+            'error': 'invalid_launch',
+            'error_description': str(ve),
+            'error_state': state,
+        }
 
     # Check to see whether user already has a launch from another context
     if session_scale_user := request.session.get('scale_user'):
-        logger.warning('User has existing launch: ScaleUser(%s)',
-                       session_scale_user)
         session_scale_user = schemas.ScaleUser(**session_scale_user)
         if (
                 session_scale_user.id != scale_user.id or
                 session_scale_user.context != scale_user.context
         ):
-            logger.warning('Attempt to launch for a different context'
+            logger.warning('[%s]: attempt to launch for a different context'
                            'Session: %s, Launch: %s',
+                           state,
                            session_scale_user.context, scale_user.context)
 
-    logger.info('Adding scale_user to session: %s', scale_user)
+    logger.info('[%s]: adding scale_user to session: %r', state, scale_user)
     request.session['scale_user'] = scale_user.session_dict()
 
     await db.cache_store.put_async(
@@ -309,13 +336,15 @@ async def launch_form(
         course_path = f'/{app_config.ENV}/question-editor/'
 
     target_url = urllib.parse.urljoin(base_url, course_path)
-    logger.info('Redirecting to %s', target_url)
+    logger.info('[%s]: redirecting to %s', state, target_url)
     response = RedirectResponse(
         target_url,
         headers=NO_CACHE_HEADERS,
-        status_code=status.HTTP_302_FOUND
+        status_code=status.HTTP_302_FOUND,
     )
     response.delete_cookie(f'lti1p3-state-{platform_id}')
+    # TODO: as a fallback also remove the fb cookie
+    response.delete_cookie(f'lti1p3-state-fb-{platform_id}')
     # TODO: as a fallback also remove the Session state
     request.session.pop(f'lti1p3-state-{platform_id}', None)
     return response
@@ -382,41 +411,53 @@ async def login_initiations_form(
     URL is ``Platform`` specific in order to work with multiple configured
     platforms.
     """
+
+    # used as a unique transaction key to associate the launch with the
+    # user-agent (browser) and in log messages to associate the client in
+    # log messages here and in the launch endpoint.
+    state = uuid.uuid4().hex
+
+    logger.info('[%s]: LTI Login Init: client=[%s], user-agent=[%s]',
+                state, request.client.host, request.headers.get('user-agent'))
+
     platform = await platform_or_404(platform_id)
-    logger.info('login_initiations(iss=%s, login_hint=%s, target_link_uri=%s, '
-                'lti_message_hint=%s, lti_deployment_id=%s, client_id=%s)',
-                iss, login_hint, target_link_uri, lti_message_hint,
+    logger.info('[%s]: iss=%s, login_hint=%s, target_link_uri=%s, '
+                'lti_message_hint=%s, lti_deployment_id=%s, client_id=%s',
+                state, iss, login_hint, target_link_uri, lti_message_hint,
                 lti_deployment_id, client_id)
 
     if platform.issuer != iss:
-        logger.error('Request issuer [%s] does not match Platform [%s]',
-                     iss, platform.issuer)
+        logger.error('[%s]: request issuer [%s] does not match Platform [%s]',
+                     state, iss, platform.issuer)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {
             'error': 'invalid_request_object',
-            'error_description': 'Invalid issuer'
+            'error_description': 'Invalid issuer',
+            'error_state': state,
         }
 
     if client_id and client_id != platform.client_id:
-        logger.error('Request client_id [%s] does not match Platform [%s]',
-                     client_id, platform.client_id)
+        logger.error('[%s]: request client_id [%s] does not match Platform [%s]',
+                     state, client_id, platform.client_id)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {
             'error': 'invalid_request_object',
-            'error_description': 'Invalid client_id'
+            'error_description': 'Invalid client_id',
+            'error_state': state,
         }
 
     expect_target_uri = request.url_for('launch_form', platform_id=platform_id)
     if expect_target_uri != target_link_uri:
-        logger.error('Request target_link_uri [%s] does not match Platform [%s]',
-                     target_link_uri, expect_target_uri)
+        logger.error('[%s]: request target_link_uri [%s] '
+                     'does not match Platform [%s]',
+                     state, target_link_uri, expect_target_uri)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {
             'error': 'invalid_request_object',
-            'error_description': 'Invalid target_link_uri'
+            'error_description': 'Invalid target_link_uri',
+            'error_state': state,
         }
 
-    state = uuid.uuid4().hex  # associate launch with the user-agent (browser)
     nonce = uuid.uuid4().hex  # prevent replay attacks
     await db.cache_store.put_async(f'lti1p3-nonce-{nonce}', platform_id, ttl=120)
     query_string = {
@@ -448,7 +489,9 @@ async def login_initiations_form(
         query_string['lti_message_hint'] = lti_message_hint
 
     encoded_query_string = urllib.parse.urlencode(query_string)
-    target_url = urllib.parse.urljoin(str(platform.oidc_auth_url), '?' + encoded_query_string)
+    target_url = urllib.parse.urljoin(
+        str(platform.oidc_auth_url), '?' + encoded_query_string
+    )
 
     response = RedirectResponse(
         url=target_url,
@@ -456,7 +499,7 @@ async def login_initiations_form(
             **NO_CACHE_HEADERS,
             'X-Frame-Options': 'DENY',
         },
-        status_code=status.HTTP_302_FOUND
+        status_code=status.HTTP_302_FOUND,
     )
 
     response.set_cookie(
@@ -467,12 +510,22 @@ async def login_initiations_form(
         httponly=True,
         samesite='None',
     )
+
+    # TODO: set a fallback cookie just as a check to see if we can read it
+    #   due to it's different settings (samesite, secure, httponly)
+    response.set_cookie(
+        f'lti1p3-state-fb-{platform_id}',
+        state,
+        max_age=600,
+    )
+
     # TODO: to debug why the stand-alone cookie is not working, also store
     #   the state value in the session, so we can detect if the session
     #   will survive the redirect.
     request.session[f'lti1p3-state-{platform_id}'] = state
 
-    logger.info('Redirecting to %s', target_url)
+    logger.info('[%s]: redirecting to %s', state, target_url)
+
     return response
 
 

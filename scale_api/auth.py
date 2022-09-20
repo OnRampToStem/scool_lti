@@ -179,25 +179,29 @@ async def authorize(
     ``scale_user`` so both state values will always be set for any routes
     that use this as a dependency.
     """
-    logger.info('authorize(bearer_token=[%s], scopes=[%s])',
-                bearer_token, scopes.scope_str)
+    state = request.client.host
+    logger.info('[%s]: authorize(bearer_token=[%s], scopes=[%s])',
+                state, bearer_token, scopes.scope_str)
     auth_user = scale_user = None
     try:
         if bearer_token:
             auth_user = await auth_user_from_token(bearer_token)
-            logger.info('authorize from bearer token AuthUser: %s', auth_user)
+            logger.info('[%s]: authorize from bearer token AuthUser: %s',
+                        state, auth_user)
         else:
             if session_user := request.session.get('scale_user'):
                 scale_user = schemas.ScaleUser.parse_obj(session_user)
                 auth_user = schemas.AuthUser.from_scale_user(scale_user)
-                logger.info('authorize from session ScaleUser: %s', scale_user)
+                logger.info('[%s]: authorize from session ScaleUser: %s',
+                            state, scale_user)
             elif session_user := request.session.get('au'):
                 auth_user = schemas.AuthUser.parse_obj(session_user)
-                logger.info('authorize from session AuthUser: %s', auth_user)
+                logger.info('[%s]: authorize from session AuthUser: %s',
+                            state, auth_user)
             else:
                 raise LookupError('No token or session values found')
     except (LookupError, ValueError, authlib.jose.errors.JoseError) as exc:
-        logger.info('authorize failed: %r', exc)
+        logger.error('[%s]: authorize failed: %r', state, exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Incorrect username or password',
@@ -205,8 +209,9 @@ async def authorize(
         )
     else:
         if not can_access(auth_user, scopes.scopes):
-            logger.error('authorize access failure, AuthUser: %s, Scopes: %s',
-                         auth_user, scopes.scopes)
+            logger.error('[%s]: authorize access failure, '
+                         'AuthUser: %s, Scopes: %s',
+                         state, auth_user, scopes.scopes)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
         request.state.auth_user = auth_user
         if not scale_user:
