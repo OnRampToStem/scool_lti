@@ -526,6 +526,10 @@ async def login_initiations_form(
 
     logger.info('[%s]: redirecting to %s', state, target_url)
 
+    # used to indicate to the Log Headers middleware to dump the response
+    # headers for inspection of Set-Cookie values
+    response.headers['X-LTI-Init'] = f'lti1p3-{platform_id}'
+
     return response
 
 

@@ -65,6 +65,22 @@ app.add_middleware(
 )
 
 
+@app.middleware('http')
+async def log_lti_init_headers(request: Request, call_next):
+    response = await call_next(request)
+    if response.headers.get('X-LTI-Init'):
+        if values := response.headers.getlist('set-cookie'):
+            sizes = [len(x) for x in values]
+            logger.warning('X-LTI-Init: set-cookie:[%s]: %r -- %r',
+                           request.client.host,
+                           sizes,
+                           values)
+            if len(values) != 3:
+                logger.error('X-LTI-Init: set-cookie:[%s]: want=[3], got=[%s]',
+                             request.client.host, len(values))
+    return response
+
+
 @app.on_event('startup')
 async def startup_event():
     """Runs at startup for each web worker process.
