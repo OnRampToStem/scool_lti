@@ -91,10 +91,7 @@ async def login_post(
     include_in_schema=False,
     dependencies=[Security(auth.authorize)],
 )
-async def session_user_token(
-        request: Request,
-        response: Response,
-):
+async def session_user_token(request: Request):
     """The ``ScaleUser`` token endpoint.
 
     This endpoint provides authentication tokens to the front-end
@@ -103,10 +100,11 @@ async def session_user_token(
     if from cross-origin that ``withCredentials`` be specified in
     the xhr call.
     """
+    state = request.client.host if request.client else '0.0.0.0'
     scale_user = request.state.scale_user
-    logger.info('[%s]: token request found ScaleUser: %s',
-                request.client.host, scale_user)
-    user_token = auth.create_scale_user_token(scale_user)
+    logger.info('[%s]: token request found ScaleUser: %s', state, scale_user)
+    expiry = 60 * 60 * 8  # provide an 8-hour token for Scale users
+    user_token = auth.create_scale_user_token(scale_user, expires_in=expiry)
     return {'token': user_token}
 
 
@@ -120,7 +118,7 @@ async def scale_user_token_impersonate(
 
     This endpoint provides authentication tokens to the front-end
     webapp in non-production mode. This allows the developer to
-    provide, via POST'd json payload, the values that they want
+    provide, via POST of the json payload, the values that they want
     the returned ``ScaleUser`` token to contain.
     """
     if app_config.is_production:
@@ -260,7 +258,7 @@ async def forgot_password(request: Request):
 @router.post('/forgot-password', include_in_schema=False)
 async def forgot_password_email(request: Request):
     form_data = await request.form()
-    verify_request(request, form_data.get('csrf_token'))
+    verify_request(request, form_data.get('csrf_token'))  # type: ignore
     # TODO: generate one-time-password and email it
     return await reset_password(request)
 
@@ -274,7 +272,7 @@ async def reset_password(request: Request):
 @router.post('/reset-password', include_in_schema=False)
 async def reset_password_change(request: Request):
     form_data = await request.form()
-    verify_request(request, form_data.get('csrf_token'))
+    verify_request(request, form_data.get('csrf_token'))  # type: ignore
     return {'p': 'post.reset_password_change'}
 
 

@@ -70,7 +70,7 @@ async def get_users(
     # User objects are large (~5MB), so any more than a single user we stream
     # them to conserve memory
     return StreamingResponse(
-        stream_users(subject),
+        stream_users(subject),  # type: ignore
         media_type='application/json',
     )
 

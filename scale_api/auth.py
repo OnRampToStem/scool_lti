@@ -179,7 +179,7 @@ async def authorize(
     ``scale_user`` so both state values will always be set for any routes
     that use this as a dependency.
     """
-    state = request.client.host
+    state = request.client.host if request.client else '0.0.0.0'
     logger.info('[%s]: authorize(bearer_token=[%s], scopes=[%s])',
                 state, bearer_token, scopes.scope_str)
     auth_user = scale_user = None

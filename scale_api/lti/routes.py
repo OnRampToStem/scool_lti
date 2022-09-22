@@ -417,8 +417,9 @@ async def login_initiations_form(
     # log messages here and in the launch endpoint.
     state = uuid.uuid4().hex
 
+    client_host = request.client.host if request.client else '0.0.0.0'
     logger.info('[%s]: LTI Login Init: client=[%s], user-agent=[%s]',
-                state, request.client.host, request.headers.get('user-agent'))
+                state, client_host, request.headers.get('user-agent'))
 
     platform = await platform_or_404(platform_id)
     logger.info('[%s]: iss=%s, login_hint=%s, target_link_uri=%s, '
@@ -508,7 +509,7 @@ async def login_initiations_form(
         max_age=600,
         secure=True,
         httponly=True,
-        samesite='None',
+        samesite='None',  # type: ignore
     )
 
     # TODO: set a fallback cookie just as a check to see if we can read it
