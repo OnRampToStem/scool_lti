@@ -11,7 +11,7 @@ import sys
 from fastapi import FastAPI, Request
 from fastapi import __version__ as fastapi_version
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.sessions import SessionMiddleware  # noqa
 
 from scale_api import (
     __version__,
@@ -63,23 +63,6 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
-
-
-@app.middleware('http')
-async def log_lti_init_headers(request: Request, call_next):
-    response = await call_next(request)
-    if response.headers.get('X-LTI-Init'):
-        if values := response.headers.getlist('set-cookie'):
-            client = request.client.host if request.client else '0.0.0.0'
-            sizes = [len(x) for x in values]
-            logger.warning('X-LTI-Init: set-cookie:[%s]: %r -- %r',
-                           client,
-                           sizes,
-                           values)
-            if len(values) != 3:
-                logger.error('X-LTI-Init: set-cookie:[%s]: want=[3], got=[%s]',
-                             client, len(values))
-    return response
 
 
 @app.on_event('startup')

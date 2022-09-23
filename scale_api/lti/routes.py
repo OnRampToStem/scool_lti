@@ -173,6 +173,20 @@ async def launch_query(
     )
 
 
+@router.get('/state-check/{state}')
+async def lti_state_check(request: Request, response: Response, state: str):
+    target_url = request.session.pop(f'lti1p3-state-check-{state}', None)
+    logger.info('[%s]: state check: target_url=[%s]', state, target_url)
+    if not target_url:
+        logger.error('[%s]: state check route failed to read state', state)
+        response.status_code = status.HTTP_409_CONFLICT
+        return {
+            'error': 'invalid_state',
+            'error_state': state,
+        }
+    return RedirectResponse(target_url, status_code=status.HTTP_302_FOUND)
+
+
 @router.post('/{platform_id}/launches')
 async def launch_form(
         request: Request,
@@ -208,37 +222,14 @@ async def launch_form(
     # Match up the state provided in the OIDC login initiation with the
     # state store in a cookie to ensure this request is associated with
     # this user-agent.
-    # TODO: this includes fallback checks due to some issues of some user
-    #   agents not returning the cookie as expected, can clean this up once
-    #   that issue is resolved
     state_cookie_key = f'lti1p3-state-{platform_id}'
-    state_cookie_val = request.cookies.get(state_cookie_key)
-    if state_cookie_val != state:
-        logger.error('[%s]: state does not match Cookie [%s]',
-                     state, state_cookie_val)
-        state_cookie_val = request.session.get(state_cookie_key)
-        if state_cookie_val != state:
-            logger.error('[%s]: state does not match Session [%s]',
-                         state, state_cookie_val)
-            state_cookie_val = request.cookies.get(f'lti1p3-state-fb-{platform_id}')
-            if state_cookie_val != state:
-                logger.error('[%s]: state does not match Fallback Cookie [%s]',
-                             state, state_cookie_val)
-                logger.error('[%s]: request headers: %r',
-                             state, request.headers)
-                logger.error('[%s]: aborting launch, failed to validate state',
-                             state)
-                response.status_code = status.HTTP_409_CONFLICT
-                return {
-                    'error': 'invalid_state',
-                    'error_state': state,
-                }
-            else:
-                logger.info('[%s]: state matched in Fallback Cookie', state)
-        else:
-            logger.info('[%s]: state matched in Session', state)
+    state_cookie_val = request.cookies.get(state_cookie_key) + 'foo'
+    if state_check_failed := (state_cookie_val != state):
+        logger.error('[%s]: state does not match Cookie [%s]\n%r',
+                     state, state_cookie_val, request.headers.getlist('cookie'))
     else:
         logger.info('[%s]: state matched in Cookie', state)
+        response.delete_cookie(state_cookie_key)
 
     # Some basic jwt claims validation options
     id_token_opts = {
@@ -336,17 +327,24 @@ async def launch_form(
         course_path = f'/{app_config.ENV}/question-editor/'
 
     target_url = urllib.parse.urljoin(base_url, course_path)
-    logger.info('[%s]: redirecting to %s', state, target_url)
+    target_headers = NO_CACHE_HEADERS
+
+    # If the state check failed, this indicates a possible problem with the
+    # browser accepting cookies. Use a temporarily same-site redirect to
+    # see if we can read from the session, since without being able to read
+    # the session there is no point in transferring the user to the front-end.
+    if state_check_failed:
+        request.session[f'lti1p3-state-check-{state}'] = target_url
+        target_url = request.url_for('lti_state_check', state=state)
+        target_headers = None
+
+    logger.info('[%s]: redirecting: %s', state, target_url)
     response = RedirectResponse(
         target_url,
-        headers=NO_CACHE_HEADERS,
+        headers=target_headers,
         status_code=status.HTTP_302_FOUND,
     )
-    response.delete_cookie(f'lti1p3-state-{platform_id}')
-    # TODO: as a fallback also remove the fb cookie
-    response.delete_cookie(f'lti1p3-state-fb-{platform_id}')
-    # TODO: as a fallback also remove the Session state
-    request.session.pop(f'lti1p3-state-{platform_id}', None)
+    response.delete_cookie(state_cookie_key)
     return response
 
 
@@ -357,8 +355,11 @@ async def deep_link_launch(
 ):
     """Deep Linking Launch Requests."""
     # TODO: handle DeepLinking request Messages
-    logger.error('Unexpected launch type [%s]', message_launch.message_type)
-    # TODO: remove the `f'lti1p3-state-{message_launch.platform.id}'` cookie
+    client = request.client.host if request.client else '0.0.0.0'
+    logger.error('[%s]: unexpected launch type [%s]',
+                 client, message_launch.message_type)
+    response.status_code = status.HTTP_501_NOT_IMPLEMENTED
+    response.delete_cookie(f'lti1p3-state-{message_launch.platform.id}')
     return {'error': f'{message_launch.message_type} launches not implemented'}
 
 
@@ -512,25 +513,7 @@ async def login_initiations_form(
         samesite='None',  # type: ignore
     )
 
-    # TODO: set a fallback cookie just as a check to see if we can read it
-    #   due to it's different settings (samesite, secure, httponly)
-    response.set_cookie(
-        f'lti1p3-state-fb-{platform_id}',
-        state,
-        max_age=600,
-    )
-
-    # TODO: to debug why the stand-alone cookie is not working, also store
-    #   the state value in the session, so we can detect if the session
-    #   will survive the redirect.
-    request.session[f'lti1p3-state-{platform_id}'] = state
-
     logger.info('[%s]: redirecting to %s', state, target_url)
-
-    # used to indicate to the Log Headers middleware to dump the response
-    # headers for inspection of Set-Cookie values
-    response.headers['X-LTI-Init'] = f'lti1p3-{platform_id}'
-
     return response
 
 
