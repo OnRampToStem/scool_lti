@@ -336,7 +336,11 @@ async def launch_form(
     if state_check_failed:
         request.session[f'lti1p3-state-check-{state}'] = target_url
         target_url = request.url_for('lti_state_check', state=state)
-        target_headers = None
+        context = {
+            'state_check_value': state,
+            'state_check_url': target_url,
+        }
+        return templates.render(request, 'lti_state_check.html', context)
 
     logger.info('[%s]: redirecting: %s', state, target_url)
     response = RedirectResponse(
