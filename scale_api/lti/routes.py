@@ -223,7 +223,7 @@ async def launch_form(
     # state store in a cookie to ensure this request is associated with
     # this user-agent.
     state_cookie_key = f'lti1p3-state-{platform_id}'
-    state_cookie_val = request.cookies.get(state_cookie_key) + 'foo'
+    state_cookie_val = request.cookies.get(state_cookie_key)
     if state_check_failed := (state_cookie_val != state):
         logger.error('[%s]: state does not match Cookie [%s]\n%r',
                      state, state_cookie_val, request.headers.getlist('cookie'))
