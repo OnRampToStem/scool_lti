@@ -46,7 +46,6 @@ logger.info('Adding Session middleware with max age (in secs): %s',
 app.add_middleware(
     SessionMiddleware,
     secret_key=app_config.SECRET_KEY,
-    same_site='None',
     https_only=True,
     max_age=app_config.SESSION_MAX_AGE,
 )

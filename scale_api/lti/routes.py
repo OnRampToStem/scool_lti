@@ -514,7 +514,7 @@ async def login_initiations_form(
         max_age=600,
         secure=True,
         httponly=True,
-        samesite='None',  # type: ignore
+        samesite='none',
     )
 
     logger.info('[%s]: redirecting to %s', state, target_url)
