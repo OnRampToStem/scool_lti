@@ -30,3 +30,7 @@ jobs:
           pip install -r requirements.txt
       - name: Run tests
         run: python -m unittest
+      - name: Run mypy
+        run: |
+          pip install --upgrade mypy
+          mypy --package scale_api
