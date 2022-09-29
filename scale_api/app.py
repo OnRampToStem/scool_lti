@@ -51,7 +51,6 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=app_config.SECRET_KEY,
     max_age=app_config.SESSION_MAX_AGE,
-    same_site='none',
     https_only=True,
 )
 
