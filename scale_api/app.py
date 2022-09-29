@@ -11,6 +11,7 @@ import sys
 from fastapi import FastAPI, Request
 from fastapi import __version__ as fastapi_version
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware  # noqa
 
 from scale_api import (
@@ -37,6 +38,9 @@ app = FastAPI(
     openapi_url=f'{app_config.PATH_PREFIX}/openapi.json',
     debug=app_config.DEBUG_APP,
 )
+
+logger.info('Adding GZip middleware')
+app.add_middleware(GZipMiddleware)
 
 logger.info('Adding Session middleware with max age (in secs): %s',
             app_config.SESSION_MAX_AGE)
