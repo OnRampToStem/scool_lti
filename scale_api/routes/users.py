@@ -80,13 +80,13 @@ async def get_users(
         plat_map = {p.id: p.name for p in platforms}
         results = {}
         for msg in users:
-            msg_body = json.loads(msg.body)
+            msg_body = json.loads(msg.body) if msg.body else {}
             subj_parts = msg.subject.split('.')
             plat_id = subj_parts[1] if len(subj_parts) == 3 else 'scale_api'
             results[msg.id] = {
-                'username': msg_body['username'],
-                'name': msg_body['name'],
-                'role': msg_body['role'],
+                'username': msg_body.get('username'),
+                'name': msg_body.get('name'),
+                'role': msg_body.get('role'),
                 'platform': plat_map.get(plat_id, 'SCALE'),
             }
         logger.info('Returning summary of [%s] users for subject: %s',
