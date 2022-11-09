@@ -23,7 +23,7 @@ class BinaryStore:
             file_id: str,
             data: bytes,
             content_type: str = 'application/octet-stream',
-            name: str = None
+            name: str | None = None
     ) -> schemas.BinaryFile:
         try:
             with SessionLocal.begin() as session:
@@ -49,7 +49,13 @@ class BinaryStore:
                 return schemas.BinaryFile.from_orm(entry)
 
     def delete(self, file_id: str) -> schemas.BinaryFile:
-        pass
+        with SessionLocal() as session:
+            entry = session.get(BinData, file_id)
+            if not entry:
+                raise LookupError(file_id)
+            entry.status = 'deleted'
+            session.flush()
+            return schemas.BinaryFile.from_orm(entry)
 
     get_async = aio.wrap(get)
     put_async = aio.wrap(put)

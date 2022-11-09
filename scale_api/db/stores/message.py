@@ -34,14 +34,14 @@ class MessageStore:
                                  msg.subject, subject)
             return schemas.Message.from_orm(msg)
 
-    def create(self, subject: str, body: str, header: str = None) -> schemas.Message:
+    def create(self, subject: str, body: str, header: str | None = None) -> schemas.Message:
         with SessionLocal.begin() as session:
             msg = Message(subject=subject, header=header, body=body)
             session.add(msg)
             session.flush()
             return schemas.Message.from_orm(msg)
 
-    def update(self, msg_id: str, subject: str, body: str, header: str = None) -> schemas.Message:
+    def update(self, msg_id: str, subject: str, body: str, header: str | None = None) -> schemas.Message:
         with SessionLocal.begin() as session:
             msg = session.get(Message, msg_id)
             if not msg:
@@ -57,7 +57,7 @@ class MessageStore:
             session.flush()
             return schemas.Message.from_orm(msg)
 
-    def delete(self, msg_id: str, subject: str, header: str = None) -> schemas.Message:
+    def delete(self, msg_id: str, subject: str, header: str | None = None) -> schemas.Message:
         with SessionLocal.begin() as session:
             msg = session.get(Message, msg_id)
             if not msg:

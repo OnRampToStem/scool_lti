@@ -93,7 +93,7 @@ def check_access(
         request: Request,
         subject: str,
         action: str,
-        body: Union[str, dict] = None
+        body: Union[str, dict] | None = None
 ) -> None:
     """Checks that the requested access is allowed, else raises an HTTP 403."""
     if not can_access(request, subject, action, body):
@@ -104,7 +104,7 @@ def can_access(
         request: Request,
         subject: str,
         action: str,
-        body: Union[str, dict] = None
+        body: Union[str, dict] | None = None
 ) -> bool:
     """Returns True if this request is permitted, else False."""
     auth_user: schemas.AuthUser = request.state.auth_user

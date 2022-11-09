@@ -111,7 +111,7 @@ class CacheStore:
                         entry.expire_at = expire_at
                 session.commit()
 
-    def get(self, key: str, default: T = None) -> Union[str, T]:
+    def get(self, key: str, default: T | None = None) -> Union[str, T]:
         """Returns an entry from the cache else ``default`` if no entry exists."""
         with SessionLocal() as session:
             entry = session.get(Cache, key)
@@ -149,7 +149,7 @@ class CacheStore:
                     session.delete(entry)
         return entries
 
-    def pop(self, key: str, default: T = None) -> str | T | None:
+    def pop(self, key: str, default: T | None = None) -> str | T | None:
         """Returns an entry from the cache else ``default``.
 
         If the entry exists it will be removed from the cache.

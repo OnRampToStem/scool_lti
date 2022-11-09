@@ -38,7 +38,7 @@ class UserStore:
                 raise ValueError(f'Not a user entry: %s', msg.subject)
             return schemas.Message.from_orm(msg)
 
-    def create(self, user_key: str, subject: str, body: str, header: str = None) -> schemas.Message:
+    def create(self, user_key: str, subject: str, body: str, header: str | None = None) -> schemas.Message:
         with SessionLocal.begin() as session:
             msg = Message(id=user_key, subject=subject, header=header, body=body)
             session.add(msg)
@@ -60,7 +60,7 @@ class UserStore:
             session.flush()
             return schemas.Message.from_orm(user)
 
-    def delete(self, user_key: str, subject: str, header: str = None) -> schemas.Message:
+    def delete(self, user_key: str, subject: str, header: str | None = None) -> schemas.Message:
         with SessionLocal.begin() as session:
             user = session.get(Message, user_key)
             if not user:
