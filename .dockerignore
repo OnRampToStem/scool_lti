@@ -14,3 +14,4 @@ mkdocs.yml
 *.sqlite
 scale_initdb.json
 scratch.py
+.mypy_cache

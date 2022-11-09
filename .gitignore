@@ -8,3 +8,4 @@ temp
 scale_initdb.json
 **/http-client.private.env.json
 scratch.py
+.mypy_cache
