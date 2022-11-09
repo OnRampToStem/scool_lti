@@ -169,7 +169,6 @@ def main() -> None:
     run_opts: dict[str, int | bool | str] = {
         'port': 8000,
         'reload': True,
-        'debug': app_config.DEBUG_APP,
     }
 
     if app_config.USE_SSL_FOR_APP_RUN_LOCAL:
