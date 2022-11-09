@@ -6,6 +6,7 @@ We store users to make them easy to retrieve per platform/course.
 subject: users.<platform_id>.<context_id>
 header:  scale_user.user_id
 """
+import asyncio
 import hashlib
 import json
 import logging
@@ -16,6 +17,7 @@ from fastapi import (
     Body,
     Depends,
     HTTPException,
+    Query,
     status,
 )
 from fastapi.responses import StreamingResponse
@@ -48,6 +50,7 @@ def stream_users(subject: str) -> Iterable[bytes]:
 
 @router.get('/')
 async def get_users(
+        output_type: str = Query('full', regex=r'^(full|summary)$'),
         scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
 ):
     logger.debug('Users.get_users::ScaleUser(%s)', scale_user)
@@ -59,20 +62,43 @@ async def get_users(
 
     if can_access_all_users(scale_user):
         subject = 'users.%'
-        logger.info('Users.get_users::ScaleUser(%s) - admin access',
-                    scale_user.email)
+        logger.info('Users.get_users::ScaleUser(%s) - '
+                    'output_type=[%s] - admin access',
+                    scale_user.email, output_type)
     else:
         # Instructors subject will return users for their course (context)
         subject = users_subject(scale_user)
-        logger.info('Users.get_users::ScaleUser(%s) - instructor access: %s',
-                    scale_user.email, subject)
+        logger.info('Users.get_users::ScaleUser(%s) - '
+                    'output_type=[%s] - instructor access: %s',
+                    scale_user.email, output_type, subject)
 
-    # User objects are large (~5MB), so any more than a single user we stream
-    # them to conserve memory
-    return StreamingResponse(
-        stream_users(subject),  # type: ignore
-        media_type='application/json',
-    )
+    if output_type == 'summary':
+        platforms, users = await asyncio.gather(
+            db.store.platforms_async(),
+            db.user_store.users_async(subject),
+        )
+        plat_map = {p.id: p.name for p in platforms}
+        results = {}
+        for msg in users:
+            msg_body = json.loads(msg.body)
+            subj_parts = msg.subject.split('.')
+            plat_id = subj_parts[1] if len(subj_parts) == 3 else 'scale_api'
+            results[msg.id] = {
+                'username': msg_body['username'],
+                'name': msg_body['name'],
+                'role': msg_body['role'],
+                'platform': plat_map.get(plat_id, 'SCALE'),
+            }
+        logger.info('Returning summary of [%s] users for subject: %s',
+                    len(results), subject)
+        return results
+    else:  # assume full output is expected
+        # User objects are large (~5MB), so any more than a single user we stream
+        # them to conserve memory
+        return StreamingResponse(
+            stream_users(subject),  # type: ignore
+            media_type='application/json',
+        )
 
 
 @router.get('/{user_key}')

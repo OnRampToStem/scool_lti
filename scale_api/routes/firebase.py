@@ -33,7 +33,7 @@ router = APIRouter()
 async def get_users(
         scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
 ):
-    return await users.get_users(scale_user)
+    return await users.get_users(scale_user=scale_user)
 
 
 @router.get('/users/{user_key}.json')
