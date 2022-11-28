@@ -129,7 +129,7 @@ class OAuth2ClientCredentials(OAuth2):
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
     async def __call__(self, request: Request) -> Optional[str]:
-        authorization: str = request.headers.get('Authorization')
+        authorization = request.headers.get('Authorization')
         scheme, param = get_authorization_scheme_param(authorization)
         if not authorization or scheme.lower() != 'bearer':
             return None
