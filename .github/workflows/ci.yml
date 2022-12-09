@@ -33,4 +33,4 @@ jobs:
       - name: Run mypy
         run: |
           pip install --upgrade mypy
-          mypy --package scale_api
+          mypy

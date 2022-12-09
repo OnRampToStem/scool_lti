@@ -3,7 +3,7 @@ alembic==1.8.1
 
 cryptography==38.0.4
 passlib[bcrypt]==1.7.4
-authlib==1.1.0
+authlib==1.2.0
 itsdangerous==2.1.2
 cassyy>=0.0.5
 
