@@ -312,21 +312,22 @@ async def launch_form(
         return await deep_link_launch(request, response, message_launch)
 
     # From here we just need to determine where to send the user in
-    # order to begin using the SCALE app.
+    # order to begin using the SCALE app. First we see if this user is
+    # eligible to be sent to the V2 site.
 
-    if app_config.is_local:
-        base_url = 'http://localhost:8080'
-    else:
-        base_url = request.url_for('lti_home')
+    if target_url := launch_target_v2(request, scale_user):
+        logger.info('[%s]: redirecting via POST to v2: %s', state, target_url)
+        context = {
+            'token': auth.create_scale_user_token(scale_user),
+            'target_url': target_url,
+        }
+        response = templates.render(request, 'scale_lms_auth.html', context)
+        response.delete_cookie(state_cookie_key)
+        return response
 
-    if app_config.is_production:
-        course_path = '/question-editor/'
-    elif app_config.is_local:
-        course_path = '/'
-    else:
-        course_path = f'/{app_config.ENV}/question-editor/'
+    # Fallback to sending the user to the V1 site
 
-    target_url = urllib.parse.urljoin(base_url, course_path)
+    target_url = launch_target_v1(request)
     target_headers = NO_CACHE_HEADERS
 
     # If the state check failed, this indicates a possible problem with the
@@ -350,6 +351,42 @@ async def launch_form(
     )
     response.delete_cookie(state_cookie_key)
     return response
+
+
+def launch_target_v2(
+        request: Request,
+        scale_user: schemas.ScaleUser,
+) -> str | None:
+    if not (target_path := app_config.FRONTEND_V2_LAUNCH_PATH):
+        return None
+    if not (contexts_v2 := app_config.FRONTEND_V2_CONTEXTS):
+        return None
+    context_key = scale_user.platform_id + '.' + scale_user.context_id
+    if context_key not in contexts_v2:
+        if f'{scale_user.platform_id}.*' not in contexts_v2:
+            return None
+    base_url = launch_target_base_url(request)
+    return urllib.parse.urljoin(base_url, target_path)
+
+
+def launch_target_v1(request: Request) -> str:
+    base_url = launch_target_base_url(request)
+    if app_config.is_production:
+        target_path = '/question-editor/'
+    elif app_config.is_local:
+        target_path = '/'
+    else:
+        target_path = f'/{app_config.ENV}/question-editor/'
+
+    return urllib.parse.urljoin(base_url, target_path)
+
+
+def launch_target_base_url(request: Request) -> str:
+    if app_config.is_local:
+        base_url = 'http://localhost:8080'
+    else:
+        base_url = request.url_for('lti_home')
+    return base_url
 
 
 async def deep_link_launch(

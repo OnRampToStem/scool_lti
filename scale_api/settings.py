@@ -45,6 +45,11 @@ class ScaleSettings(BaseSettings):
 
     USE_SSL_FOR_APP_RUN_LOCAL: bool = True
 
+    FRONTEND_V2_LAUNCH_PATH: str | None = None
+    # Comma separated list of `platform_id.context_id` values, or
+    # `platform_id.*` for all courses in the platform.
+    FRONTEND_V2_CONTEXTS: str | None = None
+
     @validator('ENV')
     def verify_environment(cls, v: str) -> str:
         """Raises a ``ValueError`` if the provided environment is not valid."""

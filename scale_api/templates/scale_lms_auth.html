@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>SCALE LMS Login Launch</title>
+</head>
+
+<body onload="document.lms_launch.submit()">
+
+    <form style="display: none;" name="lms_launch" method="post" action="{{ target_url }}">
+        <input type="hidden" name="token" value="{{ token }}">
+    </form>
+
+    <p>Please wait while we transfer you to the page you requested.</p>
+
+    <p>Click <a href="#" onclick="document.lms_launch.submit()">here</a>
+        to transfer now.</p>
+
+</body>
+</html>
