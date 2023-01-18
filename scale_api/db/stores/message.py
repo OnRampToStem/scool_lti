@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 class MessageStore:
     """Messages Repository."""
 
+    # noinspection PyMethodMayBeStatic
     def messages(self, subject: str) -> list[schemas.Message]:
         stmt = sa.select(Message).where(
             Message.subject == subject,
@@ -24,24 +25,38 @@ class MessageStore:
 
         return entry_list
 
+    # noinspection PyMethodMayBeStatic
     def message(self, msg_id: str, subject: str) -> schemas.Message:
         with SessionLocal() as session:
             msg = session.get(Message, msg_id)
             if not msg:
                 raise LookupError(msg_id)
             if msg.subject != subject:
-                raise ValueError(f'Update subject mismatch: actual %s, expected: %s',
+                raise ValueError(f'Update subject mismatch: %s, expected: %s',
                                  msg.subject, subject)
             return schemas.Message.from_orm(msg)
 
-    def create(self, subject: str, body: str, header: str | None = None) -> schemas.Message:
+    # noinspection PyMethodMayBeStatic
+    def create(
+            self,
+            subject: str,
+            body: str,
+            header: str | None = None,
+    ) -> schemas.Message:
         with SessionLocal.begin() as session:
             msg = Message(subject=subject, header=header, body=body)
             session.add(msg)
             session.flush()
             return schemas.Message.from_orm(msg)
 
-    def update(self, msg_id: str, subject: str, body: str, header: str | None = None) -> schemas.Message:
+    # noinspection PyMethodMayBeStatic
+    def update(
+            self,
+            msg_id: str,
+            subject: str,
+            body: str,
+            header: str | None = None,
+    ) -> schemas.Message:
         with SessionLocal.begin() as session:
             msg = session.get(Message, msg_id)
             if not msg:
@@ -57,9 +72,15 @@ class MessageStore:
             session.flush()
             return schemas.Message.from_orm(msg)
 
-    def delete(self, msg_id: str, subject: str, header: str | None = None) -> schemas.Message:
+    # noinspection PyMethodMayBeStatic
+    def delete(
+            self,
+            msg_id: str,
+            subject: str,
+            header: str | None = None,
+    ) -> schemas.Message:
         with SessionLocal.begin() as session:
-            msg = session.get(Message, msg_id)
+            msg = session.get(Message, msg_id)  # noqa duplicate code
             if not msg:
                 raise LookupError(msg_id)
             if not msg.subject.startswith(subject):

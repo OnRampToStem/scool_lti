@@ -178,7 +178,10 @@ def main() -> None:
         run_opts['ssl_certfile'] = f"{cert_path / 'local_ssl_cert.pem'}"
 
     on_startup_main()
-    uvicorn.run('scale_api.app:app', **run_opts)  # type:ignore
+    uvicorn.run(
+        'scale_api.app:app',
+        **run_opts,  # type:ignore
+    )
     on_shutdown_main()
 
 

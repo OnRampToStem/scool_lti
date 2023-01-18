@@ -11,10 +11,11 @@ logger = logging.getLogger(__name__)
 class UserStore:
     """Users Repository."""
 
+    # noinspection PyMethodMayBeStatic
     def users(self, subject: str) -> Iterable[schemas.Message]:
         if subject.endswith('%'):
             stmt = sa.select(Message).where(
-                Message.subject.like(subject),
+                Message.subject.like(subject),  # noqa ilike
                 Message.status == 'active',
             )
         else:
@@ -27,6 +28,7 @@ class UserStore:
             for row in result.scalars():
                 yield schemas.Message.from_orm(row)
 
+    # noinspection PyMethodMayBeStatic
     def user(self, user_key: str) -> schemas.Message:
         with SessionLocal() as session:
             msg = session.get(Message, user_key)
@@ -38,20 +40,33 @@ class UserStore:
                 raise ValueError(f'Not a user entry: %s', msg.subject)
             return schemas.Message.from_orm(msg)
 
-    def create(self, user_key: str, subject: str, body: str, header: str | None = None) -> schemas.Message:
+    # noinspection PyMethodMayBeStatic
+    def create(
+            self,
+            user_key: str,
+            subject: str,
+            body: str,
+            header: str | None = None
+    ) -> schemas.Message:
         with SessionLocal.begin() as session:
-            msg = Message(id=user_key, subject=subject, header=header, body=body)
+            msg = Message(
+                id=user_key,
+                subject=subject,
+                header=header,
+                body=body,
+            )
             session.add(msg)
             session.flush()
             return schemas.Message.from_orm(msg)
 
+    # noinspection PyMethodMayBeStatic
     def update(self, user_key: str, subject: str, body: str) -> schemas.Message:
         with SessionLocal.begin() as session:
             user = session.get(Message, user_key)
             if not user:
                 raise LookupError(user_key)
             if not user.subject.startswith(subject):
-                raise ValueError(f'Update subject mismatch: actual %s, expected: %s',
+                raise ValueError(f'Update subject mismatch: %s, expected: %s',
                                  user.subject, subject)
             if user.status != 'active':
                 user.status = 'active'
@@ -60,9 +75,15 @@ class UserStore:
             session.flush()
             return schemas.Message.from_orm(user)
 
-    def delete(self, user_key: str, subject: str, header: str | None = None) -> schemas.Message:
+    # noinspection PyMethodMayBeStatic
+    def delete(
+            self,
+            user_key: str,
+            subject: str,
+            header: str | None = None,
+    ) -> schemas.Message:
         with SessionLocal.begin() as session:
-            user = session.get(Message, user_key)
+            user = session.get(Message, user_key)  # noqa duplicate code
             if not user:
                 raise LookupError(user_key)
             if not user.subject.startswith(subject):

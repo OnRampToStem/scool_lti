@@ -21,12 +21,12 @@ class CustomGunicornLogger(glogging.Logger):
         logger.addFilter(HealthCheckFilter())
 
 
-def on_starting(server):
+def on_starting(server):  # noqa server unused
     import scale_api.app
     scale_api.app.on_startup_main()
 
 
-def on_exit(server):
+def on_exit(server):  # noqa server unused
     import scale_api.app
     scale_api.app.on_shutdown_main()
 

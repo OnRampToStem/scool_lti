@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class BinaryStore:
     """Binary data Repository."""
 
+    # noinspection PyMethodMayBeStatic
     def get(self, file_id: str) -> schemas.BinaryFile:
         with SessionLocal() as session:
             entry = session.get(BinData, file_id)
@@ -18,6 +19,7 @@ class BinaryStore:
                 raise LookupError(file_id)
             return schemas.BinaryFile.from_orm(entry)
 
+    # noinspection PyMethodMayBeStatic
     def put(
             self,
             file_id: str,
@@ -48,6 +50,7 @@ class BinaryStore:
                 session.flush()
                 return schemas.BinaryFile.from_orm(entry)
 
+    # noinspection PyMethodMayBeStatic
     def delete(self, file_id: str) -> schemas.BinaryFile:
         with SessionLocal() as session:
             entry = session.get(BinData, file_id)

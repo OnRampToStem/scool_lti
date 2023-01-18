@@ -128,7 +128,7 @@ class LtiLaunchRequest:
                 raise ValueError('LtiLaunchRequest missing required attribute: email')
         return schemas.ScaleUser(
             id=lms_userid,
-            email=lms_email,
+            email=lms_email,  # noqa EmailStr
             name=lms_name,
             picture=lms_picture,
             roles=self.roles,

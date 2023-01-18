@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 
+NowFunc = Callable[..., datetime.datetime]
+
 
 class CacheStore:
     """Cache Repository."""
@@ -19,14 +21,14 @@ class CacheStore:
     TTL_TYPE_FIXED = 'fixed'
     TTL_TYPE_ROLLING = 'rolling'
 
-    def __init__(self,
-                 now_func: Callable[..., datetime.datetime] = datetime.datetime.utcnow) -> None:
+    def __init__(self, now_func: NowFunc = datetime.datetime.utcnow) -> None:
         self.now = now_func
         self.next_purge_time = now_func()
 
     def _calc_expires(self, ttl: int) -> datetime.datetime:
         return self.now() + datetime.timedelta(seconds=ttl)
 
+    # noinspection PyMethodMayBeStatic
     def guid(self, prefix: str = '') -> str:
         return f'{prefix}{new_uuid()}'
 
@@ -98,7 +100,7 @@ class CacheStore:
                 session.commit()
             except errors.IntegrityError:
                 session.rollback()
-                # Do a purge so we don't try to update expired entries
+                # Do a purge, so we don't try to update expired entries
                 self.purge_expired()
                 for new_entry in entries:
                     entry = session.get(Cache, new_entry.key)
@@ -137,7 +139,11 @@ class CacheStore:
         and the value is cache value.
         """
         now = self.now()
-        stmt = sa.select(Cache).where(Cache.key.ilike(key_prefix + '%'))
+        stmt = sa.select(Cache).where(
+            Cache.key.ilike(  # noqa ilike
+                key_prefix + '%'
+            )
+        )
         with SessionLocal.begin() as session:
             entries = {}
             for entry in session.execute(stmt).scalars():

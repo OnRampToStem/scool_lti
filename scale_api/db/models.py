@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class Platform(Base):
-    """An Learning Management Systems (LMS) platform.
+    """A Learning Management Systems (LMS) platform.
 
     This represents an LMS with respect to all the information required
     in order to connect with it using LTI 1.3.
@@ -53,7 +53,11 @@ class AuthUser(Base):
     updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
 
     @sqlalchemy.orm.validates('client_id')
-    def normalize_client_id(self, key, value):
+    def normalize_client_id(
+            self,
+            key,  # noqa key not used
+            value,
+    ):
         """Ensure we always store the ``client_id`` in lowercase."""
         return value.lower()
 

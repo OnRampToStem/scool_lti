@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 class ScaleStore:
     """SCALE Application Repository."""
 
+    # noinspection PyMethodMayBeStatic
     def platforms(self) -> list[schemas.Platform]:
         stmt = sa.select(Platform)
         with SessionLocal() as session:
@@ -21,6 +22,7 @@ class ScaleStore:
 
         return platforms
 
+    # noinspection PyMethodMayBeStatic
     def platform(self, platform_id: str) -> schemas.Platform:
         stmt = sa.select(Platform).where(Platform.id == platform_id)
         with SessionLocal() as session:
@@ -31,6 +33,7 @@ class ScaleStore:
 
         return platform
 
+    # noinspection PyMethodMayBeStatic
     def user(self, user_id: str) -> schemas.AuthUser:
         with SessionLocal() as session:
             result = session.get(AuthUser, user_id)
@@ -40,6 +43,7 @@ class ScaleStore:
 
         return user
 
+    # noinspection PyMethodMayBeStatic
     def user_by_client_id(self, client_id: str) -> schemas.AuthUser:
         stmt = sa.select(AuthUser).where(
             sa.func.lower(AuthUser.client_id) == client_id.lower()
@@ -53,11 +57,12 @@ class ScaleStore:
 
         return user
 
+    # noinspection PyMethodMayBeStatic
     def json_web_keys(self) -> list[schemas.AuthJsonWebKey]:
         stmt = sa.select(AuthJsonWeKey).where(
             AuthJsonWeKey.valid_from <= sa.func.now(),
             sa.or_(
-                AuthJsonWeKey.valid_to == None,
+                AuthJsonWeKey.valid_to == None,  # noqa comparison op
                 AuthJsonWeKey.valid_to > sa.func.now(),
             )
         )

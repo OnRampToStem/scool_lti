@@ -91,13 +91,13 @@ async def public_keyset() -> jose.KeySet:
 
 def generate_private_key() -> schemas.AuthJsonWebKey:
     """Returns a newly generated private JSON Web Key"""
-    private_key = jose.JsonWebKey.generate_key(
+    pkey = jose.JsonWebKey.generate_key(
         kty='RSA',
         crv_or_size=2048,
         is_private=True
     )
-    kid = private_key.as_dict(add_kid=True)['kid']
-    data = private_key.as_pem(is_private=True)
+    kid = pkey.as_dict(add_kid=True)['kid']
+    data = pkey.as_pem(is_private=True)
     return schemas.AuthJsonWebKey(
         kid=kid,
         data=data,

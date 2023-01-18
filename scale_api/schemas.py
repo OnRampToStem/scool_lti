@@ -130,7 +130,7 @@ class ScaleUser(BaseModel):
 
     @property
     def context_id(self) -> str:
-        """Returns the LMS Context (Course) Id for this user."""
+        """Returns the LMS Context (Course) ID for this user."""
         return self.context['id'] if self.context else 'scale_api'
 
     @property
@@ -162,7 +162,7 @@ class ScaleUser(BaseModel):
             roles = []
         return cls(
             id=auth_user.id,
-            email=auth_user.client_id,
+            email=auth_user.client_id,  # type:ignore
             roles=roles,
             context=auth_user.context,
         )

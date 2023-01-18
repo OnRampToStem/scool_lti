@@ -125,7 +125,9 @@ class OAuth2ClientCredentials(OAuth2):
     ):
         if not scopes:
             scopes = {}
-        flows = OAuthFlowsModel(clientCredentials={'tokenUrl': tokenUrl, 'scopes': scopes})
+        flows = OAuthFlowsModel(
+            clientCredentials={'tokenUrl': tokenUrl, 'scopes': scopes},  # type:ignore
+        )
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
     async def __call__(self, request: Request) -> Optional[str]:
@@ -182,7 +184,7 @@ async def authorize(
     state = request.client.host if request.client else '0.0.0.0'
     logger.info('[%s]: authorize(bearer_token=[%s], scopes=[%s])',
                 state, bearer_token, scopes.scope_str)
-    auth_user = scale_user = None
+    auth_user = scale_user = None  # noqa auth_user unused
     try:
         if bearer_token:
             auth_user = await auth_user_from_token(bearer_token)

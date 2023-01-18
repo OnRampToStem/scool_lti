@@ -1,7 +1,7 @@
 """
 Platforms routes
 """
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, status
 
 from scale_api import (
     db,
@@ -12,12 +12,12 @@ router = APIRouter()
 
 
 @router.get('/', response_model=list[schemas.Platform])
-async def get_platforms(request: Request):
+async def get_platforms():
     return await db.store.platforms_async()
 
 
 @router.get('/{platform_id}', response_model=schemas.Platform)
-async def get_platform(request: Request, platform_id: str):
+async def get_platform(platform_id: str):
     try:
         platform = await db.store.platform_async(platform_id)
     except LookupError:

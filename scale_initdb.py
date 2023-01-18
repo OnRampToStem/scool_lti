@@ -2,7 +2,7 @@
 SCALE database init script.
 
 Used to seed a newly created SCALE database with data. By default, the
-script will looking for the following file in the same directory:
+script will look for the following file in the same directory:
 
     scale_initdb.json
 
@@ -47,7 +47,7 @@ def init_auth_users(data):
         print('AuthUsers update failed', repr(exc))
 
 
-def init_auth_json_web_keys(data):
+def init_auth_json_web_keys(data):  # noqa data unused
     web_keys = db.store.json_web_keys()
     if web_keys:
         print('AuthJsonWebKeys exist, skipping')

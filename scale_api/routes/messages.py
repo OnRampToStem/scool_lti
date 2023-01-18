@@ -104,7 +104,7 @@ def can_access(
         request: Request,
         subject: str,
         action: str,
-        body: Union[str, dict] | None = None
+        body: Union[str, dict] | None = None,  # noqa unused
 ) -> bool:
     """Returns True if this request is permitted, else False."""
     auth_user: schemas.AuthUser = request.state.auth_user
