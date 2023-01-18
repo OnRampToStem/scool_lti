@@ -321,6 +321,8 @@ async def launch_form(
             'token': auth.create_scale_user_token(scale_user),
             'target_url': target_url,
         }
+        # TODO: remove this logging at some point since the token is sensitive
+        logger.info('[%s]: v2 context: %r', state, context)
         response = templates.render(request, 'scale_lms_auth.html', context)
         response.delete_cookie(state_cookie_key)
         return response
