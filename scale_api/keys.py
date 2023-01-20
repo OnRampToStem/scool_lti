@@ -50,7 +50,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
 
     logger.info('Fetching JWKS from %s', url)
     r = await aio.http_client.get(url, timeout=5.0)
-    logger.info('JWKS headers: %r', r.headers)
+    logger.debug('JWKS headers: %r', r.headers)
     r.raise_for_status()
     jwks_json = r.json()
     try:
