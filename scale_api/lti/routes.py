@@ -54,6 +54,8 @@ NO_CACHE_HEADERS = {
     'Pragma': 'no-cache',
 }
 
+LTI_TOKEN_EXPIRY = 60 * 60 * 12
+
 
 @router.get('/', include_in_schema=False)
 async def lti_home(request: Request):
@@ -231,26 +233,10 @@ async def launch_form(
         logger.info('[%s]: state matched in Cookie', state)
         response.delete_cookie(state_cookie_key)
 
-    # Some basic jwt claims validation options
-    id_token_opts = {
-        'iss': {
-            'essential': True,
-            'value': platform.issuer
-        },
-        'aud': {
-            'essential': True,
-            'value': platform.client_id
-        },
-        'nonce': {
-            'essential': True,
-        }
-    }
-
     # Since the IDToken is being provided by the user-agent and not from
     # a direct call from our application, we MUST validate the sig.
-    # TODO - handle case where we need to re-fetch the jwks url
-    key_set = await keys.get_jwks_from_url(platform.jwks_url)
-    claims = JWT.decode(id_token, key_set, claims_cls=IDToken, claims_options=id_token_opts)
+    claims = await decode_lti_id_token(id_token, platform)
+
     logger.info('[%s]: IDToken claims: %r', state, claims)
     claims.validate(leeway=5)
 
@@ -303,7 +289,7 @@ async def launch_form(
     await db.cache_store.put_async(
         message_launch.launch_id,
         message_launch.dumps(),
-        ttl=3600,
+        ttl=LTI_TOKEN_EXPIRY,
         ttl_type=db.cache_store.TTL_TYPE_ROLLING,
     )
 
@@ -318,7 +304,10 @@ async def launch_form(
     if target_url := launch_target_v2(request, scale_user):
         logger.info('[%s]: redirecting via POST to v2: %s', state, target_url)
         context = {
-            'token': auth.create_scale_user_token(scale_user),
+            'token': auth.create_scale_user_token(
+                scale_user,
+                expires_in=LTI_TOKEN_EXPIRY,
+            ),
             'target_url': target_url,
         }
         # TODO: remove this logging at some point since the token is sensitive
@@ -579,7 +568,7 @@ async def names_role_service(request: Request):
                 launch_id, scale_user)
     cached_launch = await db.cache_store.get_async(launch_id)
     # TODO: what if `cached_launch` is None?
-    launch_request = messages.LtiLaunchRequest.loads(cached_launch)  # type: ignore
+    launch_request = messages.LtiLaunchRequest.loads(cached_launch)  # type:ignore
     if not launch_request.is_instructor:
         logger.error('lti.members unauthorized request from ScaleUser: %s',
                      scale_user)
@@ -636,11 +625,40 @@ async def test_names_role_service(scale_user: schemas.ScaleUser):
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:
-    """Returns a ``Platform``, else an HTTP 404 if one is not found for the id."""
+    """Returns a ``Platform``, else HTTP 404 if one is not found for the id."""
     try:
         return await db.store.platform_async(platform_id)
     except LookupError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Platform {platform_id} not found'
+        )
+
+
+async def decode_lti_id_token(
+        id_token: str,
+        platform: schemas.Platform,
+) -> jose.JWTClaims:
+    # Some basic jwt claims validation options
+    id_token_opts = {
+        'iss': {'essential': True, 'value': platform.issuer},
+        'aud': {'essential': True, 'value': platform.client_id},
+        'nonce': {'essential': True},
+    }
+    key_set = await keys.get_jwks_from_url(platform.jwks_url)
+    try:
+        return JWT.decode(
+            id_token,
+            key_set,
+            claims_cls=IDToken,
+            claims_options=id_token_opts,
+        )
+    except jose.errors.KeyMismatchError:
+        key_set = await keys.get_jwks_from_url(platform.jwks_url,
+                                               use_cache=False)
+        return JWT.decode(
+            id_token,
+            key_set,
+            claims_cls=IDToken,
+            claims_options=id_token_opts,
         )
