@@ -3,6 +3,7 @@ JSON Web Keys
 """
 import datetime
 import logging
+import time
 
 from authlib import jose
 
@@ -15,15 +16,49 @@ from . import (
 logger = logging.getLogger(__name__)
 
 
-# TODO: cache with a fixed ttl or using cache headers from response
-async def get_jwks_from_url(url: str) -> jose.KeySet:
+class CachedKeySet:
+    def __init__(
+            self,
+            key_set: jose.KeySet,
+            expire_in: float | None = None,
+    ) -> None:
+        self.key_set = key_set
+        if expire_in is None:
+            self.expires_at = time.time() + 864000  # 24 hours
+        else:
+            self.expires_at = time.time() + expire_in
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expires_at <= time.time()
+
+
+_jwks_cache: dict[str, CachedKeySet] = {}
+
+
+async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
     """Returns a JWKS from the given URL."""
+    if use_cache:
+        if cks := _jwks_cache.get(url):
+            if not cks.is_expired:
+                logger.info('Returning cached JWKS for %s', url)
+                return cks.key_set
+            else:
+                logger.info('Cached JWKS for %s has expired', url)
+        else:
+            logger.info('Cached JWKS not found for %s', url)
+
     logger.info('Fetching JWKS from %s', url)
     r = await aio.http_client.get(url, timeout=5.0)
+    logger.info('JWKS headers: %r', r.headers)
     r.raise_for_status()
     jwks_json = r.json()
     try:
-        return jose.JsonWebKey.import_key_set(jwks_json)
+        ks = jose.JsonWebKey.import_key_set(jwks_json)
+        # TODO: check headers to see if there is a ttl use for `expire_in`
+        #   'cache-control': 'max-age=864000, private'
+        _jwks_cache[url] = CachedKeySet(ks)
+        return ks
     except Exception:
         logger.error('Failed to import key set: %s', jwks_json)
         raise
@@ -83,10 +118,10 @@ async def public_keys() -> list:
     ]
 
 
-async def public_keyset() -> jose.KeySet:
-    """Returns a public JSON Web Keyset."""
-    publics = await public_keys()
-    return jose.KeySet(publics)
+async def public_key_set() -> jose.KeySet:
+    """Returns a public JSON Web Key Set."""
+    pub_keys = await public_keys()
+    return jose.KeySet(pub_keys)
 
 
 def generate_private_key() -> schemas.AuthJsonWebKey:

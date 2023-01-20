@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get('/jwks.json')
 async def jwks():
     """JSON Web Key Set endpoint."""
-    ks = await keys.public_keyset()
+    ks = await keys.public_key_set()
     ks_dict = ks.as_dict()
     for entry in ks_dict['keys']:
         if 'use' not in entry:
