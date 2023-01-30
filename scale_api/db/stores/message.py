@@ -13,8 +13,8 @@ class MessageStore:
     # noinspection PyMethodMayBeStatic
     def messages(self, subject: str) -> list[schemas.Message]:
         stmt = sa.select(Message).where(
-            Message.subject == subject,
-            Message.status == 'active',
+            Message.subject == subject,  # type:ignore
+            Message.status == 'active',  # type:ignore
         )
         with SessionLocal() as session:
             result = session.execute(stmt)

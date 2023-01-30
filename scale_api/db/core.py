@@ -10,7 +10,6 @@ Session = sqlalchemy.orm.Session
 
 engine = sa.create_engine(
     app_config.DB_URL,
-    future=True,
     echo=app_config.DEBUG_DB,
     pool_recycle=3600,  # using `pool_pre_ping=True` seems like overkill
 )
@@ -19,7 +18,6 @@ SessionLocal = sqlalchemy.orm.sessionmaker(
     bind=engine,
     autoflush=False,
     autocommit=False,
-    future=True
 )
 
 Base = sqlalchemy.ext.declarative.declarative_base()

@@ -153,7 +153,7 @@ class CacheStore:
                         entry.expire_at = self._calc_expires(entry.ttl)
                 else:
                     session.delete(entry)
-        return entries
+        return entries  # type:ignore
 
     def pop(self, key: str, default: T | None = None) -> str | T | None:
         """Returns an entry from the cache else ``default``.
@@ -170,9 +170,11 @@ class CacheStore:
 
     def purge_expired(self) -> int:
         """Removes all entries that are expired."""
-        stmt = sa.delete(Cache).where(Cache.expire_at <= self.now())
+        stmt = sa.delete(Cache).where(
+            Cache.expire_at <= self.now()  # type:ignore
+        )
         with SessionLocal.begin() as session:
-            rows_purged = session.execute(stmt).rowcount
+            rows_purged = session.execute(stmt).rowcount  # type:ignore
         return rows_purged  # type: ignore
 
     def purge_expired_safe(self) -> None:

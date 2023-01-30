@@ -47,7 +47,7 @@ class AuthUser(Base):
     client_id = sa.Column(sa.String(128), unique=True, nullable=False)
     client_secret_hash = sa.Column(sa.String(128), nullable=True)
     scopes = sa.Column(sa.Text, nullable=True)
-    is_active = sa.Column(sa.Boolean(), default=True)
+    is_active = sa.Column(sa.Boolean, default=True)
     is_verified = sa.Column(sa.Boolean, default=False)
     created_at = sa.Column(sa.DateTime, default=sa.func.now())
     updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
