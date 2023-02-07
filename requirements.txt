@@ -1,4 +1,4 @@
-sqlalchemy[postgresql]==2.0.1
+sqlalchemy[postgresql]==2.0.2
 alembic==1.9.2
 
 cryptography==39.0.0
