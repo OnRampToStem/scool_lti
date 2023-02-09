@@ -352,10 +352,11 @@ def launch_target_v2(
         return None
     if not (contexts_v2 := app_config.FRONTEND_V2_CONTEXTS):
         return None
-    context_key = scale_user.platform_id + '.' + scale_user.context_id
-    if context_key not in contexts_v2:
-        if f'{scale_user.platform_id}.*' not in contexts_v2:
-            return None
+    if '*' != contexts_v2.strip():
+        context_key = scale_user.platform_id + '.' + scale_user.context_id
+        if context_key not in contexts_v2:
+            if f'{scale_user.platform_id}.*' not in contexts_v2:
+                return None
     base_url = launch_target_base_url(request)
     return urllib.parse.urljoin(base_url, target_path)
 
