@@ -16,12 +16,12 @@ class UserStore:
         if subject.endswith('%'):
             stmt = sa.select(Message).where(
                 Message.subject.like(subject),  # noqa ilike
-                Message.status == 'active',  # type:ignore
-            )  # type:ignore
+                Message.status == 'active',  # type: ignore
+            )  # type: ignore
         else:
             stmt = sa.select(Message).where(
-                Message.subject == subject,  # type:ignore
-                Message.status == 'active',  # type:ignore
+                Message.subject == subject,  # type: ignore
+                Message.status == 'active',  # type: ignore
             )
         with SessionLocal() as session:
             result = session.execute(stmt)

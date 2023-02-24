@@ -569,7 +569,7 @@ async def names_role_service(request: Request):
                 launch_id, scale_user)
     cached_launch = await db.cache_store.get_async(launch_id)
     # TODO: what if `cached_launch` is None?
-    launch_request = messages.LtiLaunchRequest.loads(cached_launch)  # type:ignore
+    launch_request = messages.LtiLaunchRequest.loads(cached_launch)  # type: ignore
     if not launch_request.is_instructor:
         logger.error('lti.members unauthorized request from ScaleUser: %s',
                      scale_user)

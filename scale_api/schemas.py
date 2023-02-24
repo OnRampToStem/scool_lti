@@ -162,7 +162,7 @@ class ScaleUser(BaseModel):
             roles = []
         return cls(
             id=auth_user.id,
-            email=auth_user.client_id,  # type:ignore
+            email=auth_user.client_id,  # type: ignore
             roles=roles,
             context=auth_user.context,
         )

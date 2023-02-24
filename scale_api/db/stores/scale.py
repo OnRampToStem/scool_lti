@@ -25,7 +25,7 @@ class ScaleStore:
     # noinspection PyMethodMayBeStatic
     def platform(self, platform_id: str) -> schemas.Platform:
         stmt = sa.select(Platform).where(
-            Platform.id == platform_id  # type:ignore
+            Platform.id == platform_id  # type: ignore
         )
         with SessionLocal() as session:
             result = session.execute(stmt).scalar()

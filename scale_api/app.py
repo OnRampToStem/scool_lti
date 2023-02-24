@@ -180,7 +180,7 @@ def main() -> None:
     on_startup_main()
     uvicorn.run(
         'scale_api.app:app',
-        **run_opts,  # type:ignore
+        **run_opts,  # type: ignore
     )
     on_shutdown_main()
 
