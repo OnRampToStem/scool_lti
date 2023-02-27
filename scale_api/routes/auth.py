@@ -77,6 +77,11 @@ async def login_post(
     logger.info('Login AuthUser: %s', auth_user)
 
     scale_user = schemas.ScaleUser.from_auth_user(auth_user)
+    scale_user.name = 'Demo User'
+    scale_user.context = {
+        'id': 'demo-or2stem-edu',
+        'title': 'SCALE Demo Course',
+    }
     target_url = urllib.parse.urljoin(
         request.url_for('index_api'),
         app_config.FRONTEND_V2_LAUNCH_PATH,
