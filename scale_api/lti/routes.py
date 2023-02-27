@@ -368,7 +368,7 @@ def launch_target_base_url(request: Request) -> str:
     if app_config.is_local:
         base_url = 'http://localhost:8080'
     else:
-        base_url = request.url_for('lti_home')
+        base_url = request.url_for('index_api')
     return base_url
 
 
