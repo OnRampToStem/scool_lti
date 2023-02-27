@@ -57,15 +57,6 @@ NO_CACHE_HEADERS = {
 LTI_TOKEN_EXPIRY = 60 * 60 * 12
 
 
-@router.get('/', include_in_schema=False)
-async def lti_home(request: Request):
-    context = {
-        'scale_user': request.session['scale_user'],
-        'scale_env': app_config.ENV,
-    }
-    return templates.render(request, 'lti.html', context)
-
-
 @router.get('/{platform_id}/config')
 async def lti_config(request: Request, platform_id: str):
     """Canvas LTI Configuration.

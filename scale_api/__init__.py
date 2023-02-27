@@ -6,7 +6,7 @@ import os
 
 from . import settings
 
-__version__ = '23.2.24'
+__version__ = '23.2.27'
 
 LOGGING = {
     'version': 1,
