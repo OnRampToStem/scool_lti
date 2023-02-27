@@ -5,8 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-import scale_api
-import scale_api.db
+from scale_api import app_config
+from scale_api.db import models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,13 +20,13 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = scale_api.db.Base.metadata
+target_metadata = models.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-config.set_main_option('sqlalchemy.url', scale_api.app_config.DB_URL)
+config.set_main_option('sqlalchemy.url', app_config.DB_URL)
 
 
 def run_migrations_offline():
@@ -53,6 +53,15 @@ def run_migrations_offline():
         context.run_migrations()
 
 
+def include_object(object, name, type_, reflected, compare_to):
+    scale_tabs = ('auth_jwks', 'auth_users', 'bin_data', 'cache_objects',
+                  'messages', 'platforms')
+    if type_ == 'table' and name not in scale_tabs:
+        print('Skipping object with None schema', name)
+        return False
+    return True
+
+
 def run_migrations_online():
     """Run migrations in 'online' mode.
 
@@ -68,7 +77,8 @@ def run_migrations_online():
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata,
+            include_object=include_object,
         )
 
         with context.begin_transaction():

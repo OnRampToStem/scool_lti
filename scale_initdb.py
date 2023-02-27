@@ -20,6 +20,7 @@ from scale_api import (
 from scale_api.db.models import (
     AuthJsonWeKey,
     AuthUser,
+    Base,
     Platform,
 )
 
@@ -62,7 +63,7 @@ def init_auth_json_web_keys(data):  # noqa data unused
 
 
 def init_db(data) -> None:
-    db.Base.metadata.create_all(bind=db.engine)
+    Base.metadata.create_all(bind=db.engine)
     init_platforms(data)
     init_auth_users(data)
     init_auth_json_web_keys(data)

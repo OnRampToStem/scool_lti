@@ -24,9 +24,7 @@ class ScaleStore:
 
     # noinspection PyMethodMayBeStatic
     def platform(self, platform_id: str) -> schemas.Platform:
-        stmt = sa.select(Platform).where(
-            Platform.id == platform_id  # type: ignore
-        )
+        stmt = sa.select(Platform).where(Platform.id == platform_id)
         with SessionLocal() as session:
             result = session.execute(stmt).scalar()
             if not result:
@@ -49,7 +47,7 @@ class ScaleStore:
     def user_by_client_id(self, client_id: str) -> schemas.AuthUser:
         stmt = sa.select(AuthUser).where(
             sa.func.lower(AuthUser.client_id) == client_id.lower()
-            and not AuthUser.disabled
+            and AuthUser.is_active
         )
         with SessionLocal() as session:
             result = session.execute(stmt).scalar()

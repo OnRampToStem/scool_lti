@@ -1,7 +1,6 @@
 import uuid
 
 import sqlalchemy as sa
-import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 
 from scale_api import app_config
@@ -19,8 +18,6 @@ SessionLocal = sqlalchemy.orm.sessionmaker(
     autoflush=False,
     autocommit=False,
 )
-
-Base = sqlalchemy.ext.declarative.declarative_base()
 
 
 def new_uuid() -> str:

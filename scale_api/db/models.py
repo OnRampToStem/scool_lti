@@ -1,10 +1,20 @@
+import datetime
 import logging
 
-import sqlalchemy.orm
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    validates,
+)
 
-from .core import Base, new_uuid, sa
+from .core import new_uuid, sa
 
 logger = logging.getLogger(__name__)
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 class Platform(Base):
@@ -19,16 +29,19 @@ class Platform(Base):
     """
     __tablename__ = 'platforms'
 
-    id = sa.Column(sa.String(32), primary_key=True, default=new_uuid)
-    name = sa.Column(sa.String(100), nullable=False)
-    issuer = sa.Column(sa.Text())
-    oidc_auth_url = sa.Column(sa.Text())
-    auth_token_url = sa.Column(sa.Text(), nullable=True)
-    jwks_url = sa.Column(sa.Text())
-    client_id = sa.Column(sa.String(128), nullable=True)
-    client_secret = sa.Column(sa.String(128), nullable=True)
+    id: Mapped[str] = mapped_column(
+        sa.String(32), primary_key=True, default=new_uuid
+    )
+    name: Mapped[str] = mapped_column(sa.String(100))
+    issuer: Mapped[str | None]
+    oidc_auth_url: Mapped[str | None]
+    auth_token_url: Mapped[str | None]
+    jwks_url: Mapped[str | None]
+    client_id: Mapped[str | None] = mapped_column(sa.String(128))
+    client_secret: Mapped[str | None] = mapped_column(sa.String(128))
 
-    # TODO: should there be a `PlatformDeployment` model in case the tool is deployed multiple times??
+    # TODO: should there be a `PlatformDeployment` model in case the tool is
+    #  deployed multiple times??
 
     def __repr__(self) -> str:
         return f'Platform(id={self.id!r}, name={self.name!r})'
@@ -43,21 +56,29 @@ class AuthUser(Base):
     """
     __tablename__ = 'auth_users'
 
-    id = sa.Column(sa.String(32), primary_key=True, default=new_uuid)
-    client_id = sa.Column(sa.String(128), unique=True, nullable=False)
-    client_secret_hash = sa.Column(sa.String(128), nullable=True)
-    scopes = sa.Column(sa.Text, nullable=True)
-    is_active = sa.Column(sa.Boolean, default=True)
-    is_verified = sa.Column(sa.Boolean, default=False)
-    created_at = sa.Column(sa.DateTime, default=sa.func.now())
-    updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
+    id: Mapped[str] = mapped_column(
+        sa.String(32), primary_key=True, default=new_uuid
+    )
+    client_id: Mapped[str] = mapped_column(
+        sa.String(128), unique=True
+    )
+    client_secret_hash: Mapped[str | None] = mapped_column(sa.String(128))
+    scopes: Mapped[str | None]
+    is_active: Mapped[bool | None] = mapped_column(sa.Boolean, default=True)
+    is_verified: Mapped[bool | None] = mapped_column(sa.Boolean, default=False)
+    created_at: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime, default=sa.func.now()
+    )
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()
+    )
 
-    @sqlalchemy.orm.validates('client_id')
+    @validates('client_id')
     def normalize_client_id(
             self,
             key,  # noqa key not used
-            value,
-    ):
+            value: str,
+    ) -> str:
         """Ensure we always store the ``client_id`` in lowercase."""
         return value.lower()
 
@@ -82,10 +103,12 @@ class AuthJsonWeKey(Base):
     """
     __tablename__ = 'auth_jwks'
 
-    kid = sa.Column(sa.String(64), primary_key=True)
-    data = sa.Column(sa.Text, nullable=False)
-    valid_from = sa.Column(sa.DateTime, default=sa.func.now())
-    valid_to = sa.Column(sa.DateTime, nullable=True)
+    kid: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    data: Mapped[str]
+    valid_from: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime, default=sa.func.now()
+    )
+    valid_to: Mapped[datetime.datetime | None]
 
     def __repr__(self) -> str:
         return (
@@ -104,13 +127,19 @@ class Message(Base):
     """
     __tablename__ = 'messages'
 
-    id = sa.Column(sa.String(255), primary_key=True, default=new_uuid)
-    subject = sa.Column(sa.String(255), index=True)
-    header = sa.Column(sa.Text, nullable=True)
-    body = sa.Column(sa.Text)
-    status = sa.Column(sa.String(10), default='active')
-    created_at = sa.Column(sa.DateTime, default=sa.func.now())
-    updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
+    id: Mapped[str] = mapped_column(
+        sa.String(255), primary_key=True, default=new_uuid
+    )
+    subject: Mapped[str | None] = mapped_column(sa.String(255), index=True)
+    header: Mapped[str | None]
+    body: Mapped[str | None]
+    status: Mapped[str | None] = mapped_column(sa.String(10), default='active')
+    created_at: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime, default=sa.func.now()
+    )
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()
+    )
 
     def __repr__(self) -> str:
         return (
@@ -134,11 +163,11 @@ class Cache(Base):
     """
     __tablename__ = 'cache_objects'
 
-    key = sa.Column(sa.String(255), primary_key=True)
-    ttl = sa.Column(sa.Integer, default=3600)
-    ttl_type = sa.Column(sa.String(10), default='fixed')
-    expire_at = sa.Column(sa.DateTime)
-    value = sa.Column(sa.Text)
+    key: Mapped[str] = mapped_column(sa.String(255), primary_key=True)
+    ttl: Mapped[int | None] = mapped_column(sa.Integer, default=3600)
+    ttl_type: Mapped[str | None] = mapped_column(sa.String(10), default='fixed')
+    expire_at: Mapped[datetime.datetime | None]
+    value: Mapped[str | None]
 
     def __repr__(self) -> str:
         return (
@@ -158,13 +187,21 @@ class BinData(Base):
     """
     __tablename__ = 'bin_data'
 
-    id = sa.Column(sa.String(255), primary_key=True, default=new_uuid)
-    content_type = sa.Column(sa.String(255), default='application/octet-stream')
-    name = sa.Column(sa.String(255), nullable=True)
-    status = sa.Column(sa.String(10), default='active')
-    created_at = sa.Column(sa.DateTime, default=sa.func.now())
-    updated_at = sa.Column(sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
-    data = sa.Column(sa.LargeBinary())
+    id: Mapped[str] = mapped_column(
+        sa.String(255), primary_key=True, default=new_uuid
+    )
+    content_type: Mapped[str | None] = mapped_column(
+        sa.String(255), default='application/octet-stream'
+    )
+    name: Mapped[str | None] = mapped_column(sa.String(255))
+    status: Mapped[str | None] = mapped_column(sa.String(10), default='active')
+    created_at: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime, default=sa.func.now()
+    )
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()
+    )
+    data = mapped_column(sa.LargeBinary())
 
     def __repr__(self) -> str:
         return (
