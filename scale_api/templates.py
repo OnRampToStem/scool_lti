@@ -14,7 +14,7 @@ TEMPLATE_PATH = Path(__file__).parent / 'templates'
 _templates = Jinja2Templates(directory=str(TEMPLATE_PATH))
 
 
-def render(
+def render(  # type: ignore[no-untyped-def]
         request: Request,
         template: str,
         context: dict[str, Any] | None = None,

@@ -107,7 +107,7 @@ class LtiLaunchRequest:
         return False
 
     @property
-    def names_role_service(self) -> Optional[dict]:
+    def names_role_service(self) -> Optional[dict[str, Any]]:
         result = self.message.get(
             'https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'
         )

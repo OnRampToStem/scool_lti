@@ -18,11 +18,12 @@ Learning Tools Interoperability (LTI).
 import logging
 import time
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional, Self
 
 import authlib.jose.errors
 from authlib import jose
 from fastapi import Depends, HTTPException, Request, status
+from fastapi.openapi.models import OAuthFlowClientCredentials
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.security import (
     OAuth2,
@@ -96,7 +97,7 @@ class ScopePermission:
 
         return ScopePermission(resource, actions, items)
 
-    def allows(self, other: 'ScopePermission'):
+    def allows(self, other: Self) -> bool:
         if not (self.resource == '*' or self.resource == other.resource):
             return False
         if other.actions:
@@ -126,7 +127,10 @@ class OAuth2ClientCredentials(OAuth2):
         if not scopes:
             scopes = {}
         flows = OAuthFlowsModel(
-            clientCredentials={'tokenUrl': tokenUrl, 'scopes': scopes},  # type: ignore
+            clientCredentials=OAuthFlowClientCredentials(
+                tokenUrl=tokenUrl,
+                scopes=scopes,
+            )
         )
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
@@ -163,7 +167,7 @@ async def authorize(
         request: Request,
         scopes: SecurityScopes,
         bearer_token: str = Depends(oauth2_token),
-):
+) -> schemas.AuthUser:
     """Main security dependency for routes requiring authentication.
 
     All routes defined in ``scale_api.routes`` that require authentication
@@ -220,6 +224,8 @@ async def authorize(
             scale_user = schemas.ScaleUser.from_auth_user(auth_user)
         request.state.scale_user = scale_user
 
+    return auth_user
+
 
 def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) -> str:
     """Returns an access token (JWT) for an ``AuthUser``."""
@@ -253,7 +259,7 @@ def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1)
     return create_token(payload, expires_in)
 
 
-def create_token(payload: dict, expires_in: int = -1) -> str:
+def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
     """Returns a JWT signed with a secret key.
 
     Tokens returned from this function are meant to only be validated

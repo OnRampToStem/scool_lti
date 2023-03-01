@@ -35,7 +35,7 @@ def wrap(fn: Callable[..., T]) -> Callable[..., Awaitable[T]]:
     """
 
     @functools.wraps(fn)
-    async def inner(*args, **kwargs) -> T:
+    async def inner(*args, **kwargs) -> T:  # type: ignore[no-untyped-def]
         return await run_in_threadpool(fn, *args, **kwargs)
 
     return inner

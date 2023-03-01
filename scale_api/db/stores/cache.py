@@ -3,9 +3,11 @@ import logging
 from collections.abc import Callable, Mapping
 from typing import TypeVar, Union
 
+import sqlalchemy as sa
+
 from scale_api import aio
 from .. import errors
-from ..core import SessionLocal, new_uuid, sa
+from ..core import SessionLocal, new_uuid
 from ..models import Cache
 
 logger = logging.getLogger(__name__)
@@ -118,7 +120,9 @@ class CacheStore:
         with SessionLocal() as session:
             entry = session.get(Cache, key)
             if entry:
-                if entry.expire_at > self.now():
+                if entry.expire_at is None:
+                    value = entry.value
+                elif entry.expire_at > self.now():
                     if entry.ttl_type == 'rolling':
                         entry.expire_at = self._calc_expires(entry.ttl)
                         session.commit()
@@ -147,7 +151,7 @@ class CacheStore:
         with SessionLocal.begin() as session:
             entries = {}
             for entry in session.execute(stmt).scalars():
-                if entry.expire_at > now:
+                if entry.expire_at is None or entry.expire_at > now:
                     entries[entry.key] = entry.value
                     if entry.ttl_type == 'rolling':
                         entry.expire_at = self._calc_expires(entry.ttl)
@@ -163,15 +167,18 @@ class CacheStore:
         with SessionLocal.begin() as session:
             entry = session.get(Cache, key)
             if entry is None:
-                return default
-            value = entry.value if entry.expire_at > self.now() else default
+                value = default
+            elif entry.expire_at is None or entry.expire_at > self.now():
+                value = entry.value
+            else:
+                value = default
             session.delete(entry)
-        return value  # type: ignore
+        return value
 
     def purge_expired(self) -> int:
         """Removes all entries that are expired."""
         stmt = sa.delete(Cache).where(
-            Cache.expire_at <= self.now()  # type: ignore
+            Cache.expire_at <= self.now()
         )
         with SessionLocal.begin() as session:
             rows_purged = session.execute(stmt).rowcount  # type: ignore

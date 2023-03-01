@@ -9,6 +9,7 @@ then this module can be removed.
 # TODO: remove this after front-end is updated
 import json
 import logging
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -46,7 +47,7 @@ async def get_user(
 
 @router.post('/users.json')
 async def create_user(
-        data: dict = Body(...),
+        data: dict[str, Any] = Body(...),
         scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
 ):
     return await users.create_user(data, scale_user)
@@ -54,7 +55,7 @@ async def create_user(
 
 @router.put('/users/{user_key}.json')
 async def update_user_entry(
-        user_key: str, data: dict = Body(...),
+        user_key: str, data: dict[str, Any] = Body(...),
         scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
 ):
     return await users.update_user(user_key, data, scale_user)
@@ -84,13 +85,13 @@ async def get_entry(request: Request, object_name: str, object_guid: str):
 
 
 @router.post('/{object_name}.json')
-async def create_entry(request: Request, object_name: str, data: dict = Body(...)):
+async def create_entry(request: Request, object_name: str, data: dict[str, Any] = Body(...)):
     entry = await messages.create_message(request, object_name, data)
     return {entry.id: entry.body}
 
 
 @router.put('/{object_name}/{object_guid}.json')
-async def update_entry(request: Request, object_name: str, object_guid: str, data: dict = Body(...)):
+async def update_entry(request: Request, object_name: str, object_guid: str, data: dict[str, Any] = Body(...)):
     entry = await messages.update_message(request, object_name, object_guid, data)
     return {entry.id: entry.body}
 

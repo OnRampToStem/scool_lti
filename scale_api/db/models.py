@@ -1,6 +1,7 @@
 import datetime
 import logging
 
+import sqlalchemy as sa
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -8,7 +9,7 @@ from sqlalchemy.orm import (
     validates,
 )
 
-from .core import new_uuid, sa
+from .core import new_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class AuthUser(Base):
     )
 
     @validates('client_id')
-    def normalize_client_id(
+    def normalize_client_id(  # type: ignore[no-untyped-def]
             self,
             key,  # noqa key not used
             value: str,

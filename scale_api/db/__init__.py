@@ -5,16 +5,16 @@ This package defines the models and repositories (stores) used to store data
 for this application.
 """
 from .core import (
-    SessionLocal,
-    engine,
+    SessionLocal as SessionLocal,
+    engine as engine,
 )
 
 from .stores import (
-    BinaryStore,
-    CacheStore,
-    MessageStore,
-    ScaleStore,
-    UserStore,
+    BinaryStore as BinaryStore,
+    CacheStore as CacheStore,
+    MessageStore as MessageStore,
+    ScaleStore as ScaleStore,
+    UserStore as UserStore,
 )
 
 store = ScaleStore()

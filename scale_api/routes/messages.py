@@ -6,7 +6,7 @@ text blobs, mostly in JSON format, for the front-end webapp.
 """
 import json
 import logging
-from typing import Union
+from typing import Any, Union
 
 from fastapi import (
     APIRouter,
@@ -51,16 +51,16 @@ async def get_message(request: Request, subject: str, msg_id: str):
 
 
 @router.post('/{subject}.json', response_model=schemas.Message)
-async def create_message(request: Request, subject: str, body: dict = Body(...)):
+async def create_message(request: Request, subject: str, body: dict[str, Any] = Body(...)):
     check_access(request, subject, 'post', body)
     # TODO: extract header from body?
-    body = json.dumps(body)
-    msg = await db.message_store.create_async(subject, body)
+    body_text = json.dumps(body)
+    msg = await db.message_store.create_async(subject, body_text)
     return msg
 
 
 @router.put('/{subject}/{msg_id}.json', response_model=schemas.Message)
-async def update_message(request: Request, subject: str, msg_id: str, body: dict = Body(...)):
+async def update_message(request: Request, subject: str, msg_id: str, body: dict[str, Any] = Body(...)):
     # Verify the new message is authorized
     check_access(request, subject, 'put', body)
     try:
@@ -93,7 +93,7 @@ def check_access(
         request: Request,
         subject: str,
         action: str,
-        body: Union[str, dict] | None = None
+        body: Union[str, dict[str, Any]] | None = None
 ) -> None:
     """Checks that the requested access is allowed, else raises an HTTP 403."""
     if not can_access(request, subject, action, body):
@@ -104,7 +104,7 @@ def can_access(
         request: Request,
         subject: str,
         action: str,
-        body: Union[str, dict] | None = None,  # noqa unused
+        body: Union[str, dict[str, Any]] | None = None,  # noqa unused
 ) -> bool:
     """Returns True if this request is permitted, else False."""
     auth_user: schemas.AuthUser = request.state.auth_user

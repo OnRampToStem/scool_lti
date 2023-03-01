@@ -1,7 +1,9 @@
 import logging
 
+import sqlalchemy as sa
+
 from scale_api import aio, schemas
-from ..core import SessionLocal, sa
+from ..core import SessionLocal
 from ..models import AuthJsonWeKey, AuthUser, Platform
 
 logger = logging.getLogger(__name__)

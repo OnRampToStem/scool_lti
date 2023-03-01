@@ -69,7 +69,7 @@ app.add_middleware(
 
 
 @app.on_event('startup')
-async def startup_event():
+async def startup_event() -> None:
     """Runs at startup for each web worker process.
 
     Since most non-async code will be database IO bound, we set our own
@@ -91,7 +91,7 @@ async def startup_event():
 
 
 @app.on_event('shutdown')
-async def shutdown_event():
+async def shutdown_event() -> None:
     """Runs on shutdown for each web worker process.
 
     Since we manually configured a ThreadPoolExecutor on startup we shut
@@ -138,12 +138,12 @@ def on_shutdown_main() -> None:
 
 @app.get('/', include_in_schema=False)
 @app.get(app_config.PATH_PREFIX, include_in_schema=False)
-async def index(request: Request):
+async def index(request: Request):  # type: ignore[no-untyped-def]
     return await index_api(request)
 
 
 @app.get(f'{app_config.PATH_PREFIX}/lb-status', include_in_schema=False)
-async def health_check():
+async def health_check():  # type: ignore[no-untyped-def]
     """Provides a health check endpoint for the Load Balancer."""
     return {
         'app_version': __version__,

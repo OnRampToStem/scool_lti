@@ -5,7 +5,7 @@ Application-wide configuration settings that are read in from the Environment.
 """
 import secrets
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
 
 from pydantic import AnyHttpUrl, BaseSettings, validator
 
@@ -61,7 +61,7 @@ class ScaleSettings(BaseSettings):
         return v
 
     @validator('DB_URL')
-    def verify_sqlite_only_local(cls, v: str, values: dict) -> str:
+    def verify_sqlite_only_local(cls, v: str, values: dict[str, Any]) -> str:
         """Raises a ``ValueError`` if sqlite is used for a non-local environment."""
         if v.startswith('sqlite') and values.get('ENV') != 'local':
             raise ValueError(

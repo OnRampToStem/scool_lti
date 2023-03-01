@@ -1,7 +1,9 @@
 import logging
 
+import sqlalchemy as sa
+
 from scale_api import aio, schemas
-from ..core import SessionLocal, sa
+from ..core import SessionLocal
 from ..models import Message
 
 logger = logging.getLogger(__name__)
@@ -13,8 +15,8 @@ class MessageStore:
     # noinspection PyMethodMayBeStatic
     def messages(self, subject: str) -> list[schemas.Message]:
         stmt = sa.select(Message).where(
-            Message.subject == subject,  # type: ignore
-            Message.status == 'active',  # type: ignore
+            Message.subject == subject,
+            Message.status == 'active',
         )
         with SessionLocal() as session:
             result = session.execute(stmt)
@@ -83,7 +85,7 @@ class MessageStore:
             msg = session.get(Message, msg_id)  # noqa duplicate code
             if not msg:
                 raise LookupError(msg_id)
-            if not msg.subject.startswith(subject):
+            if not (msg.subject and msg.subject.startswith(subject)):
                 raise ValueError(f'Delete aborted, mismatched subject: '
                                  'actual: [%s], expected: [%s]',
                                  msg.subject, subject)

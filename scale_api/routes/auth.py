@@ -8,7 +8,7 @@ import base64
 import logging
 import uuid
 import urllib.parse
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import (
     APIRouter,
@@ -227,7 +227,7 @@ def verify_request(request: Request, form_token: str) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
 
-def build_context(request: Request) -> dict:
+def build_context(request: Request) -> dict[str, Any]:
     """Provides a CSRF token for use in a template.
 
     Returns the CSRF token from the web session if one exists. Else

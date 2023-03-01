@@ -3,7 +3,7 @@ SCALE Application schemas
 """
 import datetime
 from collections.abc import Mapping
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -46,7 +46,7 @@ class AuthUser(BaseModel):
     context: Optional[Mapping[str, str]]
 
     @validator('scopes', pre=True)
-    def assemble_scopes(cls, v: Union[str, list[str]]) -> list[str]:
+    def assemble_scopes(cls, v: Union[str, list[str] | None]) -> list[str]:
         """Converts a space separated scope string to a list."""
         if v is None:
             return []
@@ -75,7 +75,7 @@ class AuthUser(BaseModel):
             context=scale_user.context,
         )
 
-    def session_dict(self):
+    def session_dict(self) -> dict[str, Any]:
         """Returns a dict object suitable for storing in a web session."""
         return self.dict(exclude_defaults=True)
 
@@ -107,7 +107,7 @@ class ScaleUser(BaseModel):
     # a Course ID and Title.
     context: Optional[Mapping[str, str]]
 
-    def session_dict(self):
+    def session_dict(self) -> dict[str, Any]:
         """Returns a dict object suitable for storing in a web session."""
         return self.dict(exclude_defaults=True)
 
@@ -162,7 +162,7 @@ class ScaleUser(BaseModel):
             roles = []
         return cls(
             id=auth_user.id,
-            email=auth_user.client_id,  # type: ignore
+            email=auth_user.client_id,  # noqa
             roles=roles,
             context=auth_user.context,
         )
@@ -184,7 +184,7 @@ class ScaleUserImpersonationRequest(ScaleUser):
     """
     secret_key: SecretStr
 
-    def session_dict(self):
+    def session_dict(self) -> dict[str, Any]:
         """Returns a dict object suitable for storing in a web session."""
         return self.dict(exclude={'secret_key'}, exclude_defaults=True)
 

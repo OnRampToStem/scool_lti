@@ -7,6 +7,7 @@ import time
 import uuid
 from collections import namedtuple
 from collections.abc import Sequence
+from typing import Any
 
 from authlib import jose
 
@@ -141,7 +142,7 @@ class NamesRoleService:
         self.launch_request = launch_request
         self.client = LtiServicesClient(launch_request.platform)
 
-    async def members(self):
+    async def members(self) -> list[dict[str, Any]]:
         nrps = self.launch_request.names_role_service
         if not nrps:
             raise Exception('Launch Request does not contan the NRPS Service')

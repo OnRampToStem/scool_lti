@@ -10,7 +10,7 @@ import asyncio
 import hashlib
 import json
 import logging
-from typing import Iterable
+from typing import Any, Iterable
 
 from fastapi import (
     APIRouter,
@@ -140,7 +140,7 @@ async def get_user(
 
 @router.post('/')
 async def create_user(
-        body: dict = Body(...),
+        body: dict[str, Any] = Body(...),
         scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
 ):
     logger.debug('Users.create_user::ScaleUser(%s)', scale_user)
@@ -178,7 +178,7 @@ async def create_user(
 @router.put('/{user_key}')
 async def update_user(
         user_key: str,
-        body: dict = Body(...),
+        body: dict[str, Any] = Body(...),
         scale_user: schemas.ScaleUser = Depends(auth.request_scale_user),
 ):
     logger.debug('Users.update_user::ScaleUser(%s)', scale_user)

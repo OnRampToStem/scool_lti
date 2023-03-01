@@ -186,7 +186,7 @@ async def launch_form(
         response: Response,
         platform_id: str,
         state: str = Form(...),
-        id_token: str = Form(None),
+        id_token: str | None = Form(None),
         error: str = Form(None),
         error_description: str = Form(None),
 ):

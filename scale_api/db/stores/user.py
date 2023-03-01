@@ -1,8 +1,10 @@
 import logging
 from typing import Iterable
 
+import sqlalchemy as sa
+
 from scale_api import aio, schemas
-from ..core import SessionLocal, sa
+from ..core import SessionLocal
 from ..models import Message
 
 logger = logging.getLogger(__name__)
@@ -16,12 +18,12 @@ class UserStore:
         if subject.endswith('%'):
             stmt = sa.select(Message).where(
                 Message.subject.like(subject),  # noqa ilike
-                Message.status == 'active',  # type: ignore
-            )  # type: ignore
+                Message.status == 'active',
+            )
         else:
             stmt = sa.select(Message).where(
-                Message.subject == subject,  # type: ignore
-                Message.status == 'active',  # type: ignore
+                Message.subject == subject,
+                Message.status == 'active',
             )
         with SessionLocal() as session:
             result = session.execute(stmt)
@@ -36,7 +38,7 @@ class UserStore:
                 raise LookupError(f'{user_key} not found')
             if msg.status != 'active':
                 raise LookupError(f'{user_key} not active')
-            if not msg.subject.startswith('users.'):
+            if not (msg.subject and msg.subject.startswith('users.')):
                 raise ValueError(f'Not a user entry: %s', msg.subject)
             return schemas.Message.from_orm(msg)
 
@@ -65,7 +67,7 @@ class UserStore:
             user = session.get(Message, user_key)
             if not user:
                 raise LookupError(user_key)
-            if not user.subject.startswith(subject):
+            if not (user.subject and user.subject.startswith(subject)):
                 raise ValueError(f'Update subject mismatch: %s, expected: %s',
                                  user.subject, subject)
             if user.status != 'active':
@@ -86,7 +88,7 @@ class UserStore:
             user = session.get(Message, user_key)  # noqa duplicate code
             if not user:
                 raise LookupError(user_key)
-            if not user.subject.startswith(subject):
+            if not (user.subject and user.subject.startswith(subject)):
                 raise ValueError(f'Delete aborted, mismatched subject: '
                                  'actual: [%s], expected: [%s]',
                                  user.subject, subject)
