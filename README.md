@@ -23,7 +23,7 @@ If a custom `scale_initdb.json` is not provided, the provided
 
 ## Running with Python
 
-Requires Python 3.10 or higher.
+Requires Python 3.11.
 
 ### Virtualenv Setup
 
@@ -58,7 +58,7 @@ can be accessed via
 
 Docker is the recommended method to run a local server. For an alternative,
 the server can be run using Python (see following section). When running with
-`docker-compose`, an Apache proxy and Postgres database will be used so as to
+`docker-compose`, an Apache proxy and Postgres database will be used to
 closely reflect the production environment.
 
 The recommended method is to use the provided `docker-compose.yml`:

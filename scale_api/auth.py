@@ -79,7 +79,7 @@ class ScopePermission:
     items: set[str]
 
     @classmethod
-    def from_string(cls, scope_str: str) -> 'ScopePermission':
+    def from_string(cls, scope_str: str) -> Self:
         parts = scope_str.split(':') if scope_str else None
         if not parts or not 1 <= len(parts) <= 3:
             raise ValueError(f'Invalid scope {scope_str}')
@@ -95,7 +95,7 @@ class ScopePermission:
         if size > 2:
             items.update(parts[2].split(','))
 
-        return ScopePermission(resource, actions, items)
+        return cls(resource, actions, items)
 
     def allows(self, other: Self) -> bool:
         if not (self.resource == '*' or self.resource == other.resource):
