@@ -37,15 +37,23 @@ async def get_message(request: Request, subject: str, msg_id: str):
     try:
         msg = await db.message_store.message_async(msg_id, subject)
     except LookupError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from None
     else:
-        assert msg.subject == subject, f'{msg.subject} != {subject}'
+        if msg.subject != subject:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f'{msg.subject=} != {subject=}',
+            )
         check_access(request, subject, 'get', msg.body)
         return msg
 
 
 @router.post('/{subject}.json', response_model=schemas.Message)
-async def create_message(request: Request, subject: str, body: dict[str, Any] = Body(...)):
+async def create_message(
+        request: Request,
+        subject: str,
+        body: dict[str, Any] = Body(...),
+):
     check_access(request, subject, 'post', body)
     # TODO: extract header from body?
     body_text = json.dumps(body)
@@ -54,7 +62,12 @@ async def create_message(request: Request, subject: str, body: dict[str, Any] = 
 
 
 @router.put('/{subject}/{msg_id}.json', response_model=schemas.Message)
-async def update_message(request: Request, subject: str, msg_id: str, body: dict[str, Any] = Body(...)):
+async def update_message(
+        request: Request,
+        subject: str,
+        msg_id: str,
+        body: dict[str, Any] = Body(...),
+):
     # Verify the new message is authorized
     check_access(request, subject, 'put', body)
     try:
@@ -64,7 +77,7 @@ async def update_message(request: Request, subject: str, msg_id: str, body: dict
         raw_body = json.dumps(body)
         msg = await db.message_store.update_async(msg_id, subject, raw_body)
     except LookupError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from None
     else:
         return msg
 
@@ -79,7 +92,7 @@ async def delete_message(request: Request, subject: str, msg_id: str):
         check_access(request, subject, 'delete', old_msg.body)
         msg = await db.message_store.delete_async(msg_id, subject)
     except LookupError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from None
     logger.warning('Deleted message: %s', msg)
 
 

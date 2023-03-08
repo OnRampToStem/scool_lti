@@ -12,7 +12,9 @@ from fastapi import FastAPI, Request
 from fastapi import __version__ as fastapi_version
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from starlette.middleware.sessions import SessionMiddleware  # noqa
+
+# noinspection PyPackageRequirements
+from starlette.middleware.sessions import SessionMiddleware
 
 from scale_api import (
     __version__,
@@ -119,7 +121,10 @@ def on_startup_main() -> None:
 
         config_file = str(settings.BASE_PATH / 'alembic.ini')
         alembic_cfg = alembic.config.Config(config_file)
-        alembic_cfg.set_main_option('script_location', str(settings.BASE_PATH / 'alembic'))
+        alembic_cfg.set_main_option(
+            'script_location',
+            str(settings.BASE_PATH / 'alembic'),
+        )
         alembic.command.upgrade(alembic_cfg, 'head')
 
         import scale_api.settings

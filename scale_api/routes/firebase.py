@@ -85,17 +85,29 @@ async def get_entry(request: Request, object_name: str, object_guid: str):
 
 
 @router.post('/{object_name}.json')
-async def create_entry(request: Request, object_name: str, data: dict[str, Any] = Body(...)):
+async def create_entry(
+        request: Request,
+        object_name: str,
+        data: dict[str, Any] = Body(...),
+):
     entry = await messages.create_message(request, object_name, data)
     return {entry.id: entry.body}
 
 
 @router.put('/{object_name}/{object_guid}.json')
-async def update_entry(request: Request, object_name: str, object_guid: str, data: dict[str, Any] = Body(...)):
+async def update_entry(
+        request: Request,
+        object_name: str,
+        object_guid: str,
+        data: dict[str, Any] = Body(...),
+):
     entry = await messages.update_message(request, object_name, object_guid, data)
     return {entry.id: entry.body}
 
 
-@router.delete('/{object_name}/{object_guid}.json', status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    '/{object_name}/{object_guid}.json',
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def delete_entry(request: Request, object_name: str, object_guid: str):
     await messages.delete_message(request, object_name, object_guid)

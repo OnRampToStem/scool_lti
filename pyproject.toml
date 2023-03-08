@@ -40,15 +40,18 @@ extend-select = [
     "W",  # pycodestyle (warnings)
     "YTT",  # flake8-2020
 ]
-#ignore = [
-#    "B008",  # Do not perform function call in argument defaults
-#    "PLC0414",  # Import alias does not rename original package
-#    "PLR0913",  # Too many arguments to function call
-#    "PLR2004",  # Magic values
-#]
+ignore = [
+    "B008",  # Do not perform function call in argument defaults
+    "PLC0414",  # Import alias does not rename original package
+    "PLR0913",  # Too many arguments to function call
+    "PLR2004",  # Magic values
+]
 extend-exclude = [".*", "docker", "docs", "etc", "temp"]
 
-#[tool.ruff.per-file-ignores]
-#"gunicorn.conf.py" = ["S108"]
-#"ihub_api/security.py" = ["S105", "S106"]
-#"ihub_api/routes/sftp.py" = ["UP032"]
+[tool.ruff.per-file-ignores]
+"alembic/env.py" = ["T201"]
+"gunicorn.conf.py" = ["S108"]
+"scale_initdb.py" = ["T201"]
+"scale_api/auth.py" = ["S106"]
+"scale_api/lti/routes.py" = ["PLR0911", "PLR0915"]
+"tests/test_schemas.py" = ["S106"]

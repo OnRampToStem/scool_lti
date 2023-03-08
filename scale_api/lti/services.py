@@ -73,7 +73,9 @@ class LtiServicesClient:
         jwt = await create_platform_token(self.platform)
         auth_data = {
             'grant_type': 'client_credentials',
-            'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion_type': (
+                'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+            ),
             'client_assertion': jwt,
             'scope': cache_key,
         }
@@ -135,7 +137,9 @@ class NamesRoleService:
 
     see https://www.imsglobal.org/spec/lti-nrps/v2p0
     """
-    SCOPES = ['https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly']
+    SCOPES = [
+        'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly'
+    ]
     CONTENT_TYPE = 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'
 
     def __init__(self, launch_request: LtiLaunchRequest) -> None:

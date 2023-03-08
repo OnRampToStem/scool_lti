@@ -28,9 +28,8 @@ def render(  # type: ignore[no-untyped-def]
     """
     if context is None:
         context = {'request': request}
-    else:
-        if 'request' not in context:
-            context['request'] = request
+    elif 'request' not in context:
+        context['request'] = request
     return _templates.TemplateResponse(
         name=template,
         context=context,

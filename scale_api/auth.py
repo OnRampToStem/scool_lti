@@ -185,34 +185,34 @@ async def authorize(
     ``scale_user`` so both state values will always be set for any routes
     that use this as a dependency.
     """
-    state = request.client.host if request.client else '0.0.0.0'
+    state = request.client.host if request.client else '0.0.0.0'  # noqa: S104
     logger.info('[%s]: authorize(bearer_token=[%s], scopes=[%s])',
                 state, bearer_token, scopes.scope_str)
-    auth_user = scale_user = None  # noqa auth_user unused
+    # noinspection PyUnusedLocal
+    auth_user = scale_user = None
     try:
         if bearer_token:
             auth_user = await auth_user_from_token(bearer_token)
             logger.info('[%s]: authorize from bearer token AuthUser: %s',
                         state, auth_user)
+        elif session_user := request.session.get('scale_user'):
+            scale_user = schemas.ScaleUser.parse_obj(session_user)
+            auth_user = schemas.AuthUser.from_scale_user(scale_user)
+            logger.info('[%s]: authorize from session ScaleUser: %s',
+                        state, scale_user)
+        elif session_user := request.session.get('au'):
+            auth_user = schemas.AuthUser.parse_obj(session_user)
+            logger.info('[%s]: authorize from session AuthUser: %s',
+                        state, auth_user)
         else:
-            if session_user := request.session.get('scale_user'):
-                scale_user = schemas.ScaleUser.parse_obj(session_user)
-                auth_user = schemas.AuthUser.from_scale_user(scale_user)
-                logger.info('[%s]: authorize from session ScaleUser: %s',
-                            state, scale_user)
-            elif session_user := request.session.get('au'):
-                auth_user = schemas.AuthUser.parse_obj(session_user)
-                logger.info('[%s]: authorize from session AuthUser: %s',
-                            state, auth_user)
-            else:
-                raise LookupError('No token or session values found')
+            raise LookupError('No token or session values found')
     except (LookupError, ValueError, authlib.jose.errors.JoseError) as exc:
         logger.error('[%s]: authorize failed: %r', state, exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Incorrect username or password',
             headers={'WWW-Authenticate': 'Bearer'},
-        )
+        ) from None
     else:
         if not can_access(auth_user, scopes.scopes):
             logger.error('[%s]: authorize access failure, '

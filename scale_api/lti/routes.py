@@ -379,7 +379,7 @@ async def deep_link_launch(
 ):
     """Deep Linking Launch Requests."""
     # TODO: handle DeepLinking request Messages
-    client = request.client.host if request.client else '0.0.0.0'
+    client = request.client.host if request.client else '0.0.0.0'  # noqa: S104
     logger.error('[%s]: unexpected launch type [%s]',
                  client, message_launch.message_type)
     response.status_code = status.HTTP_501_NOT_IMPLEMENTED
@@ -442,7 +442,7 @@ async def login_initiations_form(
     # log messages here and in the launch endpoint.
     state = uuid.uuid4().hex
 
-    client_host = request.client.host if request.client else '0.0.0.0'
+    client_host = request.client.host if request.client else '0.0.0.0'  # noqa: S104
     logger.info('[%s]: LTI Login Init: client=[%s], user-agent=[%s]',
                 state, client_host, request.headers.get('user-agent'))
 
@@ -624,7 +624,7 @@ async def platform_or_404(platform_id: str) -> schemas.Platform:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Platform {platform_id} not found'
-        )
+        ) from None
 
 
 async def decode_lti_id_token(

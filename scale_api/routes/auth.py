@@ -110,7 +110,7 @@ async def session_user_token(request: Request):
     if from cross-origin that ``withCredentials`` be specified in
     the xhr call.
     """
-    state = request.client.host if request.client else '0.0.0.0'
+    state = request.client.host if request.client else '0.0.0.0'  # noqa: S104
     scale_user = request.state.scale_user
     logger.info('[%s]: token request found ScaleUser: %s', state, scale_user)
     expiry = 60 * 60 * 8  # provide an 8-hour token for Scale users

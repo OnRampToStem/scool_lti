@@ -74,10 +74,11 @@ class AuthUser(Base):
         sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()
     )
 
+    # noinspection PyUnusedLocal
     @validates('client_id')
     def normalize_client_id(  # type: ignore[no-untyped-def]
             self,
-            key,  # noqa key not used
+            key,
             value: str,
     ) -> str:
         """Ensure we always store the ``client_id`` in lowercase."""

@@ -145,7 +145,7 @@ class CacheStore:
         """
         now = self.now()
         stmt = sa.select(Cache).where(
-            Cache.key.ilike(  # noqa ilike
+            Cache.key.ilike(
                 key_prefix + '%'
             )
         )

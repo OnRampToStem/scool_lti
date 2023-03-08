@@ -35,7 +35,7 @@ class MessageStore:
             if not msg:
                 raise LookupError(msg_id)
             if msg.subject != subject:
-                raise ValueError(f'Update subject mismatch: %s, expected: %s',
+                raise ValueError('Update subject mismatch: actual != expected',
                                  msg.subject, subject)
             return schemas.Message.from_orm(msg)
 
@@ -65,17 +65,17 @@ class MessageStore:
             if not msg:
                 raise LookupError(msg_id)
             if msg.subject != subject:
-                raise ValueError(f'Update subject mismatch: actual %s, expected: %s',
+                raise ValueError('Update subject mismatch: actual!= expected',
                                  msg.subject, subject)
             if msg.header != header:
-                raise ValueError(f'Update header mismatch: actual %s, expected: %s',
+                raise ValueError('Update header mismatch: actual != expected',
                                  msg.header, header)
             if msg.body != body:
                 msg.body = body
             session.flush()
             return schemas.Message.from_orm(msg)
 
-    # noinspection PyMethodMayBeStatic
+    # noinspection PyMethodMayBeStatic,DuplicatedCode
     def delete(
             self,
             msg_id: str,
@@ -83,16 +83,16 @@ class MessageStore:
             header: str | None = None,
     ) -> schemas.Message:
         with SessionLocal.begin() as session:
-            msg = session.get(Message, msg_id)  # noqa duplicate code
+            msg = session.get(Message, msg_id)
             if not msg:
                 raise LookupError(msg_id)
             if not (msg.subject and msg.subject.startswith(subject)):
-                raise ValueError(f'Delete aborted, mismatched subject: '
-                                 'actual: [%s], expected: [%s]',
+                raise ValueError('Delete aborted, mismatched subject: '
+                                 'actual != expected',
                                  msg.subject, subject)
             if header and msg.header != header:
-                raise ValueError(f'Delete aborted, mismatched header: '
-                                 'actual: [%s], expected: [%s]',
+                raise ValueError('Delete aborted, mismatched header: '
+                                 'actual != expected',
                                  msg.header, header)
             msg.status = 'deleted'
             session.flush()

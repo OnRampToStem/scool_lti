@@ -3,7 +3,7 @@ SCALE Application schemas
 """
 import datetime
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Self
 
 from pydantic import (
     BaseModel,
@@ -64,13 +64,13 @@ class AuthUser(BaseModel):
         return False
 
     @classmethod
-    def from_scale_user(cls, scale_user: 'ScaleUser') -> 'AuthUser':
+    def from_scale_user(cls, scale_user: 'ScaleUser') -> Self:
         """Converts an ``ScaleUser`` to a ``AuthUser``."""
         roles = ['role:' + r for r in scale_user.roles]
         return cls(
             id=scale_user.id,
             client_id=scale_user.email,
-            client_secret_hash='none',
+            client_secret_hash='none',  # noqa: S106
             scopes=roles,
             context=scale_user.context,
         )
@@ -150,7 +150,7 @@ class ScaleUser(BaseModel):
         return False
 
     @classmethod
-    def from_auth_user(cls, auth_user: AuthUser) -> 'ScaleUser':
+    def from_auth_user(cls, auth_user: AuthUser) -> Self:
         """Converts an ``AuthUser`` to a ``ScaleUser``."""
         if auth_user.scopes:
             roles = [
@@ -162,7 +162,7 @@ class ScaleUser(BaseModel):
             roles = []
         return cls(
             id=auth_user.id,
-            email=auth_user.client_id,  # noqa
+            email=auth_user.client_id,
             roles=roles,
             context=auth_user.context,
         )

@@ -18,7 +18,7 @@ class UserStore:
     def users(self, subject: str) -> Iterable[schemas.Message]:
         if subject.endswith('%'):
             stmt = sa.select(Message).where(
-                Message.subject.like(subject),  # noqa ilike
+                Message.subject.like(subject),
                 Message.status == 'active',
             )
         else:
@@ -40,7 +40,7 @@ class UserStore:
             if msg.status != 'active':
                 raise LookupError(f'{user_key} not active')
             if not (msg.subject and msg.subject.startswith('users.')):
-                raise ValueError(f'Not a user entry: %s', msg.subject)
+                raise ValueError('Not a user entry', msg.subject)
             return schemas.Message.from_orm(msg)
 
     # noinspection PyMethodMayBeStatic
@@ -69,7 +69,7 @@ class UserStore:
             if not user:
                 raise LookupError(user_key)
             if not (user.subject and user.subject.startswith(subject)):
-                raise ValueError(f'Update subject mismatch: %s, expected: %s',
+                raise ValueError('Update subject mismatch: actual != expected',
                                  user.subject, subject)
             if user.status != 'active':
                 user.status = 'active'
@@ -78,7 +78,7 @@ class UserStore:
             session.flush()
             return schemas.Message.from_orm(user)
 
-    # noinspection PyMethodMayBeStatic
+    # noinspection PyMethodMayBeStatic,DuplicatedCode
     def delete(
             self,
             user_key: str,
@@ -86,16 +86,16 @@ class UserStore:
             header: str | None = None,
     ) -> schemas.Message:
         with SessionLocal.begin() as session:
-            user = session.get(Message, user_key)  # noqa duplicate code
+            user = session.get(Message, user_key)
             if not user:
                 raise LookupError(user_key)
             if not (user.subject and user.subject.startswith(subject)):
-                raise ValueError(f'Delete aborted, mismatched subject: '
-                                 'actual: [%s], expected: [%s]',
+                raise ValueError('Delete aborted, mismatched subject: '
+                                 'actual != expected',
                                  user.subject, subject)
             if header and user.header != header:
-                raise ValueError(f'Delete aborted, mismatched header: '
-                                 'actual: [%s], expected: [%s]',
+                raise ValueError('Delete aborted, mismatched header: '
+                                 'actual != expected',
                                  user.header, header)
             if user.status != 'deleted':
                 user.status = 'deleted'

@@ -48,7 +48,8 @@ def init_auth_users(data):
         print('AuthUsers update failed', repr(exc))
 
 
-def init_auth_json_web_keys(data):  # noqa data unused
+# noinspection PyUnusedLocal
+def init_auth_json_web_keys(data):
     web_keys = db.store.json_web_keys()
     if web_keys:
         print('AuthJsonWebKeys exist, skipping')

@@ -124,7 +124,7 @@ async def get_user(
             # tried to request a key that is not there key.
             return {}
         logger.error('Users.get_user(%s) failed: %r', user_key, exc)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from None
     else:
         user_body = json.loads(user.body) if user.body is not None else {}
         result = {user.id: user_body}
@@ -224,14 +224,14 @@ async def delete_user(
     try:
         await db.message_store.delete_async(user_key, subject)
     except LookupError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from None
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST) from None
 
 
 def users_key(scale_user: schemas.ScaleUser) -> str:
     key = f'users.{scale_user.platform_id}.{scale_user.context_id}.{scale_user.user_id}'
-    return hashlib.sha1(key.encode('utf-8')).hexdigest()
+    return hashlib.sha1(key.encode('utf-8')).hexdigest()  # noqa: S324
 
 
 def users_subject(scale_user: schemas.ScaleUser) -> str:

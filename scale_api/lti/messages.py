@@ -122,13 +122,17 @@ class LtiLaunchRequest:
         lms_picture = self.message.get('picture') or self._custom_field('picture')
         if not lms_email:
             # Special handling for using the "Student View" feature in Canvas
-            if lms_name == 'Test Student' and self.message['iss'] == 'https://canvas.instructure.com':
+            if (
+                    lms_name == 'Test Student'
+                    and self.message['iss'] == 'https://canvas.instructure.com'
+            ):
                 lms_email = 'test_student@canvas.instructure.com'
             else:
                 raise ValueError('LtiLaunchRequest missing required attribute: email')
+        # noinspection PyTypeChecker
         return schemas.ScaleUser(
             id=lms_userid,
-            email=lms_email,  # noqa EmailStr
+            email=lms_email,
             name=lms_name,
             picture=lms_picture,
             roles=self.roles,

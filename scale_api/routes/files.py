@@ -64,7 +64,7 @@ async def get_file(file_id: str):
     try:
         result = await db.bin_store.get_async(file_id)
     except LookupError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from None
     else:
         headers = {
             'Content-Disposition': f'inline; filename="{result.name}"',
@@ -90,7 +90,9 @@ async def put_file(file_id: str, file: UploadFile = File(...)):
         data = await file.read()
     finally:
         await file.close()
-    result = await db.bin_store.put_async(file_id, data, file.content_type, file.filename)
+    result = await db.bin_store.put_async(
+        file_id, data, file.content_type, file.filename
+    )
     return result.dict(exclude={'data'})
 
 
