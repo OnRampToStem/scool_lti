@@ -150,12 +150,12 @@ oauth2_token = OAuth2ClientCredentials(
 
 def hash_password(password_plain: str) -> str:
     """Returns a hashed string suitable for storing in a database."""
-    return pwd_context.hash(password_plain)  # type: ignore
+    return pwd_context.hash(password_plain)
 
 
 def verify_password(password_plain: str, password_hash: str) -> bool:
     """Returns True if the plain string matches the provided hash."""
-    return pwd_context.verify(password_plain, password_hash)  # type: ignore
+    return pwd_context.verify(password_plain, password_hash)
 
 
 async def request_scale_user(request: Request) -> schemas.ScaleUser:

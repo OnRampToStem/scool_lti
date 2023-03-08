@@ -1,0 +1,54 @@
+[tool.black]
+target-version = ["py311"]
+line-length = 88
+
+[tool.mypy]
+python_version = "3.11"
+packages = "scale_api"
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["authlib.*", "passlib.context"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["scale_initdb"]
+disable_error_code = ["no-untyped-def", "no-untyped-call"]
+
+[[tool.mypy.overrides]]
+module = ["scale_api.db.stores.*"]
+disable_error_code = ["assignment", "arg-type"]
+
+[[tool.mypy.overrides]]
+module = ["scale_api.routes.*", "scale_api.lti.routes"]
+disable_error_code = ["no-untyped-def"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+extend-select = [
+    "B",  # flake8-bugbear
+    "E",  # pycodestyle (errors)
+    "F",  # Pyflakes
+    "I",   # isort
+    "PL",  # Pylint
+    "RUF",
+    "S",  # flake8-bandit
+    "T20",  # flake8-print
+    "UP",  # pyupgrade
+    "W",  # pycodestyle (warnings)
+    "YTT",  # flake8-2020
+]
+#ignore = [
+#    "B008",  # Do not perform function call in argument defaults
+#    "PLC0414",  # Import alias does not rename original package
+#    "PLR0913",  # Too many arguments to function call
+#    "PLR2004",  # Magic values
+#]
+extend-exclude = [".*", "docker", "docs", "etc", "temp"]
+
+#[tool.ruff.per-file-ignores]
+#"gunicorn.conf.py" = ["S108"]
+#"ihub_api/security.py" = ["S105", "S106"]
+#"ihub_api/routes/sftp.py" = ["UP032"]
