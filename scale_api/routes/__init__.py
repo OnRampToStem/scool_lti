@@ -5,7 +5,7 @@ Contains the configuration for all API endpoint routers.
 """
 from fastapi import APIRouter, Security
 
-from .. import auth
+from ..auth import authorize
 from ..lti.routes import router as router_lti
 from .auth import index_api as index_api
 from .auth import router as router_auth
@@ -41,33 +41,33 @@ api_router.include_router(
     router_platforms,
     prefix="/v1/platforms",
     tags=["Platforms"],
-    dependencies=[Security(auth.authorize, scopes=["plat"])],
+    dependencies=[Security(authorize, scopes=["plat"])],
 )
 
 api_router.include_router(
     router_users,
     prefix="/v1/users",
     tags=["Users"],
-    dependencies=[Security(auth.authorize)],
+    dependencies=[Security(authorize)],
 )
 
 api_router.include_router(
     router_firebase,
     prefix="/v1/FirebaseCompat",
     tags=["Firebase Compatibility"],
-    dependencies=[Security(auth.authorize)],
+    dependencies=[Security(authorize)],
 )
 
 api_router.include_router(
     router_messages,
     prefix="/v1/messages",
     tags=["Messages"],
-    dependencies=[Security(auth.authorize)],
+    dependencies=[Security(authorize)],
 )
 
 api_router.include_router(
     router_files,
     prefix="/v1/files",
     tags=["Files"],
-    dependencies=[Security(auth.authorize)],
+    dependencies=[Security(authorize)],
 )
