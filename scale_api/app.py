@@ -27,25 +27,29 @@ from scale_api.routes import api_router, index_api
 
 logger = logging.getLogger(__name__)
 
-logger.info('Using Environment [%s] file for settings: %s',
-            app_config.ENV, app_config.Config.env_file)
+logger.info(
+    "Using Environment [%s] file for settings: %s",
+    app_config.ENV,
+    app_config.Config.env_file,
+)
 
-logger.info('Is Production: %s', app_config.is_production)
+logger.info("Is Production: %s", app_config.is_production)
 
 app = FastAPI(
-    title='OR2STEM API',
+    title="OR2STEM API",
     version=__version__,
-    docs_url=f'{app_config.PATH_PREFIX}/docs',
+    docs_url=f"{app_config.PATH_PREFIX}/docs",
     redoc_url=None,
-    openapi_url=f'{app_config.PATH_PREFIX}/openapi.json',
+    openapi_url=f"{app_config.PATH_PREFIX}/openapi.json",
     debug=app_config.DEBUG_APP,
 )
 
-logger.info('Adding GZip middleware')
+logger.info("Adding GZip middleware")
 app.add_middleware(GZipMiddleware)
 
-logger.info('Adding Session middleware with max age (in secs): %s',
-            app_config.SESSION_MAX_AGE)
+logger.info(
+    "Adding Session middleware with max age (in secs): %s", app_config.SESSION_MAX_AGE
+)
 # Session middleware allows use of ``request.session`` as a dict and is used
 # to store SCALE user info. The session cookie is a JWT, so information
 # stored is not encrypted (just signed).
@@ -56,8 +60,7 @@ app.add_middleware(
     https_only=True,
 )
 
-logger.info('Adding CORS middleware for origins: %s',
-            app_config.BACKEND_CORS_ORIGINS)
+logger.info("Adding CORS middleware for origins: %s", app_config.BACKEND_CORS_ORIGINS)
 # CORS middleware allows for making xhr requests to the API from the
 # front-end webapp. This is used mainly for development so that the front-end
 # can be run on ``http://localhost:8080`` and able to make calls to the API.
@@ -65,12 +68,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[str(u) for u in app_config.BACKEND_CORS_ORIGINS],
     allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
-@app.on_event('startup')
+@app.on_event("startup")
 async def startup_event() -> None:
     """Runs at startup for each web worker process.
 
@@ -80,19 +83,19 @@ async def startup_event() -> None:
     EC2 instance would only have on ~5.
     """
     loop = asyncio.get_running_loop()
-    logger.info('Starting up in loop [%r]', loop)
+    logger.info("Starting up in loop [%r]", loop)
     workers = app_config.THREAD_POOL_WORKERS
-    logger.info('ThreadPoolExecutor(max_workers=%s)', workers)
+    logger.info("ThreadPoolExecutor(max_workers=%s)", workers)
     executor = concurrent.futures.ThreadPoolExecutor(
         max_workers=workers,
-        thread_name_prefix='scale_api',
+        thread_name_prefix="scale_api",
     )
     app.state.thread_pool_executor = executor
     loop = asyncio.get_running_loop()
     loop.set_default_executor(executor)
 
 
-@app.on_event('shutdown')
+@app.on_event("shutdown")
 async def shutdown_event() -> None:
     """Runs on shutdown for each web worker process.
 
@@ -100,7 +103,7 @@ async def shutdown_event() -> None:
     it down here along with any other resources that may have been started
     on startup on during execution.
     """
-    logger.info('Shutdown event')
+    logger.info("Shutdown event")
     app.state.thread_pool_executor.shutdown()
     await aio.http_client.aclose()
 
@@ -115,24 +118,24 @@ def on_startup_main() -> None:
     We use this startup event to create and seed the database for local
     development.
     """
-    if app_config.ENV == 'local':
+    if app_config.ENV == "local":
         import alembic.command
         import alembic.config
 
-        config_file = str(settings.BASE_PATH / 'alembic.ini')
+        config_file = str(settings.BASE_PATH / "alembic.ini")
         alembic_cfg = alembic.config.Config(config_file)
         alembic_cfg.set_main_option(
-            'script_location',
-            str(settings.BASE_PATH / 'alembic'),
+            "script_location",
+            str(settings.BASE_PATH / "alembic"),
         )
-        alembic.command.upgrade(alembic_cfg, 'head')
+        alembic.command.upgrade(alembic_cfg, "head")
 
         import scale_api.settings
         import scale_initdb
 
-        seed_file = scale_api.settings.BASE_PATH / 'scale_initdb.json'
+        seed_file = scale_api.settings.BASE_PATH / "scale_initdb.json"
         if not seed_file.exists():
-            seed_file = scale_api.settings.BASE_PATH / 'scale_initdb-example.json'
+            seed_file = scale_api.settings.BASE_PATH / "scale_initdb-example.json"
         scale_initdb.run(seed_file)
 
 
@@ -141,21 +144,21 @@ def on_shutdown_main() -> None:
     pass
 
 
-@app.get('/', include_in_schema=False)
+@app.get("/", include_in_schema=False)
 @app.get(app_config.PATH_PREFIX, include_in_schema=False)
 async def index(request: Request):  # type: ignore[no-untyped-def]
     return await index_api(request)
 
 
-@app.get(f'{app_config.PATH_PREFIX}/lb-status', include_in_schema=False)
+@app.get(f"{app_config.PATH_PREFIX}/lb-status", include_in_schema=False)
 async def health_check():  # type: ignore[no-untyped-def]
     """Provides a health check endpoint for the Load Balancer."""
     return {
-        'app_version': __version__,
-        'framework_version': fastapi_version,
-        'lang_version': sys.version,
-        'environment': app_config.ENV,
-        'engine': str(db.engine),
+        "app_version": __version__,
+        "framework_version": fastapi_version,
+        "lang_version": sys.version,
+        "environment": app_config.ENV,
+        "engine": str(db.engine),
     }
 
 
@@ -173,23 +176,23 @@ def main() -> None:
     import uvicorn
 
     run_opts: dict[str, int | bool | str] = {
-        'port': 8000,
-        'reload': True,
+        "port": 8000,
+        "reload": True,
     }
 
     if app_config.USE_SSL_FOR_APP_RUN_LOCAL:
-        cert_path = Path(__file__).parent.parent / 'tests/certs'
-        run_opts['port'] = 443
-        run_opts['ssl_keyfile'] = f"{cert_path / 'local_ssl_key.pem'}"
-        run_opts['ssl_certfile'] = f"{cert_path / 'local_ssl_cert.pem'}"
+        cert_path = Path(__file__).parent.parent / "tests/certs"
+        run_opts["port"] = 443
+        run_opts["ssl_keyfile"] = f"{cert_path / 'local_ssl_key.pem'}"
+        run_opts["ssl_certfile"] = f"{cert_path / 'local_ssl_cert.pem'}"
 
     on_startup_main()
     uvicorn.run(
-        'scale_api.app:app',
+        "scale_api.app:app",
         **run_opts,  # type: ignore
     )
     on_shutdown_main()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

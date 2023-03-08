@@ -22,11 +22,11 @@ class BinaryStore:
 
     # noinspection PyMethodMayBeStatic
     def put(
-            self,
-            file_id: str,
-            data: bytes,
-            content_type: str = 'application/octet-stream',
-            name: str | None = None
+        self,
+        file_id: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+        name: str | None = None,
     ) -> schemas.BinaryFile:
         try:
             with SessionLocal.begin() as session:
@@ -44,7 +44,7 @@ class BinaryStore:
                 entry = session.get(BinData, file_id)
                 if not entry:
                     raise
-                logger.info('put_file updating previous entry: %s', entry)
+                logger.info("put_file updating previous entry: %s", entry)
                 entry.data = data
                 entry.content_type = content_type
                 entry.name = name
@@ -57,7 +57,7 @@ class BinaryStore:
             entry = session.get(BinData, file_id)
             if not entry:
                 raise LookupError(file_id)
-            entry.status = 'deleted'
+            entry.status = "deleted"
             session.flush()
             return schemas.BinaryFile.from_orm(entry)
 

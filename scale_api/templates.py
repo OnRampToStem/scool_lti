@@ -9,16 +9,13 @@ from typing import Any
 from fastapi import Request, Response
 from fastapi.templating import Jinja2Templates
 
-TEMPLATE_PATH = Path(__file__).parent / 'templates'
+TEMPLATE_PATH = Path(__file__).parent / "templates"
 
 _templates = Jinja2Templates(directory=str(TEMPLATE_PATH))
 
 
 def render(  # type: ignore[no-untyped-def]
-        request: Request,
-        template: str,
-        context: dict[str, Any] | None = None,
-        **kwargs
+    request: Request, template: str, context: dict[str, Any] | None = None, **kwargs
 ) -> Response:
     """Returns a Response with the content rendered from a template.
 
@@ -27,12 +24,9 @@ def render(  # type: ignore[no-untyped-def]
     created using the provided request object.
     """
     if context is None:
-        context = {'request': request}
-    elif 'request' not in context:
-        context['request'] = request
+        context = {"request": request}
+    elif "request" not in context:
+        context["request"] = request
     return _templates.TemplateResponse(
-        name=template,
-        context=context,
-        media_type='text/html',
-        **kwargs
+        name=template, context=context, media_type="text/html", **kwargs
     )

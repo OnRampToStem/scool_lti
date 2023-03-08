@@ -20,19 +20,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get('/{subject}.json', response_model=list[schemas.Message])
+@router.get("/{subject}.json", response_model=list[schemas.Message])
 async def get_messages(request: Request, subject: str):
     entries = await db.message_store.messages_async(subject)
-    logger.debug('Messages.%s found %s entries in db', subject, len(entries))
-    result = [
-        e for e in entries
-        if can_access(request, subject, 'get', e.body)
-    ]
-    logger.debug('Messages.%s found %s permitted', subject, len(result))
+    logger.debug("Messages.%s found %s entries in db", subject, len(entries))
+    result = [e for e in entries if can_access(request, subject, "get", e.body)]
+    logger.debug("Messages.%s found %s permitted", subject, len(result))
     return result
 
 
-@router.get('/{subject}/{msg_id}.json', response_model=schemas.Message)
+@router.get("/{subject}/{msg_id}.json", response_model=schemas.Message)
 async def get_message(request: Request, subject: str, msg_id: str):
     try:
         msg = await db.message_store.message_async(msg_id, subject)
@@ -42,38 +39,38 @@ async def get_message(request: Request, subject: str, msg_id: str):
         if msg.subject != subject:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f'{msg.subject=} != {subject=}',
+                detail=f"{msg.subject=} != {subject=}",
             )
-        check_access(request, subject, 'get', msg.body)
+        check_access(request, subject, "get", msg.body)
         return msg
 
 
-@router.post('/{subject}.json', response_model=schemas.Message)
+@router.post("/{subject}.json", response_model=schemas.Message)
 async def create_message(
-        request: Request,
-        subject: str,
-        body: dict[str, Any] = Body(...),
+    request: Request,
+    subject: str,
+    body: dict[str, Any] = Body(...),
 ):
-    check_access(request, subject, 'post', body)
+    check_access(request, subject, "post", body)
     # TODO: extract header from body?
     body_text = json.dumps(body)
     msg = await db.message_store.create_async(subject, body_text)
     return msg
 
 
-@router.put('/{subject}/{msg_id}.json', response_model=schemas.Message)
+@router.put("/{subject}/{msg_id}.json", response_model=schemas.Message)
 async def update_message(
-        request: Request,
-        subject: str,
-        msg_id: str,
-        body: dict[str, Any] = Body(...),
+    request: Request,
+    subject: str,
+    msg_id: str,
+    body: dict[str, Any] = Body(...),
 ):
     # Verify the new message is authorized
-    check_access(request, subject, 'put', body)
+    check_access(request, subject, "put", body)
     try:
         old_msg = await db.message_store.message_async(msg_id, subject)
         # Verify request is authorized to replace this specific message
-        check_access(request, subject, 'put', old_msg.body)
+        check_access(request, subject, "put", old_msg.body)
         raw_body = json.dumps(body)
         msg = await db.message_store.update_async(msg_id, subject, raw_body)
     except LookupError:
@@ -82,25 +79,25 @@ async def update_message(
         return msg
 
 
-@router.delete('/{subject}/{msg_id}.json', status_code=status.HTTP_202_ACCEPTED)
+@router.delete("/{subject}/{msg_id}.json", status_code=status.HTTP_202_ACCEPTED)
 async def delete_message(request: Request, subject: str, msg_id: str):
     # Verify request is authorized for this action
-    check_access(request, subject, 'delete')
+    check_access(request, subject, "delete")
     try:
         old_msg = await db.message_store.message_async(msg_id, subject)
         # Verify request is authorized to delete this specific message
-        check_access(request, subject, 'delete', old_msg.body)
+        check_access(request, subject, "delete", old_msg.body)
         msg = await db.message_store.delete_async(msg_id, subject)
     except LookupError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from None
-    logger.warning('Deleted message: %s', msg)
+    logger.warning("Deleted message: %s", msg)
 
 
 def check_access(
-        request: Request,
-        subject: str,
-        action: str,
-        body: str | dict[str, Any] | None = None
+    request: Request,
+    subject: str,
+    action: str,
+    body: str | dict[str, Any] | None = None,
 ) -> None:
     """Checks that the requested access is allowed, else raises an HTTP 403."""
     if not can_access(request, subject, action, body):
@@ -108,15 +105,16 @@ def check_access(
 
 
 def can_access(
-        request: Request,
-        subject: str,
-        action: str,
-        body: Union[str, dict[str, Any]] | None = None,  # noqa unused
+    request: Request,
+    subject: str,
+    action: str,
+    body: Union[str, dict[str, Any]] | None = None,  # noqa unused
 ) -> bool:
     """Returns True if this request is permitted, else False."""
     auth_user: schemas.AuthUser = request.state.auth_user
-    logger.debug('Checking Message %s/%s access for user %s',
-                 subject, action, auth_user)
+    logger.debug(
+        "Checking Message %s/%s access for user %s", subject, action, auth_user
+    )
 
     if auth_user.is_superuser:
         return True
@@ -126,20 +124,21 @@ def can_access(
     else:
         user_scopes = {scope.lower() for scope in auth_user.scopes}
     for scope in user_scopes:
-        if scope in ('role:admin', 'role:developer', 'role:editor'):
+        if scope in ("role:admin", "role:developer", "role:editor"):
             return True
-        if scope == 'role:instructor':
+        if scope == "role:instructor":
             # TODO: need to add security at some point to they can only see
             #       students in their course
             return True
 
-    if action == 'delete':
-        logger.error('Messages.%s delete action disallowed for AuthUser: %s',
-                     subject, auth_user)
+    if action == "delete":
+        logger.error(
+            "Messages.%s delete action disallowed for AuthUser: %s", subject, auth_user
+        )
         return False
 
-    if subject == 'users':
-        logger.error('Messages.users called but not expected')
+    if subject == "users":
+        logger.error("Messages.users called but not expected")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     else:
-        return action == 'get'
+        return action == "get"

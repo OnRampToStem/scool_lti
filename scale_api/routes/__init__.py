@@ -20,54 +20,54 @@ api_router = APIRouter()
 
 api_router.include_router(
     router_lti,
-    prefix='/lti/v1.3',
+    prefix="/lti/v1.3",
     tags=["LTI 1.3"],
 )
 
 api_router.include_router(
     router_auth,
-    prefix='/v1/auth',
-    tags=['Authentication'],
+    prefix="/v1/auth",
+    tags=["Authentication"],
 )
 
 api_router.include_router(
     router_well_known,
-    prefix='/.well-known',
+    prefix="/.well-known",
     tags=["Well Known"],
 )
 
 # Secured routes from this point on
 api_router.include_router(
     router_platforms,
-    prefix='/v1/platforms',
-    tags=['Platforms'],
-    dependencies=[Security(auth.authorize, scopes=['plat'])],
+    prefix="/v1/platforms",
+    tags=["Platforms"],
+    dependencies=[Security(auth.authorize, scopes=["plat"])],
 )
 
 api_router.include_router(
     router_users,
-    prefix='/v1/users',
-    tags=['Users'],
+    prefix="/v1/users",
+    tags=["Users"],
     dependencies=[Security(auth.authorize)],
 )
 
 api_router.include_router(
     router_firebase,
-    prefix='/v1/FirebaseCompat',
-    tags=['Firebase Compatibility'],
+    prefix="/v1/FirebaseCompat",
+    tags=["Firebase Compatibility"],
     dependencies=[Security(auth.authorize)],
 )
 
 api_router.include_router(
     router_messages,
-    prefix='/v1/messages',
-    tags=['Messages'],
+    prefix="/v1/messages",
+    tags=["Messages"],
     dependencies=[Security(auth.authorize)],
 )
 
 api_router.include_router(
     router_files,
-    prefix='/v1/files',
-    tags=['Files'],
+    prefix="/v1/files",
+    tags=["Files"],
     dependencies=[Security(auth.authorize)],
 )

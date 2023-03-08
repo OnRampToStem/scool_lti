@@ -47,17 +47,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-JWT = jose.JsonWebToken(['RS256', 'RS512'])
+JWT = jose.JsonWebToken(["RS256", "RS512"])
 
 NO_CACHE_HEADERS = {
-    'Cache-Control': 'no-store',
-    'Pragma': 'no-cache',
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache",
 }
 
 LTI_TOKEN_EXPIRY = 60 * 60 * 12
 
 
-@router.get('/{platform_id}/config')
+@router.get("/{platform_id}/config")
 async def lti_config(request: Request, platform_id: str):
     """Canvas LTI Configuration.
 
@@ -69,17 +69,17 @@ async def lti_config(request: Request, platform_id: str):
     tool_url = request.url_for(lti_config.__qualname__, platform_id=platform.id)
     tool_domain = urllib.parse.urlparse(tool_url).hostname
     provider_domain = urllib.parse.urlparse(platform.issuer).hostname
-    tool_id = 'OR2STEM'
-    tool_title = 'On-Ramp to STEM'
+    tool_id = "OR2STEM"
+    tool_title = "On-Ramp to STEM"
     tool_description = (
-        'On-Ramp to STEM is an open-source adaptive learning technology that '
-        'utilizes culturally responsive teaching pedagogy with a focus on '
-        'algebra and pre-calculus because they represent important, '
-        'foundational courses of the STEM pathway.'
+        "On-Ramp to STEM is an open-source adaptive learning technology that "
+        "utilizes culturally responsive teaching pedagogy with a focus on "
+        "algebra and pre-calculus because they represent important, "
+        "foundational courses of the STEM pathway."
     )
-    target_link_uri = request.url_for('launch_form', platform_id=platform.id)
-    oidc_init_url = request.url_for('login_initiations_form', platform_id=platform.id)
-    jwks_url = request.url_for('jwks')
+    target_link_uri = request.url_for("launch_form", platform_id=platform.id)
+    oidc_init_url = request.url_for("login_initiations_form", platform_id=platform.id)
+    jwks_url = request.url_for("jwks")
     return {
         "title": tool_title,
         "description": tool_description,
@@ -128,27 +128,27 @@ async def lti_config(request: Request, platform_id: str):
                                 "canvas_user_login_id": "$Canvas.user.loginId",
                             },
                         },
-                    ]
-                }
+                    ],
+                },
             }
         ],
         "public_jwk_url": jwks_url,
         "custom_fields": {
             "canvas_user_id": "$Canvas.user.id",
             "canvas_user_login_id": "$Canvas.user.loginId",
-        }
+        },
     }
 
 
-@router.get('/{platform_id}/launches', include_in_schema=False)
+@router.get("/{platform_id}/launches", include_in_schema=False)
 async def launch_query(
-        request: Request,
-        response: Response,
-        platform_id: str,
-        state: str = Query(...),
-        id_token: str = Query(None),
-        error: str = Query(None),
-        error_description: str = Query(None),
+    request: Request,
+    response: Response,
+    platform_id: str,
+    state: str = Query(...),
+    id_token: str = Query(None),
+    error: str = Query(None),
+    error_description: str = Query(None),
 ):
     """LTI Launch endpoint.
 
@@ -166,29 +166,29 @@ async def launch_query(
     )
 
 
-@router.get('/state-check/{state}')
+@router.get("/state-check/{state}")
 async def lti_state_check(request: Request, response: Response, state: str):
-    target_url = request.session.pop(f'lti1p3-state-check-{state}', None)
-    logger.info('[%s]: state check: target_url=[%s]', state, target_url)
+    target_url = request.session.pop(f"lti1p3-state-check-{state}", None)
+    logger.info("[%s]: state check: target_url=[%s]", state, target_url)
     if not target_url:
-        logger.error('[%s]: state check route failed to read state', state)
+        logger.error("[%s]: state check route failed to read state", state)
         response.status_code = status.HTTP_409_CONFLICT
         return {
-            'error': 'invalid_state',
-            'error_state': state,
+            "error": "invalid_state",
+            "error_state": state,
         }
     return RedirectResponse(target_url, status_code=status.HTTP_302_FOUND)
 
 
-@router.post('/{platform_id}/launches')
+@router.post("/{platform_id}/launches")
 async def launch_form(
-        request: Request,
-        response: Response,
-        platform_id: str,
-        state: str = Form(...),
-        id_token: str | None = Form(None),
-        error: str = Form(None),
-        error_description: str = Form(None),
+    request: Request,
+    response: Response,
+    platform_id: str,
+    state: str = Form(...),
+    id_token: str | None = Form(None),
+    error: str = Form(None),
+    error_description: str = Form(None),
 ):
     """LTI Launch endpoint.
 
@@ -196,54 +196,66 @@ async def launch_form(
     ``redirect_uri`` configured and will return the user to this endpoint
     after the OIDC login initiation is performed.
     """
-    logger.info('[%s]: LTI Launch: platform [%r]: IDToken=[%s]',
-                state, platform_id, id_token)
+    logger.info(
+        "[%s]: LTI Launch: platform [%r]: IDToken=[%s]", state, platform_id, id_token
+    )
 
     if id_token is None:
-        logger.error('[%s]: missing IDToken: error code=[%s], description=[%s]',
-                     state, error, error_description)
+        logger.error(
+            "[%s]: missing IDToken: error code=[%s], description=[%s]",
+            state,
+            error,
+            error_description,
+        )
         response.status_code = status.HTTP_403_FORBIDDEN
         return {
-            'error': error,
-            'error_description': error_description,
-            'error_state': state,
+            "error": error,
+            "error_description": error_description,
+            "error_state": state,
         }
 
     platform = await platform_or_404(platform_id)
-    logger.info('[%s]: %r', state, platform)
+    logger.info("[%s]: %r", state, platform)
 
     # Match up the state provided in the OIDC login initiation with the
     # state store in a cookie to ensure this request is associated with
     # this user-agent.
-    state_cookie_key = f'lti1p3-state-{platform_id}'
+    state_cookie_key = f"lti1p3-state-{platform_id}"
     state_cookie_val = request.cookies.get(state_cookie_key)
     if state_check_failed := (state_cookie_val != state):
-        logger.error('[%s]: state does not match Cookie [%s]\n%r',
-                     state, state_cookie_val, request.headers.getlist('cookie'))
+        logger.error(
+            "[%s]: state does not match Cookie [%s]\n%r",
+            state,
+            state_cookie_val,
+            request.headers.getlist("cookie"),
+        )
     else:
-        logger.info('[%s]: state matched in Cookie', state)
+        logger.info("[%s]: state matched in Cookie", state)
         response.delete_cookie(state_cookie_key)
 
     # Since the IDToken is being provided by the user-agent and not from
     # a direct call from our application, we MUST validate the sig.
     claims = await decode_lti_id_token(id_token, platform)
 
-    logger.info('[%s]: IDToken claims: %r', state, claims)
+    logger.info("[%s]: IDToken claims: %r", state, claims)
     claims.validate(leeway=5)
 
     # To avoid replay attacks we verify the nonce provided was previously
     # stored, and then we remove from the cache so any future requests with
     # the same nonce will fail.
-    nonce = claims.get('nonce')
-    cached_nonce_plat = await db.cache_store.pop_async(f'lti1p3-nonce-{nonce}')
+    nonce = claims.get("nonce")
+    cached_nonce_plat = await db.cache_store.pop_async(f"lti1p3-nonce-{nonce}")
     if not cached_nonce_plat or cached_nonce_plat != platform_id:
-        logger.error('[%s]: nonce not found or platform not matched: %s',
-                     state, cached_nonce_plat)
+        logger.error(
+            "[%s]: nonce not found or platform not matched: %s",
+            state,
+            cached_nonce_plat,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {
-            'error': 'invalid_nonce',
-            'error_description': 'nonce not found or platform not matched',
-            'error_state': state,
+            "error": "invalid_nonce",
+            "error_description": "nonce not found or platform not matched",
+            "error_state": state,
         }
 
     # At this point the IDToken (Launch Request) is valid, and we can
@@ -253,29 +265,33 @@ async def launch_form(
     try:
         scale_user = message_launch.scale_user
     except ValueError as ve:
-        logger.error('[%s]: failed to get ScaleUser from LtiLaunchRequest: %r',
-                     state, ve)
+        logger.error(
+            "[%s]: failed to get ScaleUser from LtiLaunchRequest: %r", state, ve
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {
-            'error': 'invalid_launch',
-            'error_description': str(ve),
-            'error_state': state,
+            "error": "invalid_launch",
+            "error_description": str(ve),
+            "error_state": state,
         }
 
     # Check to see whether user already has a launch from another context
-    if session_scale_user := request.session.get('scale_user'):
+    if session_scale_user := request.session.get("scale_user"):
         session_scale_user = schemas.ScaleUser(**session_scale_user)
         if (
-                session_scale_user.id != scale_user.id or
-                session_scale_user.context != scale_user.context
+            session_scale_user.id != scale_user.id
+            or session_scale_user.context != scale_user.context
         ):
-            logger.warning('[%s]: attempt to launch for a different context'
-                           'Session: %s, Launch: %s',
-                           state,
-                           session_scale_user.context, scale_user.context)
+            logger.warning(
+                "[%s]: attempt to launch for a different context"
+                "Session: %s, Launch: %s",
+                state,
+                session_scale_user.context,
+                scale_user.context,
+            )
 
-    logger.info('[%s]: adding scale_user to session: %r', state, scale_user)
-    request.session['scale_user'] = scale_user.session_dict()
+    logger.info("[%s]: adding scale_user to session: %r", state, scale_user)
+    request.session["scale_user"] = scale_user.session_dict()
 
     await db.cache_store.put_async(
         message_launch.launch_id,
@@ -293,17 +309,17 @@ async def launch_form(
     # eligible to be sent to the V2 site.
 
     if target_url := launch_target_v2(request, scale_user):
-        logger.info('[%s]: redirecting via POST to v2: %s', state, target_url)
+        logger.info("[%s]: redirecting via POST to v2: %s", state, target_url)
         context = {
-            'token': auth.create_scale_user_token(
+            "token": auth.create_scale_user_token(
                 scale_user,
                 expires_in=LTI_TOKEN_EXPIRY,
             ),
-            'target_url': target_url,
+            "target_url": target_url,
         }
         # TODO: remove this logging at some point since the token is sensitive
-        logger.info('[%s]: v2 context: %r', state, context)
-        response = templates.render(request, 'scale_lms_auth.html', context)
+        logger.info("[%s]: v2 context: %r", state, context)
+        response = templates.render(request, "scale_lms_auth.html", context)
         response.delete_cookie(state_cookie_key)
         return response
 
@@ -317,15 +333,15 @@ async def launch_form(
     # see if we can read from the session, since without being able to read
     # the session there is no point in transferring the user to the front-end.
     if state_check_failed:
-        request.session[f'lti1p3-state-check-{state}'] = target_url
-        target_url = request.url_for('lti_state_check', state=state)
+        request.session[f"lti1p3-state-check-{state}"] = target_url
+        target_url = request.url_for("lti_state_check", state=state)
         context = {
-            'state_check_value': state,
-            'state_check_url': target_url,
+            "state_check_value": state,
+            "state_check_url": target_url,
         }
-        return templates.render(request, 'lti_state_check.html', context)
+        return templates.render(request, "lti_state_check.html", context)
 
-    logger.info('[%s]: redirecting: %s', state, target_url)
+    logger.info("[%s]: redirecting: %s", state, target_url)
     response = RedirectResponse(
         target_url,
         headers=target_headers,
@@ -336,17 +352,17 @@ async def launch_form(
 
 
 def launch_target_v2(
-        request: Request,
-        scale_user: schemas.ScaleUser,
+    request: Request,
+    scale_user: schemas.ScaleUser,
 ) -> str | None:
     if not (target_path := app_config.FRONTEND_V2_LAUNCH_PATH):
         return None
     if not (contexts_v2 := app_config.FRONTEND_V2_CONTEXTS):
         return None
-    if '*' != contexts_v2.strip():
-        context_key = scale_user.platform_id + '.' + scale_user.context_id
+    if "*" != contexts_v2.strip():
+        context_key = scale_user.platform_id + "." + scale_user.context_id
         if context_key not in contexts_v2:
-            if f'{scale_user.platform_id}.*' not in contexts_v2:
+            if f"{scale_user.platform_id}.*" not in contexts_v2:
                 return None
     base_url = launch_target_base_url(request)
     return urllib.parse.urljoin(base_url, target_path)
@@ -355,50 +371,48 @@ def launch_target_v2(
 def launch_target_v1(request: Request) -> str:
     base_url = launch_target_base_url(request)
     if app_config.is_production:
-        target_path = '/question-editor/'
+        target_path = "/question-editor/"
     elif app_config.is_local:
-        target_path = '/'
+        target_path = "/"
     else:
-        target_path = f'/{app_config.ENV}/question-editor/'
+        target_path = f"/{app_config.ENV}/question-editor/"
 
     return urllib.parse.urljoin(base_url, target_path)
 
 
 def launch_target_base_url(request: Request) -> str:
     if app_config.is_local:
-        base_url = 'http://localhost:8080'
+        base_url = "http://localhost:8080"
     else:
-        base_url = request.url_for('index_api')
+        base_url = request.url_for("index_api")
     return base_url
 
 
 async def deep_link_launch(
-        request: Request,
-        response: Response,
-        message_launch: messages.LtiLaunchRequest
+    request: Request, response: Response, message_launch: messages.LtiLaunchRequest
 ):
     """Deep Linking Launch Requests."""
     # TODO: handle DeepLinking request Messages
-    client = request.client.host if request.client else '0.0.0.0'  # noqa: S104
-    logger.error('[%s]: unexpected launch type [%s]',
-                 client, message_launch.message_type)
+    client = request.client.host if request.client else "0.0.0.0"  # noqa: S104
+    logger.error(
+        "[%s]: unexpected launch type [%s]", client, message_launch.message_type
+    )
     response.status_code = status.HTTP_501_NOT_IMPLEMENTED
-    response.delete_cookie(f'lti1p3-state-{message_launch.platform.id}')
-    return {'error': f'{message_launch.message_type} launches not implemented'}
+    response.delete_cookie(f"lti1p3-state-{message_launch.platform.id}")
+    return {"error": f"{message_launch.message_type} launches not implemented"}
 
 
-@router.get('/{platform_id}/login_initiations', include_in_schema=False)
+@router.get("/{platform_id}/login_initiations", include_in_schema=False)
 async def login_initiations_query(
-        request: Request,
-        response: Response,
-        platform_id: str,
-        iss: str = Query(...),
-        login_hint: str = Query(...),
-        target_link_uri: str = Query(...),
-        lti_message_hint: str = Query(...),
-        lti_deployment_id: str = Query(None),
-        client_id: str = Query(None),
-
+    request: Request,
+    response: Response,
+    platform_id: str,
+    iss: str = Query(...),
+    login_hint: str = Query(...),
+    target_link_uri: str = Query(...),
+    lti_message_hint: str = Query(...),
+    lti_deployment_id: str = Query(None),
+    client_id: str = Query(None),
 ):
     """LTI OIDC Login Initiation.
 
@@ -418,17 +432,17 @@ async def login_initiations_query(
     )
 
 
-@router.post('/{platform_id}/login_initiations')
+@router.post("/{platform_id}/login_initiations")
 async def login_initiations_form(
-        request: Request,
-        response: Response,
-        platform_id: str,
-        iss: str = Form(...),
-        login_hint: str = Form(...),
-        target_link_uri: str = Form(...),
-        lti_message_hint: str = Form(...),
-        lti_deployment_id: str = Form(None),
-        client_id: str = Form(None),
+    request: Request,
+    response: Response,
+    platform_id: str,
+    iss: str = Form(...),
+    login_hint: str = Form(...),
+    target_link_uri: str = Form(...),
+    lti_message_hint: str = Form(...),
+    lti_deployment_id: str = Form(None),
+    client_id: str = Form(None),
 ):
     """LTI OIDC Login Initiation.
 
@@ -442,107 +456,129 @@ async def login_initiations_form(
     # log messages here and in the launch endpoint.
     state = uuid.uuid4().hex
 
-    client_host = request.client.host if request.client else '0.0.0.0'  # noqa: S104
-    logger.info('[%s]: LTI Login Init: client=[%s], user-agent=[%s]',
-                state, client_host, request.headers.get('user-agent'))
+    client_host = request.client.host if request.client else "0.0.0.0"  # noqa: S104
+    logger.info(
+        "[%s]: LTI Login Init: client=[%s], user-agent=[%s]",
+        state,
+        client_host,
+        request.headers.get("user-agent"),
+    )
 
     platform = await platform_or_404(platform_id)
-    logger.info('[%s]: iss=%s, login_hint=%s, target_link_uri=%s, '
-                'lti_message_hint=%s, lti_deployment_id=%s, client_id=%s',
-                state, iss, login_hint, target_link_uri, lti_message_hint,
-                lti_deployment_id, client_id)
+    logger.info(
+        "[%s]: iss=%s, login_hint=%s, target_link_uri=%s, "
+        "lti_message_hint=%s, lti_deployment_id=%s, client_id=%s",
+        state,
+        iss,
+        login_hint,
+        target_link_uri,
+        lti_message_hint,
+        lti_deployment_id,
+        client_id,
+    )
 
     if platform.issuer != iss:
-        logger.error('[%s]: request issuer [%s] does not match Platform [%s]',
-                     state, iss, platform.issuer)
+        logger.error(
+            "[%s]: request issuer [%s] does not match Platform [%s]",
+            state,
+            iss,
+            platform.issuer,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {
-            'error': 'invalid_request_object',
-            'error_description': 'Invalid issuer',
-            'error_state': state,
+            "error": "invalid_request_object",
+            "error_description": "Invalid issuer",
+            "error_state": state,
         }
 
     if client_id and client_id != platform.client_id:
-        logger.error('[%s]: request client_id [%s] does not match Platform [%s]',
-                     state, client_id, platform.client_id)
+        logger.error(
+            "[%s]: request client_id [%s] does not match Platform [%s]",
+            state,
+            client_id,
+            platform.client_id,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {
-            'error': 'invalid_request_object',
-            'error_description': 'Invalid client_id',
-            'error_state': state,
+            "error": "invalid_request_object",
+            "error_description": "Invalid client_id",
+            "error_state": state,
         }
 
-    expect_target_uri = request.url_for('launch_form', platform_id=platform_id)
+    expect_target_uri = request.url_for("launch_form", platform_id=platform_id)
     if expect_target_uri != target_link_uri:
-        logger.error('[%s]: request target_link_uri [%s] '
-                     'does not match Platform [%s]',
-                     state, target_link_uri, expect_target_uri)
+        logger.error(
+            "[%s]: request target_link_uri [%s] " "does not match Platform [%s]",
+            state,
+            target_link_uri,
+            expect_target_uri,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {
-            'error': 'invalid_request_object',
-            'error_description': 'Invalid target_link_uri',
-            'error_state': state,
+            "error": "invalid_request_object",
+            "error_description": "Invalid target_link_uri",
+            "error_state": state,
         }
 
     nonce = uuid.uuid4().hex  # prevent replay attacks
-    await db.cache_store.put_async(f'lti1p3-nonce-{nonce}', platform_id, ttl=120)
+    await db.cache_store.put_async(f"lti1p3-nonce-{nonce}", platform_id, ttl=120)
     query_string = {
         # only supported type is id_token
-        'response_type': 'id_token',
+        "response_type": "id_token",
         # the url registered with the platform
-        'redirect_uri': target_link_uri,
+        "redirect_uri": target_link_uri,
         # since the id_token can be large we ask that it be sent in a POST
-        'response_mode': 'form_post',
+        "response_mode": "form_post",
         # client_id provided when our app was registered with the platform
-        'client_id': platform.client_id,
+        "client_id": platform.client_id,
         # must include ``openid``, does not appear any other OIDC scopes such as
         # ``email`` or ``profile`` can be specified here (at least for Canvas)
-        'scope': 'openid',
-        'state': state,
-        'nonce': nonce,
+        "scope": "openid",
+        "state": state,
+        "nonce": nonce,
         # since the launch is initiated from the platform and the user is
         # already authenticated there
-        'prompt': 'none',
+        "prompt": "none",
     }
 
     # Per the spec, if ``login_hint`` or ``lti_message_hint`` were provided
     # then they need to be included in the request.
 
     if login_hint:
-        query_string['login_hint'] = login_hint
+        query_string["login_hint"] = login_hint
 
     if lti_message_hint:
-        query_string['lti_message_hint'] = lti_message_hint
+        query_string["lti_message_hint"] = lti_message_hint
 
     encoded_query_string = urllib.parse.urlencode(query_string)
     target_url = urllib.parse.urljoin(
-        str(platform.oidc_auth_url), '?' + encoded_query_string
+        str(platform.oidc_auth_url), "?" + encoded_query_string
     )
 
     response = RedirectResponse(
         url=target_url,
         headers={
             **NO_CACHE_HEADERS,
-            'X-Frame-Options': 'DENY',
+            "X-Frame-Options": "DENY",
         },
         status_code=status.HTTP_302_FOUND,
     )
 
     response.set_cookie(
-        f'lti1p3-state-{platform_id}',
+        f"lti1p3-state-{platform_id}",
         state,
         max_age=600,
         secure=True,
         httponly=True,
-        samesite='none',
+        samesite="none",
     )
 
-    logger.info('[%s]: redirecting to %s', state, target_url)
+    logger.info("[%s]: redirecting to %s", state, target_url)
     return response
 
 
 @router.get(
-    '/members',
+    "/members",
     response_model=list[schemas.ScaleUser],
     response_model_exclude_unset=True,
     dependencies=[Security(auth.authorize)],
@@ -552,27 +588,23 @@ async def names_role_service(request: Request):
 
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
-    if scale_user.platform_id == 'scale_api':
+    if scale_user.platform_id == "scale_api":
         return await test_names_role_service(scale_user)
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
-    logger.info('Loading launch message [%s] for ScaleUser: %s',
-                launch_id, scale_user)
+    logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
     cached_launch = await db.cache_store.get_async(launch_id)
     # TODO: what if `cached_launch` is None?
     launch_request = messages.LtiLaunchRequest.loads(cached_launch)  # type: ignore
     if not launch_request.is_instructor:
-        logger.error('lti.members unauthorized request from ScaleUser: %s',
-                     scale_user)
+        logger.error("lti.members unauthorized request from ScaleUser: %s", scale_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     nrps = services.NamesRoleService(launch_request)
     members = await nrps.members()
     return [
-        schemas.ScaleUser(
-            id=m['user_id'] + '@' + launch_request.platform.id,
-            **m
-        )
-        for m in members if m.get('email')
+        schemas.ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
+        for m in members
+        if m.get("email")
     ]
 
 
@@ -584,12 +616,11 @@ async def test_names_role_service(scale_user: schemas.ScaleUser):
     returned and not LTI call is attempted.
     """
     if not (
-            scale_user.is_instructor
-            or
-            set(scale_user.roles) and users_route.ROLES_ALL_USERS
+        scale_user.is_instructor
+        or set(scale_user.roles)
+        and users_route.ROLES_ALL_USERS
     ):
-        logger.error('lti.members unauthorized request from ScaleUser: %s',
-                     scale_user)
+        logger.error("lti.members unauthorized request from ScaleUser: %s", scale_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     subject = users_route.users_subject(scale_user)
@@ -599,16 +630,16 @@ async def test_names_role_service(scale_user: schemas.ScaleUser):
         for user in db.user_store.users(subject):
             if user.header is None or user.body is None:
                 continue
-            user_id = user.header + '@scale_api'
-            _, _, context_id = user.subject.split('.', maxsplit=2)
+            user_id = user.header + "@scale_api"
+            _, _, context_id = user.subject.split(".", maxsplit=2)
             body = json.loads(user.body)
             member = schemas.ScaleUser(
                 id=user_id,
-                email=body['username'],
-                name=body.get('name'),
-                picture=body.get('pic'),
-                roles=[body.get('role', 'Learner')],
-                context={'id': context_id, 'title': ''},
+                email=body["username"],
+                name=body.get("name"),
+                picture=body.get("pic"),
+                roles=[body.get("role", "Learner")],
+                context={"id": context_id, "title": ""},
             )
             results.append(member)
         return results
@@ -623,19 +654,19 @@ async def platform_or_404(platform_id: str) -> schemas.Platform:
     except LookupError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'Platform {platform_id} not found'
+            detail=f"Platform {platform_id} not found",
         ) from None
 
 
 async def decode_lti_id_token(
-        id_token: str,
-        platform: schemas.Platform,
+    id_token: str,
+    platform: schemas.Platform,
 ) -> jose.JWTClaims:
     # Some basic jwt claims validation options
     id_token_opts = {
-        'iss': {'essential': True, 'value': platform.issuer},
-        'aud': {'essential': True, 'value': platform.client_id},
-        'nonce': {'essential': True},
+        "iss": {"essential": True, "value": platform.issuer},
+        "aud": {"essential": True, "value": platform.client_id},
+        "nonce": {"essential": True},
     }
     key_set = await keys.get_jwks_from_url(platform.jwks_url)
     try:
@@ -646,8 +677,7 @@ async def decode_lti_id_token(
             claims_options=id_token_opts,
         )
     except jose.errors.KeyMismatchError:
-        key_set = await keys.get_jwks_from_url(platform.jwks_url,
-                                               use_cache=False)
+        key_set = await keys.get_jwks_from_url(platform.jwks_url, use_cache=False)
         return JWT.decode(
             id_token,
             key_set,

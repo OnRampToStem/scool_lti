@@ -18,10 +18,7 @@ class ScaleStore:
         stmt = sa.select(Platform)
         with SessionLocal() as session:
             result = session.execute(stmt)
-            platforms = [
-                schemas.Platform.from_orm(row)
-                for row in result.scalars()
-            ]
+            platforms = [schemas.Platform.from_orm(row) for row in result.scalars()]
 
         return platforms
 
@@ -67,14 +64,11 @@ class ScaleStore:
             sa.or_(
                 AuthJsonWeKey.valid_to == None,  # noqa comparison op
                 AuthJsonWeKey.valid_to > sa.func.now(),
-            )
+            ),
         )
         with SessionLocal() as session:
             result = session.execute(stmt).scalars()
-            keys = [
-                schemas.AuthJsonWebKey.from_orm(row)
-                for row in result
-            ]
+            keys = [schemas.AuthJsonWebKey.from_orm(row) for row in result]
 
         return keys
 

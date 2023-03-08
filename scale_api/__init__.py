@@ -6,31 +6,31 @@ import os
 
 from . import settings
 
-__version__ = '23.3.8'
+__version__ = "23.3.8"
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'basic': {
-            'format': '%(asctime)s[%(levelname)s]%(name)s: %(message)s',
-            'datefmt': '%Y-%m-%dT%H:%M:%S',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "basic": {
+            "format": "%(asctime)s[%(levelname)s]%(name)s: %(message)s",
+            "datefmt": "%Y-%m-%dT%H:%M:%S",
         }
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'basic',
-            'stream': 'ext://sys.stdout',
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "basic",
+            "stream": "ext://sys.stdout",
         },
     },
-    'loggers': {
-        '': {
-            'handlers': ['console'],
-            'level': os.getenv('SCALE_LOG_LEVEL', 'WARNING'),
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": os.getenv("SCALE_LOG_LEVEL", "WARNING"),
         },
-        'scale_api': {
-            'level': os.getenv('SCALE_LOG_LEVEL_APP', 'INFO'),
+        "scale_api": {
+            "level": os.getenv("SCALE_LOG_LEVEL_APP", "INFO"),
         },
     },
 }

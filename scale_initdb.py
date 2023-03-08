@@ -28,10 +28,10 @@ from scale_api.db.models import (
 def init_platforms(data):
     platforms = db.store.platforms()
     if platforms:
-        print('Platforms exist, skipping')
+        print("Platforms exist, skipping")
         return
     with db.SessionLocal.begin() as session:
-        for platform in data['platforms']:
+        for platform in data["platforms"]:
             new_plat = Platform(**platform)
             session.add(new_plat)
 
@@ -39,20 +39,20 @@ def init_platforms(data):
 def init_auth_users(data):
     try:
         with db.SessionLocal.begin() as session:
-            for user in data['auth_users']:
-                secret = user.pop('client_secret')
-                user['client_secret_hash'] = auth.hash_password(secret)
+            for user in data["auth_users"]:
+                secret = user.pop("client_secret")
+                user["client_secret_hash"] = auth.hash_password(secret)
                 new_user = AuthUser(**user)
                 session.add(new_user)
     except Exception as exc:
-        print('AuthUsers update failed', repr(exc))
+        print("AuthUsers update failed", repr(exc))
 
 
 # noinspection PyUnusedLocal
 def init_auth_json_web_keys(data):
     web_keys = db.store.json_web_keys()
     if web_keys:
-        print('AuthJsonWebKeys exist, skipping')
+        print("AuthJsonWebKeys exist, skipping")
         return
     with db.SessionLocal.begin() as session:
         web_key = keys.generate_private_key()
@@ -71,17 +71,17 @@ def init_db(data) -> None:
 
 
 def run(seed_file: Path) -> None:
-    print('Using DB Engine', db.engine)
-    print('Using seed file', seed_file)
-    with seed_file.open(mode='r', encoding='utf-8') as f:
+    print("Using DB Engine", db.engine)
+    print("Using seed file", seed_file)
+    with seed_file.open(mode="r", encoding="utf-8") as f:
         data = json.load(f)
     init_db(data)
 
 
 def main() -> None:
-    seed_file = sys.argv[1] if len(sys.argv) > 1 else 'scale_initdb.json'
+    seed_file = sys.argv[1] if len(sys.argv) > 1 else "scale_initdb.json"
     run(Path(seed_file))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -4,11 +4,10 @@ from scale_api.schemas import AuthUser, ScaleUser
 
 
 class AuthUserTestCase(unittest.TestCase):
-
     DEFAULTS = {
-        'id': '123',
-        'client_id': 'test@test.org',
-        'client_secret_hash': 'non',
+        "id": "123",
+        "client_id": "test@test.org",
+        "client_secret_hash": "non",
     }
 
     def test_defaults(self):
@@ -19,41 +18,40 @@ class AuthUserTestCase(unittest.TestCase):
         self.assertIsNone(u.scopes)
 
     def test_scopes(self):
-        scopes = ['role:foo', 'role:bar']
-        u = AuthUser(**self.DEFAULTS, scopes=' '.join(scopes))
+        scopes = ["role:foo", "role:bar"]
+        u = AuthUser(**self.DEFAULTS, scopes=" ".join(scopes))
         self.assertListEqual(u.scopes, scopes)
 
         u = AuthUser(**self.DEFAULTS, scopes=scopes)
         self.assertListEqual(u.scopes, scopes)
 
     def test_superuser(self):
-        scopes = ['role:foo']
+        scopes = ["role:foo"]
         u = AuthUser(**self.DEFAULTS, scopes=scopes)
         self.assertFalse(u.is_superuser)
 
-        scopes.append('role:superuser')
+        scopes.append("role:superuser")
         u = AuthUser(**self.DEFAULTS, scopes=scopes)
         self.assertTrue(u.is_superuser)
 
     def test_from_scale_user(self):
         su = ScaleUser(
-            id='123@xyz:lms',
-            email='test@test.org',
-            roles=['Learner'],
-            context={'id': '123456', 'title': 'Math6'},
+            id="123@xyz:lms",
+            email="test@test.org",
+            roles=["Learner"],
+            context={"id": "123456", "title": "Math6"},
         )
         au = AuthUser.from_scale_user(su)
-        self.assertEqual(au.id, '123@xyz:lms')
-        self.assertEqual(au.client_id, 'test@test.org')
-        self.assertEqual(au.client_secret_hash, 'none')
-        self.assertListEqual(au.scopes, ['role:Learner'])
-        self.assertDictEqual(au.context, {'id': '123456', 'title': 'Math6'})
+        self.assertEqual(au.id, "123@xyz:lms")
+        self.assertEqual(au.client_id, "test@test.org")
+        self.assertEqual(au.client_secret_hash, "none")
+        self.assertListEqual(au.scopes, ["role:Learner"])
+        self.assertDictEqual(au.context, {"id": "123456", "title": "Math6"})
 
 
 class ScaleUserTestCase(unittest.TestCase):
-
     DEFAULTS = {
-        'email': 'test@test.org',
+        "email": "test@test.org",
     }
 
     def test_defaults(self):
@@ -63,28 +61,28 @@ class ScaleUserTestCase(unittest.TestCase):
 
     def test_roles_from_lti_launch(self):
         u = ScaleUser(
-            roles=['http://purl.imsglobal.org/vocab/lis/v2/membership#Learner'],
+            roles=["http://purl.imsglobal.org/vocab/lis/v2/membership#Learner"],
             **self.DEFAULTS,
         )
-        self.assertListEqual(u.roles, ['Learner'])
+        self.assertListEqual(u.roles, ["Learner"])
 
     def test_roles_from_auth_user(self):
         u = ScaleUser(
-            roles=['Instructor', 'developer'],
+            roles=["Instructor", "developer"],
             **self.DEFAULTS,
         )
-        self.assertListEqual(u.roles, ['Instructor', 'developer'])
+        self.assertListEqual(u.roles, ["Instructor", "developer"])
 
     def test_is_a(self):
         u = ScaleUser(
-            roles=['http://purl.imsglobal.org/vocab/lis/v2/membership#Learner'],
+            roles=["http://purl.imsglobal.org/vocab/lis/v2/membership#Learner"],
             **self.DEFAULTS,
         )
         self.assertTrue(u.is_student)
         self.assertFalse(u.is_instructor)
 
         u = ScaleUser(
-            roles=['http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor'],
+            roles=["http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor"],
             **self.DEFAULTS,
         )
         self.assertFalse(u.is_student)
@@ -92,46 +90,44 @@ class ScaleUserTestCase(unittest.TestCase):
 
     def test_user_id(self):
         # Format of a ScaleUser.id is ``<LMS uid>@<Platform.id>``
-        u = ScaleUser(id='foo@bar', **self.DEFAULTS)
-        self.assertEqual(u.user_id, 'foo')
+        u = ScaleUser(id="foo@bar", **self.DEFAULTS)
+        self.assertEqual(u.user_id, "foo")
 
     def test_user_id_if_from_auth_user(self):
         # AuthUser.id will be a uuid and have no ``@``
-        u = ScaleUser(id='foo', **self.DEFAULTS)
-        self.assertEqual(u.user_id, 'foo')
+        u = ScaleUser(id="foo", **self.DEFAULTS)
+        self.assertEqual(u.user_id, "foo")
 
     def test_platform_id(self):
-        u = ScaleUser(id='foo@bar', **self.DEFAULTS)
-        self.assertEqual(u.platform_id, 'bar')
+        u = ScaleUser(id="foo@bar", **self.DEFAULTS)
+        self.assertEqual(u.platform_id, "bar")
 
     def test_platform_id_if_from_auth_user(self):
         # AuthUser's should have a fixed value
-        u = ScaleUser(id='foo', **self.DEFAULTS)
-        self.assertEqual(u.platform_id, 'scale_api')
+        u = ScaleUser(id="foo", **self.DEFAULTS)
+        self.assertEqual(u.platform_id, "scale_api")
 
     def test_context_id(self):
         u = ScaleUser(
-            id='foo@bar',
-            context={'id': '123', 'title': 'Math6'},
-            **self.DEFAULTS
+            id="foo@bar", context={"id": "123", "title": "Math6"}, **self.DEFAULTS
         )
-        self.assertEqual(u.context_id, '123')
+        self.assertEqual(u.context_id, "123")
 
     def test_context_id_if_from_auth_user(self):
         # AuthUser's should have a fixed value
-        u = ScaleUser(id='foo', **self.DEFAULTS)
-        self.assertEqual(u.context_id, 'scale_api')
+        u = ScaleUser(id="foo", **self.DEFAULTS)
+        self.assertEqual(u.context_id, "scale_api")
 
     def test_from_auth_user(self):
         au = AuthUser(
-            id='123',
-            client_id='test@test.org',
-            client_secret_hash='$1$foo.bar',
-            scopes=['role:developer', 'role:editor'],
-            context={'id': '123456', 'title': 'Math6'},
+            id="123",
+            client_id="test@test.org",
+            client_secret_hash="$1$foo.bar",
+            scopes=["role:developer", "role:editor"],
+            context={"id": "123456", "title": "Math6"},
         )
         su = ScaleUser.from_auth_user(au)
-        self.assertEqual(su.id, '123')
-        self.assertEqual(su.email, 'test@test.org')
-        self.assertListEqual(su.roles, ['developer', 'editor'])
-        self.assertDictEqual(su.context, {'id': '123456', 'title': 'Math6'})
+        self.assertEqual(su.id, "123")
+        self.assertEqual(su.email, "test@test.org")
+        self.assertListEqual(su.roles, ["developer", "editor"])
+        self.assertDictEqual(su.context, {"id": "123456", "title": "Math6"})

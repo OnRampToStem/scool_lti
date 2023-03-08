@@ -13,16 +13,17 @@ from ..models import Cache
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 NowFunc = Callable[..., datetime.datetime]
 
 
 class CacheStore:
     """Cache Repository."""
+
     TTL_DEFAULT = 3600
-    TTL_TYPE_FIXED = 'fixed'
-    TTL_TYPE_ROLLING = 'rolling'
+    TTL_TYPE_FIXED = "fixed"
+    TTL_TYPE_ROLLING = "rolling"
 
     def __init__(self, now_func: NowFunc = datetime.datetime.utcnow) -> None:
         self.now = now_func
@@ -32,21 +33,30 @@ class CacheStore:
         return self.now() + datetime.timedelta(seconds=ttl)
 
     # noinspection PyMethodMayBeStatic
-    def guid(self, prefix: str = '') -> str:
-        return f'{prefix}{new_uuid()}'
+    def guid(self, prefix: str = "") -> str:
+        return f"{prefix}{new_uuid()}"
 
-    def add(self, key: str, value: str, *,
-            ttl: int = TTL_DEFAULT,
-            ttl_type: str = TTL_TYPE_FIXED,
-            append_guid: bool = False) -> str:
+    def add(
+        self,
+        key: str,
+        value: str,
+        *,
+        ttl: int = TTL_DEFAULT,
+        ttl_type: str = TTL_TYPE_FIXED,
+        append_guid: bool = False,
+    ) -> str:
         """Adds an entry to the cache else raises if the entry already exists."""
         key = self.guid(key) if append_guid else key
         self.add_many({key: value}, ttl=ttl, ttl_type=ttl_type)
         return key
 
-    def add_many(self, data: Mapping[str, str], *,
-                 ttl: int = TTL_DEFAULT,
-                 ttl_type: str = TTL_TYPE_FIXED) -> None:
+    def add_many(
+        self,
+        data: Mapping[str, str],
+        *,
+        ttl: int = TTL_DEFAULT,
+        ttl_type: str = TTL_TYPE_FIXED,
+    ) -> None:
         """Adds entries to the cache else raises if any entry already exists."""
         self.purge_expired_safe()
         expire_at = self._calc_expires(ttl)
@@ -65,25 +75,34 @@ class CacheStore:
                 session.add_all(entries)
                 session.commit()
         except Exception as exc:
-            logger.warning('Cache.add_many failed, trying purge: %r', exc)
+            logger.warning("Cache.add_many failed, trying purge: %r", exc)
             self.purge_expired()
             # Retry after purging cache
             with SessionLocal() as session:
                 session.add_all(entries)
                 session.commit()
 
-    def put(self, key: str, value: str, *,
-            ttl: int = TTL_DEFAULT,
-            ttl_type: str = TTL_TYPE_FIXED,
-            append_guid: bool = False) -> str:
+    def put(
+        self,
+        key: str,
+        value: str,
+        *,
+        ttl: int = TTL_DEFAULT,
+        ttl_type: str = TTL_TYPE_FIXED,
+        append_guid: bool = False,
+    ) -> str:
         """Updates an entry in the cache else creates a new entry."""
         key = self.guid(key) if append_guid else key
         self.put_many({key: value}, ttl=ttl, ttl_type=ttl_type)
         return key
 
-    def put_many(self, data: Mapping[str, str], *,
-                 ttl: int = TTL_DEFAULT,
-                 ttl_type: str = TTL_TYPE_FIXED) -> None:
+    def put_many(
+        self,
+        data: Mapping[str, str],
+        *,
+        ttl: int = TTL_DEFAULT,
+        ttl_type: str = TTL_TYPE_FIXED,
+    ) -> None:
         """Updates entries in the cache else creates new entries."""
         self.purge_expired_safe()
         expire_at = self._calc_expires(ttl)
@@ -124,7 +143,7 @@ class CacheStore:
                 if entry.expire_at is None:
                     value = entry.value
                 elif entry.expire_at > self.now():
-                    if entry.ttl_type == 'rolling':
+                    if entry.ttl_type == "rolling":
                         entry.expire_at = self._calc_expires(entry.ttl)
                         session.commit()
                     value = entry.value
@@ -144,17 +163,13 @@ class CacheStore:
         and the value is cache value.
         """
         now = self.now()
-        stmt = sa.select(Cache).where(
-            Cache.key.ilike(
-                key_prefix + '%'
-            )
-        )
+        stmt = sa.select(Cache).where(Cache.key.ilike(key_prefix + "%"))
         with SessionLocal.begin() as session:
             entries = {}
             for entry in session.execute(stmt).scalars():
                 if entry.expire_at is None or entry.expire_at > now:
                     entries[entry.key] = entry.value
-                    if entry.ttl_type == 'rolling':
+                    if entry.ttl_type == "rolling":
                         entry.expire_at = self._calc_expires(entry.ttl)
                 else:
                     session.delete(entry)
@@ -178,9 +193,7 @@ class CacheStore:
 
     def purge_expired(self) -> int:
         """Removes all entries that are expired."""
-        stmt = sa.delete(Cache).where(
-            Cache.expire_at <= self.now()
-        )
+        stmt = sa.delete(Cache).where(Cache.expire_at <= self.now())
         with SessionLocal.begin() as session:
             rows_purged = session.execute(stmt).rowcount  # type: ignore
         return rows_purged  # type: ignore
@@ -191,9 +204,9 @@ class CacheStore:
         self.next_purge_time = self.now() + datetime.timedelta(seconds=self.TTL_DEFAULT)
         try:
             purge_count = self.purge_expired()
-            logger.info('Cache.purge_expired count %s', purge_count)
+            logger.info("Cache.purge_expired count %s", purge_count)
         except Exception as exc:
-            logger.warning('Cache.purge_expired failed: %r', exc)
+            logger.warning("Cache.purge_expired failed: %r", exc)
 
     add_async = aio.wrap(add)
     add_many_async = aio.wrap(add_many)

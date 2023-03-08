@@ -44,14 +44,14 @@ JWT_ALGORITHM = app_config.JWT_ALGORITHM
 JWT_ISSUER = app_config.JWT_ISSUER
 
 AUTH_USER_TOKEN_OPTS = {
-    'iss': {'essential': True, 'value': app_config.JWT_ISSUER},
-    'aud': {'essential': True, 'value': app_config.JWT_ISSUER},
-    'sub': {'essential': True},
+    "iss": {"essential": True, "value": app_config.JWT_ISSUER},
+    "aud": {"essential": True, "value": app_config.JWT_ISSUER},
+    "sub": {"essential": True},
 }
 
 JWT = jose.JsonWebToken([app_config.JWT_ALGORITHM])
 
-pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 @dataclass
@@ -74,37 +74,38 @@ class ScopePermission:
     Note that scopes are also used in some cases to store other information
     such as roles, ``role:Instructor``.
     """
+
     resource: str
     actions: set[str]
     items: set[str]
 
     @classmethod
     def from_string(cls, scope_str: str) -> Self:
-        parts = scope_str.split(':') if scope_str else None
+        parts = scope_str.split(":") if scope_str else None
         if not parts or not 1 <= len(parts) <= 3:
-            raise ValueError(f'Invalid scope {scope_str}')
+            raise ValueError(f"Invalid scope {scope_str}")
         resource = parts[0]
         actions = set()
         items = set()
         size = len(parts)
         if size > 1:
-            actions.update(parts[1].split(','))
-            if 'write' in actions:
+            actions.update(parts[1].split(","))
+            if "write" in actions:
                 # implies read
-                actions.add('read')
+                actions.add("read")
         if size > 2:
-            items.update(parts[2].split(','))
+            items.update(parts[2].split(","))
 
         return cls(resource, actions, items)
 
     def allows(self, other: Self) -> bool:
-        if not (self.resource == '*' or self.resource == other.resource):
+        if not (self.resource == "*" or self.resource == other.resource):
             return False
         if other.actions:
-            if not (self.actions == {'*'} or self.actions >= other.actions):
+            if not (self.actions == {"*"} or self.actions >= other.actions):
                 return False
         if other.items:
-            if not (self.items == {'*'} or self.items >= other.items):
+            if not (self.items == {"*"} or self.items >= other.items):
                 return False
         return True
 
@@ -118,11 +119,11 @@ class OAuth2ClientCredentials(OAuth2):
     """
 
     def __init__(
-            self,
-            tokenUrl: str,
-            scheme_name: str | None = None,
-            scopes: dict[str, str] | None = None,
-            auto_error: bool = False,
+        self,
+        tokenUrl: str,
+        scheme_name: str | None = None,
+        scopes: dict[str, str] | None = None,
+        auto_error: bool = False,
     ):
         if not scopes:
             scopes = {}
@@ -135,16 +136,15 @@ class OAuth2ClientCredentials(OAuth2):
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
     async def __call__(self, request: Request) -> str | None:
-        authorization = request.headers.get('Authorization')
+        authorization = request.headers.get("Authorization")
         scheme, param = get_authorization_scheme_param(authorization)
-        if not authorization or scheme.lower() != 'bearer':
+        if not authorization or scheme.lower() != "bearer":
             return None
         return param
 
 
 oauth2_token = OAuth2ClientCredentials(
-    tokenUrl=f'{app_config.PATH_PREFIX}/v1/auth/oauth/token',
-    auto_error=False
+    tokenUrl=f"{app_config.PATH_PREFIX}/v1/auth/oauth/token", auto_error=False
 )
 
 
@@ -164,9 +164,9 @@ async def request_scale_user(request: Request) -> schemas.ScaleUser:
 
 
 async def authorize(
-        request: Request,
-        scopes: SecurityScopes,
-        bearer_token: str = Depends(oauth2_token),
+    request: Request,
+    scopes: SecurityScopes,
+    bearer_token: str = Depends(oauth2_token),
 ) -> schemas.AuthUser:
     """Main security dependency for routes requiring authentication.
 
@@ -185,39 +185,45 @@ async def authorize(
     ``scale_user`` so both state values will always be set for any routes
     that use this as a dependency.
     """
-    state = request.client.host if request.client else '0.0.0.0'  # noqa: S104
-    logger.info('[%s]: authorize(bearer_token=[%s], scopes=[%s])',
-                state, bearer_token, scopes.scope_str)
+    state = request.client.host if request.client else "0.0.0.0"  # noqa: S104
+    logger.info(
+        "[%s]: authorize(bearer_token=[%s], scopes=[%s])",
+        state,
+        bearer_token,
+        scopes.scope_str,
+    )
     # noinspection PyUnusedLocal
     auth_user = scale_user = None
     try:
         if bearer_token:
             auth_user = await auth_user_from_token(bearer_token)
-            logger.info('[%s]: authorize from bearer token AuthUser: %s',
-                        state, auth_user)
-        elif session_user := request.session.get('scale_user'):
+            logger.info(
+                "[%s]: authorize from bearer token AuthUser: %s", state, auth_user
+            )
+        elif session_user := request.session.get("scale_user"):
             scale_user = schemas.ScaleUser.parse_obj(session_user)
             auth_user = schemas.AuthUser.from_scale_user(scale_user)
-            logger.info('[%s]: authorize from session ScaleUser: %s',
-                        state, scale_user)
-        elif session_user := request.session.get('au'):
+            logger.info("[%s]: authorize from session ScaleUser: %s", state, scale_user)
+        elif session_user := request.session.get("au"):
             auth_user = schemas.AuthUser.parse_obj(session_user)
-            logger.info('[%s]: authorize from session AuthUser: %s',
-                        state, auth_user)
+            logger.info("[%s]: authorize from session AuthUser: %s", state, auth_user)
         else:
-            raise LookupError('No token or session values found')
+            raise LookupError("No token or session values found")
     except (LookupError, ValueError, authlib.jose.errors.JoseError) as exc:
-        logger.error('[%s]: authorize failed: %r', state, exc)
+        logger.error("[%s]: authorize failed: %r", state, exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Incorrect username or password',
-            headers={'WWW-Authenticate': 'Bearer'},
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         ) from None
     else:
         if not can_access(auth_user, scopes.scopes):
-            logger.error('[%s]: authorize access failure, '
-                         'AuthUser: %s, Scopes: %s',
-                         state, auth_user, scopes.scopes)
+            logger.error(
+                "[%s]: authorize access failure, " "AuthUser: %s, Scopes: %s",
+                state,
+                auth_user,
+                scopes.scopes,
+            )
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
         request.state.auth_user = auth_user
         if not scale_user:
@@ -230,10 +236,10 @@ async def authorize(
 def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) -> str:
     """Returns an access token (JWT) for an ``AuthUser``."""
     payload = {
-        'sub': auth_user.id,
-        'client_id': auth_user.client_id,
-        'scopes': auth_user.scopes,
-        'context': auth_user.context,
+        "sub": auth_user.id,
+        "client_id": auth_user.client_id,
+        "scopes": auth_user.scopes,
+        "context": auth_user.context,
     }
     return create_token(payload, expires_in)
 
@@ -245,17 +251,17 @@ def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1)
     course info for the user.
     """
     payload = {
-        'sub': scale_user.id,
+        "sub": scale_user.id,
         # TODO: legacy claim used by dotnet
         # TODO: delete this after moving the front-end to use `email` claim
-        'unique_name': scale_user.email,
-        'email': scale_user.email,
-        'name': scale_user.name,
-        'roles': scale_user.roles,
-        'context': scale_user.context,
+        "unique_name": scale_user.email,
+        "email": scale_user.email,
+        "name": scale_user.name,
+        "roles": scale_user.roles,
+        "context": scale_user.context,
     }
     if scale_user.picture:
-        payload['picture'] = scale_user.picture
+        payload["picture"] = scale_user.picture
     return create_token(payload, expires_in)
 
 
@@ -271,16 +277,16 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
     now = int(time.time())
     issued_at = now - 5
     expires_at = now + expires_in
-    payload['iat'] = issued_at
-    payload['exp'] = expires_at
-    payload['iss'] = JWT_ISSUER
-    payload['aud'] = JWT_ISSUER
+    payload["iat"] = issued_at
+    payload["exp"] = expires_at
+    payload["iss"] = JWT_ISSUER
+    payload["aud"] = JWT_ISSUER
     token = JWT.encode(
-        header={'alg': app_config.JWT_ALGORITHM},
+        header={"alg": app_config.JWT_ALGORITHM},
         payload=payload,
-        key=app_config.SECRET_KEY
+        key=app_config.SECRET_KEY,
     )
-    return token.decode(encoding='ascii')  # type: ignore
+    return token.decode(encoding="ascii")  # type: ignore
 
 
 async def auth_user_from_token(token: str) -> schemas.AuthUser:
@@ -292,28 +298,24 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
     specify role scopes in addition to resource:action based scopes.
     """
     if not token:
-        raise ValueError('token value required')
-    claims = JWT.decode(
-        token,
-        key=JWT_KEY,
-        claims_options=AUTH_USER_TOKEN_OPTS
-    )
+        raise ValueError("token value required")
+    claims = JWT.decode(token, key=JWT_KEY, claims_options=AUTH_USER_TOKEN_OPTS)
     claims.validate(leeway=30)
-    if claims.get('client_id'):
+    if claims.get("client_id"):
         auth_user = schemas.AuthUser(
-            id=claims['sub'],
-            client_id=claims['client_id'],
-            client_secret_hash='none',
-            scopes=claims['scopes'],
-            context=claims['context'],
+            id=claims["sub"],
+            client_id=claims["client_id"],
+            client_secret_hash="none",
+            scopes=claims["scopes"],
+            context=claims["context"],
         )
     else:
         auth_user = schemas.AuthUser(
-            id=claims['sub'],
-            client_id=claims['email'],
-            client_secret_hash='none',
-            scopes=[f'role:{r}' for r in claims['roles']],
-            context=claims['context'],
+            id=claims["sub"],
+            client_id=claims["email"],
+            client_secret_hash="none",
+            scopes=[f"role:{r}" for r in claims["roles"]],
+            context=claims["context"],
         )
     return auth_user
 
@@ -328,7 +330,7 @@ def can_access(auth_user: schemas.AuthUser, scopes: list[str] | None) -> bool:
         return True
     if not auth_user.scopes:
         return False
-    logger.info('Verifying user %s has scopes %s', auth_user, scopes)
+    logger.info("Verifying user %s has scopes %s", auth_user, scopes)
     user_permissions = [ScopePermission.from_string(s) for s in auth_user.scopes]
     for required_perm in [ScopePermission.from_string(s) for s in scopes]:
         for user_perm in user_permissions:

@@ -11,12 +11,12 @@ from typing import Any
 
 from .. import schemas
 
-MESSAGE_TYPE_KEY = 'https://purl.imsglobal.org/spec/lti/claim/message_type'
-MESSAGE_VERSION_KEY = 'https://purl.imsglobal.org/spec/lti/claim/version'
-MESSAGE_CONTEXT_KEY = 'https://purl.imsglobal.org/spec/lti/claim/context'
-MESSAGE_ROLES_KEY = 'https://purl.imsglobal.org/spec/lti/claim/roles'
-MESSAGE_TOOL_KEY = 'https://purl.imsglobal.org/spec/lti/claim/tool_platform'
-MESSAGE_CUSTOM_KEY = 'https://purl.imsglobal.org/spec/lti/claim/custom'
+MESSAGE_TYPE_KEY = "https://purl.imsglobal.org/spec/lti/claim/message_type"
+MESSAGE_VERSION_KEY = "https://purl.imsglobal.org/spec/lti/claim/version"
+MESSAGE_CONTEXT_KEY = "https://purl.imsglobal.org/spec/lti/claim/context"
+MESSAGE_ROLES_KEY = "https://purl.imsglobal.org/spec/lti/claim/roles"
+MESSAGE_TOOL_KEY = "https://purl.imsglobal.org/spec/lti/claim/tool_platform"
+MESSAGE_CUSTOM_KEY = "https://purl.imsglobal.org/spec/lti/claim/custom"
 
 logger = logging.getLogger(__name__)
 
@@ -29,17 +29,15 @@ class LtiLaunchRequest:
     """
 
     def __init__(
-            self,
-            platform: schemas.Platform,
-            message: str | Mapping[str, Any]
+        self, platform: schemas.Platform, message: str | Mapping[str, Any]
     ) -> None:
         if isinstance(message, str):
             message_obj = json.loads(message)
         else:
             message_obj = message
-        if message_obj[MESSAGE_VERSION_KEY] != '1.3.0':
+        if message_obj[MESSAGE_VERSION_KEY] != "1.3.0":
             raise ValueError(
-                f'Invalid message version: {message_obj[MESSAGE_VERSION_KEY]}'
+                f"Invalid message version: {message_obj[MESSAGE_VERSION_KEY]}"
             )
         self.message = message_obj
         self.platform = platform
@@ -47,7 +45,7 @@ class LtiLaunchRequest:
     @property
     def launch_id(self) -> str:
         """Returns an id for this request that is associated with a given user."""
-        return f'lti-launch-request-{self.scale_user.id}'
+        return f"lti-launch-request-{self.scale_user.id}"
 
     @staticmethod
     def launch_id_for(scale_user: schemas.ScaleUser) -> str:
@@ -56,23 +54,24 @@ class LtiLaunchRequest:
         This method is meant to be used to retrieve a cached
         ``LtiLaunchRequest`` for the given user.
         """
-        return f'lti-launch-request-{scale_user.id}'
+        return f"lti-launch-request-{scale_user.id}"
 
     @property
     def roles(self) -> list[str]:
         """Returns a list of roles for this context."""
         return [
-            r.rsplit('#')[1]
+            r.rsplit("#")[1]
             for r in self.message[MESSAGE_ROLES_KEY]
-            if r.startswith('http://purl.imsglobal.org/vocab/lis/v2/membership#')
+            if r.startswith("http://purl.imsglobal.org/vocab/lis/v2/membership#")
         ]
 
     @property
     def context(self) -> Mapping[str, str]:
         """Returns the Course information from the request."""
         return {
-            k: v for k, v in self.message[MESSAGE_CONTEXT_KEY].items()
-            if k in ('id', 'title')
+            k: v
+            for k, v in self.message[MESSAGE_CONTEXT_KEY].items()
+            if k in ("id", "title")
         }
 
     @property
@@ -83,18 +82,18 @@ class LtiLaunchRequest:
     @property
     def is_resource_link_launch(self) -> bool:
         """Returns True if this is a ResourceLink request."""
-        return self.message_type == 'LtiResourceLinkRequest'
+        return self.message_type == "LtiResourceLinkRequest"
 
     @property
     def is_deep_link_launch(self) -> bool:
         """Returns True if this is a DeepLinking request."""
-        return self.message_type == 'LtiDeepLinkingRequest'
+        return self.message_type == "LtiDeepLinkingRequest"
 
     @property
     def is_instructor(self) -> bool:
         """Returns True if this request contains an instructor role."""
         lower_roles = {r.lower() for r in self.roles}
-        if {'instructor', 'teacher'} & lower_roles:
+        if {"instructor", "teacher"} & lower_roles:
             return True
         return False
 
@@ -102,33 +101,33 @@ class LtiLaunchRequest:
     def is_student(self) -> bool:
         """Returns True if this request contains the learner role."""
         lower_roles = {r.lower() for r in self.roles}
-        if {'learner', 'student'} & lower_roles:
+        if {"learner", "student"} & lower_roles:
             return True
         return False
 
     @property
     def names_role_service(self) -> dict[str, Any] | None:
         result = self.message.get(
-            'https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'
+            "https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice"
         )
         return result  # type: ignore
 
     @property
     def scale_user(self) -> schemas.ScaleUser:
         """Returns a ``ScaleUser`` based on data from the request."""
-        lms_userid = self.message['sub'] + '@' + self.platform.id
-        lms_email = self.message.get('email') or self._custom_field('email')
-        lms_name = self.message.get('name') or self._custom_field('name')
-        lms_picture = self.message.get('picture') or self._custom_field('picture')
+        lms_userid = self.message["sub"] + "@" + self.platform.id
+        lms_email = self.message.get("email") or self._custom_field("email")
+        lms_name = self.message.get("name") or self._custom_field("name")
+        lms_picture = self.message.get("picture") or self._custom_field("picture")
         if not lms_email:
             # Special handling for using the "Student View" feature in Canvas
             if (
-                    lms_name == 'Test Student'
-                    and self.message['iss'] == 'https://canvas.instructure.com'
+                lms_name == "Test Student"
+                and self.message["iss"] == "https://canvas.instructure.com"
             ):
-                lms_email = 'test_student@canvas.instructure.com'
+                lms_email = "test_student@canvas.instructure.com"
             else:
-                raise ValueError('LtiLaunchRequest missing required attribute: email')
+                raise ValueError("LtiLaunchRequest missing required attribute: email")
         # noinspection PyTypeChecker
         return schemas.ScaleUser(
             id=lms_userid,
@@ -145,28 +144,23 @@ class LtiLaunchRequest:
         See the Troubleshooting section of `docs/lti/canvas_install.md` for
         details on how to add the custom fields.
         """
-        logger.warning('Looking for custom field [%s]', field_name)
+        logger.warning("Looking for custom field [%s]", field_name)
         return self.message.get(MESSAGE_CUSTOM_KEY, {}).get(field_name)  # type: ignore
 
     def dumps(self) -> str:
         """Serializes the request to a string suitable for storing."""
         data = {
-            'platform': self.platform.dict(exclude={'client_secret'}),
-            'message': self.message,
+            "platform": self.platform.dict(exclude={"client_secret"}),
+            "message": self.message,
         }
         return json.dumps(data)
 
     @staticmethod
-    def loads(data: str) -> 'LtiLaunchRequest':
+    def loads(data: str) -> "LtiLaunchRequest":
         """Returns a ``LtiLaunchRequest`` from a json string."""
         content = json.loads(data)
-        platform = schemas.Platform.parse_obj(content['platform'])
-        return LtiLaunchRequest(platform, content['message'])
+        platform = schemas.Platform.parse_obj(content["platform"])
+        return LtiLaunchRequest(platform, content["message"])
 
     def __str__(self) -> str:
-        return (
-            'LtiLaunchRequest('
-            f'{self.platform.id}, '
-            f'{self.message_type}'
-            ')'
-        )
+        return "LtiLaunchRequest(" f"{self.platform.id}, " f"{self.message_type}" ")"

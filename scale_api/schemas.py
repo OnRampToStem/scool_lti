@@ -19,6 +19,7 @@ class Platform(BaseModel):
 
     A standalone schema class for ``scale_api.db.Platform``.
     """
+
     id: str
     name: str
     issuer: str
@@ -37,6 +38,7 @@ class AuthUser(BaseModel):
 
     A standalone schema class for ``scale_api.db.AuthUser``.
     """
+
     id: str
     client_id: str
     client_secret_hash: str
@@ -45,7 +47,7 @@ class AuthUser(BaseModel):
     scopes: list[str] | None
     context: Mapping[str, str] | None
 
-    @validator('scopes', pre=True)
+    @validator("scopes", pre=True)
     def assemble_scopes(cls, v: str | (list[str] | None)) -> list[str]:
         """Converts a space separated scope string to a list."""
         if v is None:
@@ -60,17 +62,17 @@ class AuthUser(BaseModel):
     def is_superuser(self) -> bool:
         """Returns True if the ``superuser`` scope is present."""
         if self.scopes:
-            return 'role:superuser' in self.scopes
+            return "role:superuser" in self.scopes
         return False
 
     @classmethod
-    def from_scale_user(cls, scale_user: 'ScaleUser') -> Self:
+    def from_scale_user(cls, scale_user: "ScaleUser") -> Self:
         """Converts an ``ScaleUser`` to a ``AuthUser``."""
-        roles = ['role:' + r for r in scale_user.roles]
+        roles = ["role:" + r for r in scale_user.roles]
         return cls(
             id=scale_user.id,
             client_id=scale_user.email,
-            client_secret_hash='none',  # noqa: S106
+            client_secret_hash="none",  # noqa: S106
             scopes=roles,
             context=scale_user.context,
         )
@@ -89,6 +91,7 @@ class ScaleUser(BaseModel):
     This represents a user authenticated via LTI from an LMS such as
     Canvas.
     """
+
     id: str | None
     email: EmailStr
     name: str | None
@@ -115,29 +118,29 @@ class ScaleUser(BaseModel):
     def user_id(self) -> str:
         """Returns the Platform uuid for this user."""
         if self.id is not None:
-            user_id, sep, other = self.id.rpartition('@')
+            user_id, sep, other = self.id.rpartition("@")
             return user_id if sep else other
-        raise ValueError(f'Unable to determine UUID for this user: {self!r}')
+        raise ValueError(f"Unable to determine UUID for this user: {self!r}")
 
     @property
     def platform_id(self) -> str:
         """Returns the Platform ID for this user."""
         if self.id:
-            user_id, sep, plat_id = self.id.rpartition('@')
+            user_id, sep, plat_id = self.id.rpartition("@")
             if sep:
                 return plat_id
-        return 'scale_api'
+        return "scale_api"
 
     @property
     def context_id(self) -> str:
         """Returns the LMS Context (Course) ID for this user."""
-        return self.context['id'] if self.context else 'scale_api'
+        return self.context["id"] if self.context else "scale_api"
 
     @property
     def is_instructor(self) -> bool:
         """Returns True if this request contains an instructor role."""
         lower_roles = {r.lower() for r in self.roles}
-        if {'instructor', 'teacher'} & lower_roles:
+        if {"instructor", "teacher"} & lower_roles:
             return True
         return False
 
@@ -145,7 +148,7 @@ class ScaleUser(BaseModel):
     def is_student(self) -> bool:
         """Returns True if this request contains the learner role."""
         lower_roles = {r.lower() for r in self.roles}
-        if {'learner', 'student'} & lower_roles:
+        if {"learner", "student"} & lower_roles:
             return True
         return False
 
@@ -154,9 +157,7 @@ class ScaleUser(BaseModel):
         """Converts an ``AuthUser`` to a ``ScaleUser``."""
         if auth_user.scopes:
             roles = [
-                r.split(':', 1)[1]
-                for r in auth_user.scopes
-                if r.startswith('role:')
+                r.split(":", 1)[1] for r in auth_user.scopes if r.startswith("role:")
             ]
         else:
             roles = []
@@ -167,10 +168,10 @@ class ScaleUser(BaseModel):
             context=auth_user.context,
         )
 
-    @validator('roles', each_item=True)
+    @validator("roles", each_item=True)
     def normalize_roles(cls, v: str) -> str:
-        if v.startswith('http://purl.imsglobal.org/vocab/lis/v2/membership#'):
-            return v.rsplit('#')[1]
+        if v.startswith("http://purl.imsglobal.org/vocab/lis/v2/membership#"):
+            return v.rsplit("#")[1]
         return v
 
 
@@ -182,11 +183,12 @@ class ScaleUserImpersonationRequest(ScaleUser):
     allow devs to provide the ``scale_api.app_config.SECRET_KEY`` and provide
     custom ``ScaleUser`` values for testing purposes.
     """
+
     secret_key: SecretStr
 
     def session_dict(self) -> dict[str, Any]:
         """Returns a dict object suitable for storing in a web session."""
-        return self.dict(exclude={'secret_key'}, exclude_defaults=True)
+        return self.dict(exclude={"secret_key"}, exclude_defaults=True)
 
 
 class AuthJsonWebKey(BaseModel):
@@ -194,6 +196,7 @@ class AuthJsonWebKey(BaseModel):
 
     A standalone schema class for ``scale_api.db.AuthJsonWebKey``.
     """
+
     kid: str
     data: SecretStr
     valid_from: datetime.datetime
@@ -215,11 +218,12 @@ class Message(BaseModel):
 
     A standalone schema class for ``scale_api.db.Message``.
     """
+
     id: str
     subject: str
     header: str | None
     body: str | None
-    status: str = 'active'
+    status: str = "active"
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
@@ -232,10 +236,11 @@ class BinaryFile(BaseModel):
 
     A standalone schema class for ``scale_api.db.BinData``.
     """
+
     id: str
-    content_type: str = 'application/octet-stream'
+    content_type: str = "application/octet-stream"
     name: str | None
-    status: str = 'active'
+    status: str = "active"
     created_at: datetime.datetime
     updated_at: datetime.datetime
     data: bytes

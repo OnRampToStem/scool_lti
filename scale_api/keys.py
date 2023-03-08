@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 class CachedKeySet:
     def __init__(
-            self,
-            key_set: jose.KeySet,
-            expire_in: float | None = None,
+        self,
+        key_set: jose.KeySet,
+        expire_in: float | None = None,
     ) -> None:
         self.key_set = key_set
         if expire_in is None:
@@ -41,16 +41,16 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
     if use_cache:
         if cks := _jwks_cache.get(url):
             if not cks.is_expired:
-                logger.info('Returning cached JWKS for %s', url)
+                logger.info("Returning cached JWKS for %s", url)
                 return cks.key_set
             else:
-                logger.info('Cached JWKS for %s has expired', url)
+                logger.info("Cached JWKS for %s has expired", url)
         else:
-            logger.info('Cached JWKS not found for %s', url)
+            logger.info("Cached JWKS not found for %s", url)
 
-    logger.info('Fetching JWKS from %s', url)
+    logger.info("Fetching JWKS from %s", url)
     r = await aio.http_client.get(url, timeout=5.0)
-    logger.debug('JWKS headers: %r', r.headers)
+    logger.debug("JWKS headers: %r", r.headers)
     r.raise_for_status()
     jwks_json = r.json()
     try:
@@ -60,7 +60,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
         _jwks_cache[url] = CachedKeySet(ks)
         return ks
     except Exception:
-        logger.error('Failed to import key set: %s', jwks_json)
+        logger.error("Failed to import key set: %s", jwks_json)
         raise
 
 
@@ -72,10 +72,7 @@ async def private_keys() -> list[schemas.AuthJsonWebKey]:
 
 async def json_web_private_keys() -> list[jose.RSAKey]:
     web_keys = await private_keys()
-    return [
-        jose.JsonWebKey.import_key(k.data.get_secret_value())
-        for k in web_keys
-    ]
+    return [jose.JsonWebKey.import_key(k.data.get_secret_value()) for k in web_keys]
 
 
 async def private_key() -> jose.RSAKey:
@@ -85,7 +82,7 @@ async def private_key() -> jose.RSAKey:
     ``valid_to`` date is provided.
     """
     if not (web_keys := await private_keys()):
-        raise RuntimeError('No JWKS found')
+        raise RuntimeError("No JWKS found")
 
     main_key = web_keys[0]
     # Given more than one key, return the key that is valid furthest
@@ -103,7 +100,7 @@ async def private_key() -> jose.RSAKey:
             main_key = key
 
     if main_key is None:
-        raise RuntimeError('No valid JWKS found')
+        raise RuntimeError("No valid JWKS found")
 
     return jose.JsonWebKey.import_key(main_key.data.get_secret_value())
 
@@ -112,10 +109,7 @@ async def private_key() -> jose.RSAKey:
 async def public_keys() -> list[jose.RSAKey]:
     """Returns a list of public JSON Web Keys."""
     privates = await json_web_private_keys()
-    return [
-        jose.JsonWebKey.import_key(pk.as_pem(is_private=False))
-        for pk in privates
-    ]
+    return [jose.JsonWebKey.import_key(pk.as_pem(is_private=False)) for pk in privates]
 
 
 async def public_key_set() -> jose.KeySet:
@@ -126,15 +120,9 @@ async def public_key_set() -> jose.KeySet:
 
 def generate_private_key() -> schemas.AuthJsonWebKey:
     """Returns a newly generated private JSON Web Key"""
-    pkey = jose.JsonWebKey.generate_key(
-        kty='RSA',
-        crv_or_size=2048,
-        is_private=True
-    )
-    kid = pkey.as_dict(add_kid=True)['kid']
+    pkey = jose.JsonWebKey.generate_key(kty="RSA", crv_or_size=2048, is_private=True)
+    kid = pkey.as_dict(add_kid=True)["kid"]
     data = pkey.as_pem(is_private=True)
     return schemas.AuthJsonWebKey(
-        kid=kid,
-        data=data,
-        valid_from=datetime.datetime.utcnow()
+        kid=kid, data=data, valid_from=datetime.datetime.utcnow()
     )

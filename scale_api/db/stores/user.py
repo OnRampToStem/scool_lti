@@ -16,15 +16,15 @@ class UserStore:
 
     # noinspection PyMethodMayBeStatic
     def users(self, subject: str) -> Iterable[schemas.Message]:
-        if subject.endswith('%'):
+        if subject.endswith("%"):
             stmt = sa.select(Message).where(
                 Message.subject.like(subject),
-                Message.status == 'active',
+                Message.status == "active",
             )
         else:
             stmt = sa.select(Message).where(
                 Message.subject == subject,
-                Message.status == 'active',
+                Message.status == "active",
             )
         with SessionLocal() as session:
             result = session.execute(stmt)
@@ -36,20 +36,16 @@ class UserStore:
         with SessionLocal() as session:
             msg = session.get(Message, user_key)
             if not msg:
-                raise LookupError(f'{user_key} not found')
-            if msg.status != 'active':
-                raise LookupError(f'{user_key} not active')
-            if not (msg.subject and msg.subject.startswith('users.')):
-                raise ValueError('Not a user entry', msg.subject)
+                raise LookupError(f"{user_key} not found")
+            if msg.status != "active":
+                raise LookupError(f"{user_key} not active")
+            if not (msg.subject and msg.subject.startswith("users.")):
+                raise ValueError("Not a user entry", msg.subject)
             return schemas.Message.from_orm(msg)
 
     # noinspection PyMethodMayBeStatic
     def create(
-            self,
-            user_key: str,
-            subject: str,
-            body: str,
-            header: str | None = None
+        self, user_key: str, subject: str, body: str, header: str | None = None
     ) -> schemas.Message:
         with SessionLocal.begin() as session:
             msg = Message(
@@ -69,10 +65,11 @@ class UserStore:
             if not user:
                 raise LookupError(user_key)
             if not (user.subject and user.subject.startswith(subject)):
-                raise ValueError('Update subject mismatch: actual != expected',
-                                 user.subject, subject)
-            if user.status != 'active':
-                user.status = 'active'
+                raise ValueError(
+                    "Update subject mismatch: actual != expected", user.subject, subject
+                )
+            if user.status != "active":
+                user.status = "active"
             if user.body != body:
                 user.body = body
             session.flush()
@@ -80,25 +77,29 @@ class UserStore:
 
     # noinspection PyMethodMayBeStatic,DuplicatedCode
     def delete(
-            self,
-            user_key: str,
-            subject: str,
-            header: str | None = None,
+        self,
+        user_key: str,
+        subject: str,
+        header: str | None = None,
     ) -> schemas.Message:
         with SessionLocal.begin() as session:
             user = session.get(Message, user_key)
             if not user:
                 raise LookupError(user_key)
             if not (user.subject and user.subject.startswith(subject)):
-                raise ValueError('Delete aborted, mismatched subject: '
-                                 'actual != expected',
-                                 user.subject, subject)
+                raise ValueError(
+                    "Delete aborted, mismatched subject: " "actual != expected",
+                    user.subject,
+                    subject,
+                )
             if header and user.header != header:
-                raise ValueError('Delete aborted, mismatched header: '
-                                 'actual != expected',
-                                 user.header, header)
-            if user.status != 'deleted':
-                user.status = 'deleted'
+                raise ValueError(
+                    "Delete aborted, mismatched header: " "actual != expected",
+                    user.header,
+                    header,
+                )
+            if user.status != "deleted":
+                user.status = "deleted"
                 session.flush()
             return schemas.Message.from_orm(user)
 

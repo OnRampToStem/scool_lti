@@ -11,12 +11,12 @@ from scale_api import (
 router = APIRouter()
 
 
-@router.get('/', response_model=list[schemas.Platform])
+@router.get("/", response_model=list[schemas.Platform])
 async def get_platforms():
     return await db.store.platforms_async()
 
 
-@router.get('/{platform_id}', response_model=schemas.Platform)
+@router.get("/{platform_id}", response_model=schemas.Platform)
 async def get_platform(platform_id: str):
     try:
         platform = await db.store.platform_async(platform_id)

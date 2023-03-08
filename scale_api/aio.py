@@ -11,7 +11,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from scale_api import app_config
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
