@@ -23,16 +23,16 @@ class CustomGunicornLogger(glogging.Logger):
 
 # noinspection PyUnusedLocal
 def on_starting(server):
-    import scale_api.app
+    import scale_api.events
 
-    scale_api.app.on_startup_main()
+    scale_api.events.on_startup_main()
 
 
 # noinspection PyUnusedLocal
 def on_exit(server):
-    import scale_api.app
+    import scale_api.events
 
-    scale_api.app.on_shutdown_main()
+    scale_api.events.on_shutdown_main()
 
 
 accesslog = "-"
