@@ -3,7 +3,7 @@ SCALE Application schemas
 """
 import datetime
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any
 
 from pydantic import (
     BaseModel,
@@ -23,10 +23,10 @@ class Platform(BaseModel):
     name: str
     issuer: str
     oidc_auth_url: HttpUrl
-    auth_token_url: Optional[HttpUrl]
+    auth_token_url: HttpUrl | None
     jwks_url: HttpUrl
-    client_id: Optional[str]
-    client_secret: Optional[SecretStr]
+    client_id: str | None
+    client_secret: SecretStr | None
 
     class Config:
         orm_mode = True
@@ -42,11 +42,11 @@ class AuthUser(BaseModel):
     client_secret_hash: str
     is_active: bool = True
     is_verified: bool = False
-    scopes: Optional[list[str]]
-    context: Optional[Mapping[str, str]]
+    scopes: list[str] | None
+    context: Mapping[str, str] | None
 
     @validator('scopes', pre=True)
-    def assemble_scopes(cls, v: Union[str, list[str] | None]) -> list[str]:
+    def assemble_scopes(cls, v: str | (list[str] | None)) -> list[str]:
         """Converts a space separated scope string to a list."""
         if v is None:
             return []
@@ -89,10 +89,10 @@ class ScaleUser(BaseModel):
     This represents a user authenticated via LTI from an LMS such as
     Canvas.
     """
-    id: Optional[str]
+    id: str | None
     email: EmailStr
-    name: Optional[str]
-    picture: Optional[str]
+    name: str | None
+    picture: str | None
 
     # Roles provided by LTI. There are different types of roles such as
     # those the user has in the system overall and those assigned for the
@@ -105,7 +105,7 @@ class ScaleUser(BaseModel):
     # Context is the term used by LTI to represent a Course in the LMS.
     # We keep the same terminology in our schema. Context provides both
     # a Course ID and Title.
-    context: Optional[Mapping[str, str]]
+    context: Mapping[str, str] | None
 
     def session_dict(self) -> dict[str, Any]:
         """Returns a dict object suitable for storing in a web session."""
@@ -197,7 +197,7 @@ class AuthJsonWebKey(BaseModel):
     kid: str
     data: SecretStr
     valid_from: datetime.datetime
-    valid_to: Optional[datetime.datetime]
+    valid_to: datetime.datetime | None
 
     @property
     def is_valid(self) -> bool:
@@ -217,8 +217,8 @@ class Message(BaseModel):
     """
     id: str
     subject: str
-    header: Optional[str]
-    body: Optional[str]
+    header: str | None
+    body: str | None
     status: str = 'active'
     created_at: datetime.datetime
     updated_at: datetime.datetime
@@ -234,7 +234,7 @@ class BinaryFile(BaseModel):
     """
     id: str
     content_type: str = 'application/octet-stream'
-    name: Optional[str]
+    name: str | None
     status: str = 'active'
     created_at: datetime.datetime
     updated_at: datetime.datetime

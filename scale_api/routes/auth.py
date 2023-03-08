@@ -6,9 +6,9 @@ and token services for ``ScaleUser`` requests.
 """
 import base64
 import logging
-import uuid
 import urllib.parse
-from typing import Any, Optional
+import uuid
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -162,9 +162,9 @@ async def oauth_token(
         request: Request,
         response: Response,
         grant_type: str = Form(...),
-        scope: Optional[str] = Form(None),
-        client_id: Optional[str] = Form(None),
-        client_secret: Optional[str] = Form(None),
+        scope: str | None = Form(None),
+        client_id: str | None = Form(None),
+        client_secret: str | None = Form(None),
 ):
     """OAuth 2.0 Token Endpoint.
 

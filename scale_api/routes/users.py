@@ -10,7 +10,8 @@ import asyncio
 import hashlib
 import json
 import logging
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -41,7 +42,7 @@ def stream_users(subject: str) -> Iterable[bytes]:
     for msg in db.user_store.users(subject):
         if i != 0:
             yield b','
-        yield f'"{msg.id}":{msg.body}'.encode('utf-8')
+        yield f'"{msg.id}":{msg.body}'.encode()
         i += 1
     yield b'}'
 

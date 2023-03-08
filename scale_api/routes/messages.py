@@ -8,13 +8,7 @@ import json
 import logging
 from typing import Any, Union
 
-from fastapi import (
-    APIRouter,
-    Body,
-    HTTPException,
-    Request,
-    status
-)
+from fastapi import APIRouter, Body, HTTPException, Request, status
 
 from scale_api import (
     db,
@@ -93,7 +87,7 @@ def check_access(
         request: Request,
         subject: str,
         action: str,
-        body: Union[str, dict[str, Any]] | None = None
+        body: str | dict[str, Any] | None = None
 ) -> None:
     """Checks that the requested access is allowed, else raises an HTTP 403."""
     if not can_access(request, subject, action, body):

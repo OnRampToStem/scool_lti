@@ -1,11 +1,12 @@
 import datetime
 import logging
 from collections.abc import Callable, Mapping
-from typing import TypeVar, Union
+from typing import TypeVar
 
 import sqlalchemy as sa
 
 from scale_api import aio
+
 from .. import errors
 from ..core import SessionLocal, new_uuid
 from ..models import Cache
@@ -115,7 +116,7 @@ class CacheStore:
                         entry.expire_at = expire_at
                 session.commit()
 
-    def get(self, key: str, default: T | None = None) -> Union[str, T]:
+    def get(self, key: str, default: T | None = None) -> str | T:
         """Returns an entry from the cache else ``default`` if no entry exists."""
         with SessionLocal() as session:
             entry = session.get(Cache, key)

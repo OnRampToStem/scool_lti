@@ -5,7 +5,7 @@ Application-wide configuration settings that are read in from the Environment.
 """
 import secrets
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from pydantic import AnyHttpUrl, BaseSettings, validator
 
@@ -70,11 +70,11 @@ class ScaleSettings(BaseSettings):
         return v
 
     @validator('BACKEND_CORS_ORIGINS', pre=True)
-    def assemble_cors_origins(cls, v: Union[str, list[str]]) -> Union[list[str], str]:
+    def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:
         """Converts a comma-separated string to a list."""
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+        elif isinstance(v, list | str):
             return v
         raise ValueError(v)
 

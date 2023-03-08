@@ -11,12 +11,12 @@ from typing import Any
 
 from authlib import jose
 
-from .messages import LtiLaunchRequest
 from .. import (
     aio,
     keys,
     schemas,
 )
+from .messages import LtiLaunchRequest
 
 logger = logging.getLogger(__name__)
 

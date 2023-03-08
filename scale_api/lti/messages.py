@@ -7,7 +7,7 @@ such as Resource Link and Deep Link request and response messages.
 import json
 import logging
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any
 
 from .. import schemas
 
@@ -31,7 +31,7 @@ class LtiLaunchRequest:
     def __init__(
             self,
             platform: schemas.Platform,
-            message: Union[str, Mapping[str, Any]]
+            message: str | Mapping[str, Any]
     ) -> None:
         if isinstance(message, str):
             message_obj = json.loads(message)
@@ -107,7 +107,7 @@ class LtiLaunchRequest:
         return False
 
     @property
-    def names_role_service(self) -> Optional[dict[str, Any]]:
+    def names_role_service(self) -> dict[str, Any] | None:
         result = self.message.get(
             'https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'
         )
@@ -135,7 +135,7 @@ class LtiLaunchRequest:
             context=self.context,
         )
 
-    def _custom_field(self, field_name: str) -> Optional[str]:
+    def _custom_field(self, field_name: str) -> str | None:
         """Returns the value of the given custom field name, if present.
 
         See the Troubleshooting section of `docs/lti/canvas_install.md` for

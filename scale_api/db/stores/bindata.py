@@ -1,6 +1,7 @@
 import logging
 
 from scale_api import aio, schemas
+
 from .. import errors
 from ..core import SessionLocal
 from ..models import BinData

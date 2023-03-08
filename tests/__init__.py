@@ -1,6 +1,5 @@
 import pathlib
 
-
 TEST_DIR = pathlib.Path(__file__).parent
 TEST_DATA_DIR = TEST_DIR / 'data'
 

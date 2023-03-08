@@ -16,8 +16,8 @@ from starlette.middleware.sessions import SessionMiddleware  # noqa
 
 from scale_api import (
     __version__,
-    app_config,
     aio,
+    app_config,
     db,
     settings,
 )
@@ -122,8 +122,8 @@ def on_startup_main() -> None:
         alembic_cfg.set_main_option('script_location', str(settings.BASE_PATH / 'alembic'))
         alembic.command.upgrade(alembic_cfg, 'head')
 
-        import scale_initdb
         import scale_api.settings
+        import scale_initdb
 
         seed_file = scale_api.settings.BASE_PATH / 'scale_initdb.json'
         if not seed_file.exists():
@@ -164,6 +164,7 @@ def main() -> None:
     Only use for local development testing.
     """
     from pathlib import Path
+
     import uvicorn
 
     run_opts: dict[str, int | bool | str] = {

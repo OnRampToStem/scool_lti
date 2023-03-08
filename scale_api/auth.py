@@ -18,7 +18,7 @@ Learning Tools Interoperability (LTI).
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Optional, Self
+from typing import Any, Self
 
 import authlib.jose.errors
 from authlib import jose
@@ -120,8 +120,8 @@ class OAuth2ClientCredentials(OAuth2):
     def __init__(
             self,
             tokenUrl: str,
-            scheme_name: Optional[str] = None,
-            scopes: Optional[dict[str, str]] = None,
+            scheme_name: str | None = None,
+            scopes: dict[str, str] | None = None,
             auto_error: bool = False,
     ):
         if not scopes:
@@ -134,7 +134,7 @@ class OAuth2ClientCredentials(OAuth2):
         )
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
-    async def __call__(self, request: Request) -> Optional[str]:
+    async def __call__(self, request: Request) -> str | None:
         authorization = request.headers.get('Authorization')
         scheme, param = get_authorization_scheme_param(authorization)
         if not authorization or scheme.lower() != 'bearer':
@@ -318,7 +318,7 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
     return auth_user
 
 
-def can_access(auth_user: schemas.AuthUser, scopes: Optional[list[str]]) -> bool:
+def can_access(auth_user: schemas.AuthUser, scopes: list[str] | None) -> bool:
     """Returns True if the user has the required scope(s)."""
     if not auth_user.is_active:
         return False
