@@ -5,7 +5,7 @@ from gunicorn import glogging
 
 import scale_api
 
-WORKER_COUNT = int(os.getenv("WEB_CONCURRENCY", os.cpu_count() * 2))
+WORKER_COUNT = int(os.getenv("WEB_CONCURRENCY", os.cpu_count() * 2))  # noqa: PLW1508
 
 
 class HealthCheckFilter(logging.Filter):

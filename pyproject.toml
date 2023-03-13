@@ -30,7 +30,7 @@ extend-select = [
     "A",  # builtins
     "ARG",  # unused args
     "B",  # flake8-bugbear
-    "C4",  # comprehensions
+    "C40",  # comprehensions
     "DTZ", # datetimez
     "E",  # pycodestyle (errors)
     "ERA",  # eradicate commented out code
