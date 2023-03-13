@@ -35,7 +35,7 @@ logger.info("Is Production: %s", app_config.is_production)
 app = FastAPI(
     title="OR2STEM API",
     version=__version__,
-    lifespan=events.lifespan,  # type: ignore[arg-type]
+    lifespan=events.lifespan,
     docs_url=f"{app_config.PATH_PREFIX}/docs",
     redoc_url=None,
     openapi_url=f"{app_config.PATH_PREFIX}/openapi.json",
