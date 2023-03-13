@@ -31,10 +31,7 @@ class LtiLaunchRequest:
     def __init__(
         self, platform: schemas.Platform, message: str | Mapping[str, Any]
     ) -> None:
-        if isinstance(message, str):
-            message_obj = json.loads(message)
-        else:
-            message_obj = message
+        message_obj = json.loads(message) if isinstance(message, str) else message
         if message_obj[MESSAGE_VERSION_KEY] != "1.3.0":
             raise ValueError(
                 f"Invalid message version: {message_obj[MESSAGE_VERSION_KEY]}"
@@ -107,10 +104,9 @@ class LtiLaunchRequest:
 
     @property
     def names_role_service(self) -> dict[str, Any] | None:
-        result = self.message.get(
+        return self.message.get(  # type: ignore[no-any-return]
             "https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice"
         )
-        return result  # type: ignore
 
     @property
     def scale_user(self) -> schemas.ScaleUser:
@@ -163,4 +159,4 @@ class LtiLaunchRequest:
         return LtiLaunchRequest(platform, content["message"])
 
     def __str__(self) -> str:
-        return "LtiLaunchRequest(" f"{self.platform.id}, " f"{self.message_type}" ")"
+        return f"LtiLaunchRequest({self.platform.id}, {self.message_type})"

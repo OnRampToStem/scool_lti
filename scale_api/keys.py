@@ -43,8 +43,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
             if not cks.is_expired:
                 logger.info("Returning cached JWKS for %s", url)
                 return cks.key_set
-            else:
-                logger.info("Cached JWKS for %s has expired", url)
+            logger.info("Cached JWKS for %s has expired", url)
         else:
             logger.info("Cached JWKS not found for %s", url)
 
@@ -55,13 +54,14 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
     jwks_json = r.json()
     try:
         ks = jose.JsonWebKey.import_key_set(jwks_json)
-        # TODO: check headers to see if there is a ttl use for `expire_in`
-        #   'cache-control': 'max-age=864000, private'
-        _jwks_cache[url] = CachedKeySet(ks)
-        return ks
     except Exception:
         logger.error("Failed to import key set: %s", jwks_json)
         raise
+    else:
+        # TODO: check headers to see if there is a ttl use for `expire_in`
+        #   'cache-control': 'max-age=864000, private'  # noqa: ERA001
+        _jwks_cache[url] = CachedKeySet(ks)
+        return ks
 
 
 async def private_keys() -> list[schemas.AuthJsonWebKey]:
@@ -124,5 +124,5 @@ def generate_private_key() -> schemas.AuthJsonWebKey:
     kid = pkey.as_dict(add_kid=True)["kid"]
     data = pkey.as_pem(is_private=True)
     return schemas.AuthJsonWebKey(
-        kid=kid, data=data, valid_from=datetime.datetime.utcnow()
+        kid=kid, data=data, valid_from=datetime.datetime.now(tz=datetime.UTC)
     )

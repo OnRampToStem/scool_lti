@@ -37,7 +37,7 @@ def on_exit(server):
 
 accesslog = "-"
 access_log_format = (
-    "%(t)s %({x-forwarded-for}i)s " '"%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(L)s'
+    '%(t)s %({x-forwarded-for}i)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(L)s'
 )
 errorlog = "-"
 logger_class = CustomGunicornLogger

@@ -83,7 +83,7 @@ async def login_post(
         "title": "SCALE Demo Course",
     }
     target_url = urllib.parse.urljoin(
-        request.url_for("index_api"),
+        str(request.url_for("index_api")),
         app_config.FRONTEND_V2_LAUNCH_PATH,
     )
     context = {
@@ -135,7 +135,7 @@ async def scale_user_token_impersonate(
         logger.error("token impersonate called in production mode")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
-    if not scale_user_request.secret_key.get_secret_value() == app_config.SECRET_KEY:
+    if scale_user_request.secret_key.get_secret_value() != app_config.SECRET_KEY:
         logger.error(
             "token impersonate invalid secret key: %s",
             scale_user_request.secret_key.get_secret_value(),

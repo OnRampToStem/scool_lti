@@ -88,13 +88,13 @@ class UserStore:
                 raise LookupError(user_key)
             if not (user.subject and user.subject.startswith(subject)):
                 raise ValueError(
-                    "Delete aborted, mismatched subject: " "actual != expected",
+                    "Delete aborted, mismatched subject: actual != expected",
                     user.subject,
                     subject,
                 )
             if header and user.header != header:
                 raise ValueError(
-                    "Delete aborted, mismatched header: " "actual != expected",
+                    "Delete aborted, mismatched header: actual != expected",
                     user.header,
                     header,
                 )

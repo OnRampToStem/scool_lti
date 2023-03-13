@@ -6,7 +6,7 @@ text blobs, mostly in JSON format, for the front-end webapp.
 """
 import json
 import logging
-from typing import Any, Union
+from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Request, status
 
@@ -54,8 +54,7 @@ async def create_message(
     check_access(request, subject, "post", body)
     # TODO: extract header from body?
     body_text = json.dumps(body)
-    msg = await db.message_store.create_async(subject, body_text)
-    return msg
+    return await db.message_store.create_async(subject, body_text)
 
 
 @router.put("/{subject}/{msg_id}.json", response_model=schemas.Message)
@@ -108,7 +107,7 @@ def can_access(
     request: Request,
     subject: str,
     action: str,
-    body: Union[str, dict[str, Any]] | None = None,  # noqa unused
+    body: str | dict[str, Any] | None = None,  # noqa: ARG001
 ) -> bool:
     """Returns True if this request is permitted, else False."""
     auth_user: schemas.AuthUser = request.state.auth_user
@@ -140,5 +139,5 @@ def can_access(
     if subject == "users":
         logger.error("Messages.users called but not expected")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-    else:
-        return action == "get"
+
+    return action == "get"

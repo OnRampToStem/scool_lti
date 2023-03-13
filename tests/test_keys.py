@@ -13,14 +13,16 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         self.test_key_1 = schemas.AuthJsonWebKey(
             kid="1",
             data="test_key_1",
-            valid_from=datetime.datetime(2021, 7, 1, 15, 23, 10),
-            valid_to=datetime.datetime.utcnow() + datetime.timedelta(days=30),
+            valid_from=datetime.datetime(2021, 7, 1, 15, 23, 10, tzinfo=datetime.UTC),
+            valid_to=datetime.datetime.now(tz=datetime.UTC)
+            + datetime.timedelta(days=30),
         )
         self.test_key_2 = schemas.AuthJsonWebKey(
             kid="2",
             data="test_key_2",
-            valid_from=datetime.datetime(2021, 7, 2, 10, 55, 27),
-            valid_to=datetime.datetime.utcnow() + datetime.timedelta(days=90),
+            valid_from=datetime.datetime(2021, 7, 2, 10, 55, 27, tzinfo=datetime.UTC),
+            valid_to=datetime.datetime.now(tz=datetime.UTC)
+            + datetime.timedelta(days=90),
         )
 
     @patch("authlib.jose.JsonWebKey.import_key")
@@ -75,7 +77,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         self,
         db_mock,
     ):
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(tz=datetime.UTC)
         delta = datetime.timedelta(days=1)
 
         # valid_from < now < valid_to
@@ -97,7 +99,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         rv = await keys.private_keys()
         self.assertListEqual(rv, [])
 
-        # valid_from <= valid_to < now
+        # valid_from <= valid_to < now  # noqa: ERA001
         self.test_key_1.valid_from = now - delta
         self.test_key_1.valid_to = now - delta
         db_mock.return_value = [self.test_key_1]

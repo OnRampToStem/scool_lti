@@ -35,7 +35,7 @@ logger.info("Is Production: %s", app_config.is_production)
 app = FastAPI(
     title="OR2STEM API",
     version=__version__,
-    lifespan=events.lifespan,
+    lifespan=events.lifespan,  # type: ignore[arg-type]
     docs_url=f"{app_config.PATH_PREFIX}/docs",
     redoc_url=None,
     openapi_url=f"{app_config.PATH_PREFIX}/openapi.json",
@@ -116,7 +116,7 @@ def main() -> None:
     events.on_startup_main()
     uvicorn.run(
         "scale_api.app:app",
-        **run_opts,  # type: ignore
+        **run_opts,  # type: ignore[arg-type]
     )
     events.on_shutdown_main()
 

@@ -83,4 +83,3 @@ def on_startup_main() -> None:
 
 def on_shutdown_main() -> None:
     """Runs once before any web worker processes are started."""
-    pass

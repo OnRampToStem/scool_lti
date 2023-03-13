@@ -141,20 +141,18 @@ class CacheStore:
             entry = session.get(Cache, key)
             if entry:
                 if entry.expire_at is None:
-                    value = entry.value
-                elif entry.expire_at > self.now():
+                    return entry.value  # type: ignore[return-value]
+
+                if entry.expire_at > self.now():
                     if entry.ttl_type == "rolling":
                         entry.expire_at = self._calc_expires(entry.ttl)
                         session.commit()
-                    value = entry.value
-                else:
-                    session.delete(entry)
-                    session.commit()
-                    value = default
-            else:
-                value = default
+                    return entry.value  # type: ignore[return-value]
 
-        return value  # type: ignore
+                session.delete(entry)
+                session.commit()
+
+        return default  # type: ignore[return-value]
 
     def get_many(self, key_prefix: str) -> Mapping[str, str]:
         """Returns entries from the cache.
@@ -173,7 +171,7 @@ class CacheStore:
                         entry.expire_at = self._calc_expires(entry.ttl)
                 else:
                     session.delete(entry)
-        return entries  # type: ignore
+        return entries  # type: ignore[return-value]
 
     def pop(self, key: str, default: T | None = None) -> str | T | None:
         """Returns an entry from the cache else ``default``.
@@ -195,8 +193,7 @@ class CacheStore:
         """Removes all entries that are expired."""
         stmt = sa.delete(Cache).where(Cache.expire_at <= self.now())
         with SessionLocal.begin() as session:
-            rows_purged = session.execute(stmt).rowcount  # type: ignore
-        return rows_purged  # type: ignore
+            return session.execute(stmt).rowcount  # type: ignore
 
     def purge_expired_safe(self) -> None:
         if self.now() < self.next_purge_time:

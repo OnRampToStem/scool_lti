@@ -54,7 +54,7 @@ class AuthUser(BaseModel):
             return []
         if isinstance(v, str):
             return v.split()
-        elif isinstance(v, list):
+        if isinstance(v, list):
             return v
         raise ValueError(v)
 
@@ -204,7 +204,7 @@ class AuthJsonWebKey(BaseModel):
 
     @property
     def is_valid(self) -> bool:
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(tz=datetime.UTC)
         if self.valid_from > now:
             return False
         return self.valid_to is None or self.valid_to > now

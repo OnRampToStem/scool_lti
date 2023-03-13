@@ -49,7 +49,7 @@ def init_auth_users(data):
 
 
 # noinspection PyUnusedLocal
-def init_auth_json_web_keys(data):
+def init_auth_json_web_keys(data):  # noqa: ARG001
     web_keys = db.store.json_web_keys()
     if web_keys:
         print("AuthJsonWebKeys exist, skipping")

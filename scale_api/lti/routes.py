@@ -67,7 +67,7 @@ async def lti_config(request: Request, platform_id: str):
     """
     platform = await platform_or_404(platform_id)
     tool_url = request.url_for(lti_config.__qualname__, platform_id=platform.id)
-    tool_domain = urllib.parse.urlparse(tool_url).hostname
+    tool_domain = urllib.parse.urlparse(str(tool_url)).hostname
     provider_domain = urllib.parse.urlparse(platform.issuer).hostname
     tool_id = "OR2STEM"
     tool_title = "On-Ramp to STEM"
@@ -334,7 +334,7 @@ async def launch_form(
     # the session there is no point in transferring the user to the front-end.
     if state_check_failed:
         request.session[f"lti1p3-state-check-{state}"] = target_url
-        target_url = request.url_for("lti_state_check", state=state)
+        target_url = str(request.url_for("lti_state_check", state=state))
         context = {
             "state_check_value": state,
             "state_check_url": target_url,
@@ -359,11 +359,13 @@ def launch_target_v2(
         return None
     if not (contexts_v2 := app_config.FRONTEND_V2_CONTEXTS):
         return None
-    if "*" != contexts_v2.strip():
+    if contexts_v2.strip() != "*":
         context_key = scale_user.platform_id + "." + scale_user.context_id
-        if context_key not in contexts_v2:
-            if f"{scale_user.platform_id}.*" not in contexts_v2:
-                return None
+        if (
+            context_key not in contexts_v2
+            and f"{scale_user.platform_id}.*" not in contexts_v2
+        ):
+            return None
     base_url = launch_target_base_url(request)
     return urllib.parse.urljoin(base_url, target_path)
 
@@ -381,11 +383,11 @@ def launch_target_v1(request: Request) -> str:
 
 
 def launch_target_base_url(request: Request) -> str:
-    if app_config.is_local:
-        base_url = "http://localhost:8080"
-    else:
-        base_url = request.url_for("index_api")
-    return base_url
+    return (
+        "http://localhost:8080"
+        if app_config.is_local
+        else str(request.url_for("index_api"))
+    )
 
 
 async def deep_link_launch(
@@ -508,7 +510,7 @@ async def login_initiations_form(
     expect_target_uri = request.url_for("launch_form", platform_id=platform_id)
     if expect_target_uri != target_link_uri:
         logger.error(
-            "[%s]: request target_link_uri [%s] " "does not match Platform [%s]",
+            "[%s]: request target_link_uri [%s] does not match Platform [%s]",
             state,
             target_link_uri,
             expect_target_uri,

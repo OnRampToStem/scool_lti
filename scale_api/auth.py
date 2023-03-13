@@ -102,11 +102,9 @@ class ScopePermission:
         if not (self.resource == "*" or self.resource == other.resource):
             return False
         if other.actions:
-            if not (self.actions == {"*"} or self.actions >= other.actions):
-                return False
+            return self.actions == {"*"} or self.actions >= other.actions
         if other.items:
-            if not (self.items == {"*"} or self.items >= other.items):
-                return False
+            return self.items == {"*"} or self.items >= other.items
         return True
 
 
@@ -120,7 +118,7 @@ class OAuth2ClientCredentials(OAuth2):
 
     def __init__(
         self,
-        tokenUrl: str,
+        tokenUrl: str,  # noqa: N803
         scheme_name: str | None = None,
         scopes: dict[str, str] | None = None,
         auto_error: bool = False,
@@ -160,7 +158,7 @@ def verify_password(password_plain: str, password_hash: str) -> bool:
 
 async def request_scale_user(request: Request) -> schemas.ScaleUser:
     """Dependency that routes can use that depend on a ``scale_user``."""
-    return request.state.scale_user  # type: ignore
+    return request.state.scale_user  # type: ignore[no-any-return]
 
 
 async def authorize(
@@ -219,7 +217,7 @@ async def authorize(
     else:
         if not can_access(auth_user, scopes.scopes):
             logger.error(
-                "[%s]: authorize access failure, " "AuthUser: %s, Scopes: %s",
+                "[%s]: authorize access failure, AuthUser: %s, Scopes: %s",
                 state,
                 auth_user,
                 scopes.scopes,
@@ -286,7 +284,7 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
         payload=payload,
         key=app_config.SECRET_KEY,
     )
-    return token.decode(encoding="ascii")  # type: ignore
+    return token.decode(encoding="ascii")  # type: ignore[no-any-return]
 
 
 async def auth_user_from_token(token: str) -> schemas.AuthUser:
@@ -301,23 +299,19 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
         raise ValueError("token value required")
     claims = JWT.decode(token, key=JWT_KEY, claims_options=AUTH_USER_TOKEN_OPTS)
     claims.validate(leeway=30)
-    if claims.get("client_id"):
-        auth_user = schemas.AuthUser(
-            id=claims["sub"],
-            client_id=claims["client_id"],
-            client_secret_hash="none",
-            scopes=claims["scopes"],
-            context=claims["context"],
-        )
+    if client_id := claims.get("client_id"):
+        scopes = claims["scopes"]
     else:
-        auth_user = schemas.AuthUser(
-            id=claims["sub"],
-            client_id=claims["email"],
-            client_secret_hash="none",
-            scopes=[f"role:{r}" for r in claims["roles"]],
-            context=claims["context"],
-        )
-    return auth_user
+        client_id = (claims["email"],)
+        scopes = ([f"role:{r}" for r in claims["roles"]],)
+
+    return schemas.AuthUser(
+        id=claims["sub"],
+        client_id=client_id,
+        client_secret_hash="none",
+        scopes=scopes,
+        context=claims["context"],
+    )
 
 
 def can_access(auth_user: schemas.AuthUser, scopes: list[str] | None) -> bool:

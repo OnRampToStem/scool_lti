@@ -21,9 +21,7 @@ class MessageStore:
         )
         with SessionLocal() as session:
             result = session.execute(stmt)
-            entry_list = [schemas.Message.from_orm(row) for row in result.scalars()]
-
-        return entry_list
+            return [schemas.Message.from_orm(row) for row in result.scalars()]
 
     # noinspection PyMethodMayBeStatic
     def message(self, msg_id: str, subject: str) -> schemas.Message:
@@ -88,13 +86,13 @@ class MessageStore:
                 raise LookupError(msg_id)
             if not (msg.subject and msg.subject.startswith(subject)):
                 raise ValueError(
-                    "Delete aborted, mismatched subject: " "actual != expected",
+                    "Delete aborted, mismatched subject: actual != expected",
                     msg.subject,
                     subject,
                 )
             if header and msg.header != header:
                 raise ValueError(
-                    "Delete aborted, mismatched header: " "actual != expected",
+                    "Delete aborted, mismatched header: actual != expected",
                     msg.header,
                     header,
                 )

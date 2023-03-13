@@ -1,6 +1,5 @@
 [tool.black]
 target-version = ["py311"]
-line-length = 88
 
 [tool.mypy]
 python_version = "3.11"
@@ -28,14 +27,29 @@ disable_error_code = ["no-untyped-def"]
 target-version = "py311"
 line-length = 88
 extend-select = [
+    "A",  # builtins
+    "ARG",  # unused args
     "B",  # flake8-bugbear
+    "C4",  # comprehensions
+    "DTZ", # datetimez
     "E",  # pycodestyle (errors)
+    "ERA",  # eradicate commented out code
     "F",  # Pyflakes
+    "G",  # logging format
     "I",   # isort
+    "ISC",  # implicit string concat
+    "N",  # pep8 naming
+    "PIE",  # misc lints
     "PL",  # Pylint
-    "RUF",
+    "PTH",  # pathlib
+    "Q",  # quotes
+    "RET",  # returns
+    "RSE",  # raises
+    "RUF",  # ruff rules
     "S",  # flake8-bandit
+    "SIM",  # simplify
     "T20",  # flake8-print
+    "TRY",  # tryceratops
     "UP",  # pyupgrade
     "W",  # pycodestyle (warnings)
     "YTT",  # flake8-2020
@@ -45,13 +59,20 @@ ignore = [
     "PLC0414",  # Import alias does not rename original package
     "PLR0913",  # Too many arguments to function call
     "PLR2004",  # Magic values
+    "TRY002",  # Create your own exception
+    "TRY003",  # Avoid specifying long messages outside the exception class
+    "TRY301",  # Abstract `raise` to an inner function
+    "TRY400",  # Use `logging.exception` instead of `logging.error`
 ]
 extend-exclude = [".*", "docker", "docs", "etc", "temp"]
 
 [tool.ruff.per-file-ignores]
-"alembic/env.py" = ["T201"]
-"gunicorn.conf.py" = ["S108"]
+"alembic/env.py" = ["A", "ARG", "ERA001", "T201"]
+"gunicorn.conf.py" = ["A003", "ARG001", "S108"]
 "scale_initdb.py" = ["T201"]
 "scale_api/auth.py" = ["S106"]
+"scale_api/schemas.py" = ["A003", "N805"]
+"scale_api/settings.py" = ["N805"]
+"scale_api/db/models.py" = ["A003"]
 "scale_api/lti/routes.py" = ["PLR0911", "PLR0915"]
 "tests/test_schemas.py" = ["S106"]

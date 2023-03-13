@@ -18,9 +18,7 @@ class ScaleStore:
         stmt = sa.select(Platform)
         with SessionLocal() as session:
             result = session.execute(stmt)
-            platforms = [schemas.Platform.from_orm(row) for row in result.scalars()]
-
-        return platforms
+            return [schemas.Platform.from_orm(row) for row in result.scalars()]
 
     # noinspection PyMethodMayBeStatic
     def platform(self, platform_id: str) -> schemas.Platform:
@@ -29,9 +27,7 @@ class ScaleStore:
             result = session.execute(stmt).scalar()
             if not result:
                 raise LookupError(platform_id)
-            platform = schemas.Platform.from_orm(result)
-
-        return platform
+            return schemas.Platform.from_orm(result)
 
     # noinspection PyMethodMayBeStatic
     def user(self, user_id: str) -> schemas.AuthUser:
@@ -39,9 +35,7 @@ class ScaleStore:
             result = session.get(AuthUser, user_id)
             if not result:
                 raise LookupError(user_id)
-            user = schemas.AuthUser.from_orm(result)
-
-        return user
+            return schemas.AuthUser.from_orm(result)
 
     # noinspection PyMethodMayBeStatic
     def user_by_client_id(self, client_id: str) -> schemas.AuthUser:
@@ -53,24 +47,20 @@ class ScaleStore:
             result = session.execute(stmt).scalar()
             if not result:
                 raise LookupError(client_id)
-            user = schemas.AuthUser.from_orm(result)
-
-        return user
+            return schemas.AuthUser.from_orm(result)
 
     # noinspection PyMethodMayBeStatic
     def json_web_keys(self) -> list[schemas.AuthJsonWebKey]:
         stmt = sa.select(AuthJsonWeKey).where(
             AuthJsonWeKey.valid_from <= sa.func.now(),
             sa.or_(
-                AuthJsonWeKey.valid_to == None,  # noqa comparison op
+                AuthJsonWeKey.valid_to == None,  # noqa: E711
                 AuthJsonWeKey.valid_to > sa.func.now(),
             ),
         )
         with SessionLocal() as session:
             result = session.execute(stmt).scalars()
-            keys = [schemas.AuthJsonWebKey.from_orm(row) for row in result]
-
-        return keys
+            return [schemas.AuthJsonWebKey.from_orm(row) for row in result]
 
     platforms_async = aio.wrap(platforms)
     platform_async = aio.wrap(platform)

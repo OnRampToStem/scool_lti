@@ -4,7 +4,7 @@ from scale_api.settings import ScaleSettings
 
 
 class SettingsTestCase(unittest.TestCase):
-    def s(*args, **kwargs) -> ScaleSettings:
+    def s(self, **kwargs) -> ScaleSettings:
         data = {
             "ENV": "local",
             "DB_URL": "sqlite://test",

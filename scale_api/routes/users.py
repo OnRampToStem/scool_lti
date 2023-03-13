@@ -64,7 +64,7 @@ async def get_users(
     if can_access_all_users(scale_user):
         subject = "users.%"
         logger.info(
-            "Users.get_users::ScaleUser(%s) - " "output_type=[%s] - admin access",
+            "Users.get_users::ScaleUser(%s) - output_type=[%s] - admin access",
             scale_user.email,
             output_type,
         )
@@ -100,13 +100,14 @@ async def get_users(
             "Returning summary of [%s] users for subject: %s", len(results), subject
         )
         return results
-    else:  # assume full output is expected
-        # User objects are large (~5MB), so any more than a single user we stream
-        # them to conserve memory
-        return StreamingResponse(
-            stream_users(subject),  # type: ignore
-            media_type="application/json",
-        )
+
+    # assume full output is expected
+    # User objects are large (~5MB), so any more than a single user we stream
+    # them to conserve memory
+    return StreamingResponse(
+        stream_users(subject),  # type: ignore
+        media_type="application/json",
+    )
 
 
 @router.get("/{user_key}")
@@ -136,15 +137,14 @@ async def get_user(
     else:
         user_body = json.loads(user.body) if user.body is not None else {}
         result = {user.id: user_body}
-        if can_access_all_users(scale_user):
+        if (
+            scale_user.is_student
+            or (scale_user.is_instructor and users_subject(scale_user) == user.subject)
+            or can_access_all_users(scale_user)
+        ):
             return result
-        elif scale_user.is_instructor and users_subject(scale_user) == user.subject:
-            return result
-        elif scale_user.is_student:
-            # We already verified the user_key matches this student
-            return result
-        else:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 
 @router.post("/")
@@ -155,14 +155,13 @@ async def create_user(
     logger.debug("Users.create_user::ScaleUser(%s)", scale_user)
 
     # Make sure a student entry matches on email
-    if scale_user.is_student:
-        if body.get("username") != scale_user.email:
-            logger.error(
-                "Users.create_user mismatch. " "username=%s, email=%s",
-                body.get("username"),
-                scale_user.email,
-            )
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+    if scale_user.is_student and body.get("username") != scale_user.email:
+        logger.error(
+            "Users.create_user mismatch. username=%s, email=%s",
+            body.get("username"),
+            scale_user.email,
+        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     # TODO: creating a user depends on the ``scale_user`` that is authenticated
     #       we should probably provide another way to create users if there's a
@@ -250,4 +249,4 @@ def users_subject(scale_user: schemas.ScaleUser) -> str:
 
 
 def can_access_all_users(scale_user: schemas.ScaleUser) -> bool:
-    return True if set(scale_user.roles) & ROLES_ALL_USERS else False
+    return bool(set(scale_user.roles) & ROLES_ALL_USERS)

@@ -34,9 +34,6 @@ class ScaleSettings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ISSUER: str = "https://scale.fresnostate.edu"
     OAUTH_ACCESS_TOKEN_EXPIRY: int = 3600
-    # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
-    # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
-    # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = [
         "http://localhost",  # type: ignore
         "http://localhost:8080",  # type: ignore
@@ -73,7 +70,7 @@ class ScaleSettings(BaseSettings):
         """Converts a comma-separated string to a list."""
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
-        elif isinstance(v, list | str):
+        if isinstance(v, list | str):
             return v
         raise ValueError(v)
 
