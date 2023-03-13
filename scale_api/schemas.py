@@ -68,12 +68,11 @@ class AuthUser(BaseModel):
     @classmethod
     def from_scale_user(cls, scale_user: "ScaleUser") -> Self:
         """Converts an ``ScaleUser`` to a ``AuthUser``."""
-        roles = ["role:" + r for r in scale_user.roles]
         return cls(
-            id=scale_user.id,
+            id=scale_user.id or scale_user.email,
             client_id=scale_user.email,
             client_secret_hash="none",  # noqa: S106
-            scopes=roles,
+            scopes=["role:" + r for r in scale_user.roles],
             context=scale_user.context,
         )
 
@@ -163,7 +162,9 @@ class ScaleUser(BaseModel):
             roles = []
         return cls(
             id=auth_user.id,
-            email=auth_user.client_id,
+            email=auth_user.client_id,  # type: ignore[arg-type]
+            name=None,
+            picture=None,
             roles=roles,
             context=auth_user.context,
         )

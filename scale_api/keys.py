@@ -124,5 +124,8 @@ def generate_private_key() -> schemas.AuthJsonWebKey:
     kid = pkey.as_dict(add_kid=True)["kid"]
     data = pkey.as_pem(is_private=True)
     return schemas.AuthJsonWebKey(
-        kid=kid, data=data, valid_from=datetime.datetime.now(tz=datetime.UTC)
+        kid=kid,
+        data=data,
+        valid_to=None,
+        valid_from=datetime.datetime.now(tz=datetime.UTC),
     )

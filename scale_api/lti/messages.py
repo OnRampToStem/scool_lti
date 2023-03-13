@@ -127,7 +127,7 @@ class LtiLaunchRequest:
         # noinspection PyTypeChecker
         return schemas.ScaleUser(
             id=lms_userid,
-            email=lms_email,
+            email=lms_email,  # type: ignore[arg-type]
             name=lms_name,
             picture=lms_picture,
             roles=self.roles,
