@@ -29,6 +29,10 @@ TokenCacheItem = namedtuple("TokenCacheItem", "token expires_at")
 ServiceResponse = namedtuple("ServiceResponse", "headers body next_page")
 
 
+class LtiServiceError(Exception):
+    pass
+
+
 async def create_platform_token(platform: schemas.Platform) -> str:
     """Returns a JWT used to call LTI Advantage Services.
 
@@ -147,7 +151,7 @@ class NamesRoleService:
     async def members(self) -> list[dict[str, Any]]:
         nrps = self.launch_request.names_role_service
         if not nrps:
-            raise Exception("Launch Request does not contan the NRPS Service")
+            raise LtiServiceError("Launch Request does not contain the NRPS Service")
         url = nrps["context_memberships_url"]
         result = []
         while url:

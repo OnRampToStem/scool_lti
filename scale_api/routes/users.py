@@ -89,7 +89,9 @@ async def get_users(
         for msg in users:
             msg_body = json.loads(msg.body) if msg.body else {}
             subj_parts = msg.subject.split(".")
-            plat_id = subj_parts[1] if len(subj_parts) == 3 else "scale_api"
+            plat_id = (
+                subj_parts[1] if len(subj_parts) == 3 else "scale_api"  # noqa: PLR2004
+            )
             results[msg.id] = {
                 "username": msg_body.get("username"),
                 "name": msg_body.get("name"),

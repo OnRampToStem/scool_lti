@@ -82,7 +82,7 @@ class ScopePermission:
     @classmethod
     def from_string(cls, scope_str: str) -> Self:
         parts = scope_str.split(":") if scope_str else None
-        if not parts or not 1 <= len(parts) <= 3:
+        if not parts or not 1 <= len(parts) <= 3:  # noqa: PLR2004
             raise ValueError(f"Invalid scope {scope_str}")
         resource = parts[0]
         actions = set()
@@ -93,7 +93,7 @@ class ScopePermission:
             if "write" in actions:
                 # implies read
                 actions.add("read")
-        if size > 2:
+        if size > 2:  # noqa: PLR2004
             items.update(parts[2].split(","))
 
         return cls(resource, actions, items)
@@ -308,7 +308,7 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
     return schemas.AuthUser(
         id=claims["sub"],
         client_id=client_id,
-        client_secret_hash="none",
+        client_secret_hash="none",  # noqa: S106
         scopes=scopes,
         context=claims["context"],
     )
