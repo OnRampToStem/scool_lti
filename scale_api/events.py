@@ -5,7 +5,8 @@ import logging
 
 from fastapi import FastAPI
 
-from . import aio, app_config, settings
+from . import aio
+from .settings import app_config
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ async def on_startup_app(app: FastAPI) -> None:
     """
     loop = asyncio.get_running_loop()
     logger.info("Starting up in loop [%r]", loop)
-    workers = app_config.THREAD_POOL_WORKERS
+    workers = app_config.api.thread_pool_workers
     logger.info("ThreadPoolExecutor(max_workers=%s)", workers)
     executor = concurrent.futures.ThreadPoolExecutor(
         max_workers=workers,
@@ -60,25 +61,21 @@ def on_startup_main() -> None:
     We use this startup event to create and seed the database for local
     development.
     """
-    if app_config.ENV == "local":
+    if app_config.api.is_local:
         import alembic.command
         import alembic.config
 
-        config_file = str(settings.BASE_PATH / "alembic.ini")
+        config_file = str(app_config.base_path / "alembic.ini")
         alembic_cfg = alembic.config.Config(config_file)
         alembic_cfg.set_main_option(
             "script_location",
-            str(settings.BASE_PATH / "alembic"),
+            str(app_config.base_path / "alembic"),
         )
         alembic.command.upgrade(alembic_cfg, "head")
 
-        import scale_api.settings
-        import scale_initdb
+        import scale_api.db.seed
 
-        seed_file = scale_api.settings.BASE_PATH / "scale_initdb.json"
-        if not seed_file.exists():
-            seed_file = scale_api.settings.BASE_PATH / "scale_initdb-example.json"
-        scale_initdb.run(seed_file)
+        scale_api.db.seed.main()
 
 
 def on_shutdown_main() -> None:

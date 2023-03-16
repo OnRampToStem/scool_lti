@@ -11,11 +11,7 @@ from typing import Any
 
 from authlib import jose
 
-from .. import (
-    aio,
-    keys,
-    schemas,
-)
+from .. import aio, keys, schemas
 from .messages import LtiLaunchRequest
 
 logger = logging.getLogger(__name__)
@@ -71,7 +67,7 @@ class LtiServicesClient:
             return cache_item.token  # type: ignore
 
         if self.platform.auth_token_url is None:
-            raise ValueError("Platform does not have a Token URL")
+            raise ValueError("PLATFORM_NO_TOKEN_URL")
 
         auth_url = str(self.platform.auth_token_url)
         jwt = await create_platform_token(self.platform)
@@ -151,7 +147,9 @@ class NamesRoleService:
     async def members(self) -> list[dict[str, Any]]:
         nrps = self.launch_request.names_role_service
         if not nrps:
-            raise LtiServiceError("Launch Request does not contain the NRPS Service")
+            msg = "Launch Request does not contain the NRPS Service"
+            logger.warning(msg)
+            raise LtiServiceError(msg)
         url = nrps["context_memberships_url"]
         result = []
         while url:

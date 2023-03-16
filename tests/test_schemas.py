@@ -122,7 +122,7 @@ class ScaleUserTestCase(unittest.TestCase):
         au = AuthUser(
             id="123",
             client_id="test@test.org",
-            client_secret_hash="$1$foo.bar",
+            client_secret_hash="$1$foo.bar",  # noqa: S106
             scopes=["role:developer", "role:editor"],
             context={"id": "123456", "title": "Math6"},
         )

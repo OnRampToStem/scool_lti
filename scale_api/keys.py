@@ -7,11 +7,7 @@ import time
 
 from authlib import jose
 
-from . import (
-    aio,
-    db,
-    schemas,
-)
+from . import aio, db, schemas
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +51,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
     try:
         ks = jose.JsonWebKey.import_key_set(jwks_json)
     except Exception:
-        logger.error("Failed to import key set: %s", jwks_json)
+        logger.exception("Failed to import key set: %s", jwks_json)
         raise
     else:
         # TODO: check headers to see if there is a ttl use for `expire_in`
@@ -82,7 +78,7 @@ async def private_key() -> jose.RSAKey:
     ``valid_to`` date is provided.
     """
     if not (web_keys := await private_keys()):
-        raise RuntimeError("No JWKS found")
+        raise RuntimeError("JWKS_NOT_FOUND")
 
     main_key = web_keys[0]
     # Given more than one key, return the key that is valid furthest
@@ -100,7 +96,7 @@ async def private_key() -> jose.RSAKey:
             main_key = key
 
     if main_key is None:
-        raise RuntimeError("No valid JWKS found")
+        raise RuntimeError("VALID_JWKS_NOT_FOUND")
 
     return jose.JsonWebKey.import_key(main_key.data.get_secret_value())
 

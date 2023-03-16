@@ -3,10 +3,8 @@ OAuth/OIDC Well Known routes
 """
 from fastapi import APIRouter, Request
 
-from scale_api import (
-    app_config,
-    keys,
-)
+from .. import keys
+from ..settings import app_config
 
 router = APIRouter()
 
@@ -28,7 +26,7 @@ async def jwks():
 async def oauth_server_metadata(request: Request):
     """OAuth 2.0 configuration endpoint."""
     return {
-        "issuer": app_config.JWT_ISSUER,
+        "issuer": app_config.api.jwt_issuer,
         "token_endpoint": request.url_for("oauth_token"),
         "response_types_supported": "token",
         "token_endpoint_auth_methods_supported": [

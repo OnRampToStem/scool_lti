@@ -1,32 +1,23 @@
 """
-Templating library
-
-Provides HTML rendering using Jinja2 templates.
+Templating library for HTML Responses
 """
-from pathlib import Path
-from typing import Any
-
-from fastapi import Request, Response
-from fastapi.templating import Jinja2Templates
-
-TEMPLATE_PATH = Path(__file__).parent / "templates"
-
-_templates = Jinja2Templates(directory=str(TEMPLATE_PATH))
+from fastapi import Response
 
 
-def render(  # type: ignore[no-untyped-def]
-    request: Request, template: str, context: dict[str, Any] | None = None, **kwargs
-) -> Response:
-    """Returns a Response with the content rendered from a template.
-
-    Renders a `text/html` response using the given template and context. If
-    the provided context does not contain the `request` key, one will be
-    created using the provided request object.
+def redirect_lms_auth(target_url: str, token: str) -> Response:
+    body = f"""\
+    <!doctype html>
+    <html lang="en">
+    <head><title>SCALE LMS Launch</title></head>
+    <body onload="document.launch.submit()">
+        <form style="display: none;" name="launch" method="post" action="{target_url}">
+            <input type="hidden" name="token" value="{token}">
+        </form>
+        <p>Please wait while we transfer you to the page you requested.</p>
+        <p>
+        Click <a href="#" onclick="document.launch.submit()">here</a>to transfer now.
+        </p>
+    </body>
+    </html>
     """
-    if context is None:
-        context = {"request": request}
-    elif "request" not in context:
-        context["request"] = request
-    return _templates.TemplateResponse(
-        name=template, context=context, media_type="text/html", **kwargs
-    )
+    return Response(content=body, media_type="text/html")

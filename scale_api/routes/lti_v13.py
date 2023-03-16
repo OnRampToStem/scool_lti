@@ -9,8 +9,6 @@ that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
 """
-import asyncio
-import json
 import logging
 import urllib.parse
 import uuid
@@ -19,6 +17,7 @@ from authlib import jose
 from authlib.oidc.core import IDToken
 from fastapi import (
     APIRouter,
+    Depends,
     Form,
     HTTPException,
     Query,
@@ -29,19 +28,15 @@ from fastapi import (
 )
 from fastapi.responses import RedirectResponse
 
-import scale_api.routes.users as users_route
-from scale_api import (
-    app_config,
-    auth,
+from .. import (
     db,
     keys,
     schemas,
+    security,
     templates,
 )
-from scale_api.lti import (
-    messages,
-    services,
-)
+from ..lti import messages, services
+from ..settings import app_config
 
 logger = logging.getLogger(__name__)
 
@@ -166,20 +161,6 @@ async def launch_query(
     )
 
 
-@router.get("/state-check/{state}")
-async def lti_state_check(request: Request, response: Response, state: str):
-    target_url = request.session.pop(f"lti1p3-state-check-{state}", None)
-    logger.info("[%s]: state check: target_url=[%s]", state, target_url)
-    if not target_url:
-        logger.error("[%s]: state check route failed to read state", state)
-        response.status_code = status.HTTP_409_CONFLICT
-        return {
-            "error": "invalid_state",
-            "error_state": state,
-        }
-    return RedirectResponse(target_url, status_code=status.HTTP_302_FOUND)
-
-
 @router.post("/{platform_id}/launches")
 async def launch_form(
     request: Request,
@@ -222,7 +203,7 @@ async def launch_form(
     # this user-agent.
     state_cookie_key = f"lti1p3-state-{platform_id}"
     state_cookie_val = request.cookies.get(state_cookie_key)
-    if state_check_failed := (state_cookie_val != state):
+    if state_cookie_val != state:
         logger.error(
             "[%s]: state does not match Cookie [%s]\n%r",
             state,
@@ -265,7 +246,7 @@ async def launch_form(
     try:
         scale_user = message_launch.scale_user
     except ValueError as ve:
-        logger.error(
+        logger.warning(
             "[%s]: failed to get ScaleUser from LtiLaunchRequest: %r", state, ve
         )
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -274,24 +255,6 @@ async def launch_form(
             "error_description": str(ve),
             "error_state": state,
         }
-
-    # Check to see whether user already has a launch from another context
-    if session_scale_user := request.session.get("scale_user"):
-        session_scale_user = schemas.ScaleUser(**session_scale_user)
-        if (
-            session_scale_user.id != scale_user.id
-            or session_scale_user.context != scale_user.context
-        ):
-            logger.warning(
-                "[%s]: attempt to launch for a different context"
-                "Session: %s, Launch: %s",
-                state,
-                session_scale_user.context,
-                scale_user.context,
-            )
-
-    logger.info("[%s]: adding scale_user to session: %r", state, scale_user)
-    request.session["scale_user"] = scale_user.session_dict()
 
     await db.cache_store.put_async(
         message_launch.launch_id,
@@ -304,90 +267,17 @@ async def launch_form(
     if message_launch.is_deep_link_launch:
         return await deep_link_launch(request, response, message_launch)
 
-    # From here we just need to determine where to send the user in
-    # order to begin using the SCALE app. First we see if this user is
-    # eligible to be sent to the V2 site.
-
-    if target_url := launch_target_v2(request, scale_user):
-        logger.info("[%s]: redirecting via POST to v2: %s", state, target_url)
-        context = {
-            "token": auth.create_scale_user_token(
-                scale_user,
-                expires_in=LTI_TOKEN_EXPIRY,
-            ),
-            "target_url": target_url,
-        }
-        # TODO: remove this logging at some point since the token is sensitive
-        logger.info("[%s]: v2 context: %r", state, context)
-        response = templates.render(request, "scale_lms_auth.html", context)
-        response.delete_cookie(state_cookie_key)
-        return response
-
-    # Fallback to sending the user to the V1 site
-
-    target_url = launch_target_v1(request)
-    target_headers = NO_CACHE_HEADERS
-
-    # If the state check failed, this indicates a possible problem with the
-    # browser accepting cookies. Use a temporarily same-site redirect to
-    # see if we can read from the session, since without being able to read
-    # the session there is no point in transferring the user to the front-end.
-    if state_check_failed:
-        request.session[f"lti1p3-state-check-{state}"] = target_url
-        target_url = str(request.url_for("lti_state_check", state=state))
-        context = {
-            "state_check_value": state,
-            "state_check_url": target_url,
-        }
-        return templates.render(request, "lti_state_check.html", context)
-
-    logger.info("[%s]: redirecting: %s", state, target_url)
-    response = RedirectResponse(
-        target_url,
-        headers=target_headers,
-        status_code=status.HTTP_302_FOUND,
-    )
-    response.delete_cookie(state_cookie_key)
-    return response
-
-
-def launch_target_v2(
-    request: Request,
-    scale_user: schemas.ScaleUser,
-) -> str | None:
-    if not (target_path := app_config.FRONTEND_V2_LAUNCH_PATH):
-        return None
-    if not (contexts_v2 := app_config.FRONTEND_V2_CONTEXTS):
-        return None
-    if contexts_v2.strip() != "*":
-        context_key = scale_user.platform_id + "." + scale_user.context_id
-        if (
-            context_key not in contexts_v2
-            and f"{scale_user.platform_id}.*" not in contexts_v2
-        ):
-            return None
-    base_url = launch_target_base_url(request)
-    return urllib.parse.urljoin(base_url, target_path)
-
-
-def launch_target_v1(request: Request) -> str:
-    base_url = launch_target_base_url(request)
-    if app_config.is_production:
-        target_path = "/question-editor/"
-    elif app_config.is_local:
-        target_path = "/"
-    else:
-        target_path = f"/{app_config.ENV}/question-editor/"
-
-    return urllib.parse.urljoin(base_url, target_path)
-
-
-def launch_target_base_url(request: Request) -> str:
-    return (
+    base_url = (
         "http://localhost:8080"
-        if app_config.is_local
+        if app_config.api.is_local
         else str(request.url_for("index_api"))
     )
+    target_url = urllib.parse.urljoin(base_url, app_config.api.frontend_launch_path)
+    logger.info("[%s]: redirecting via POST to v2: %s", state, target_url)
+    token = security.create_scale_user_token(scale_user, expires_in=LTI_TOKEN_EXPIRY)
+    response = templates.redirect_lms_auth(target_url, token)
+    response.delete_cookie(state_cookie_key)
+    return response
 
 
 async def deep_link_launch(
@@ -583,15 +473,15 @@ async def login_initiations_form(
     "/members",
     response_model=list[schemas.ScaleUser],
     response_model_exclude_unset=True,
-    dependencies=[Security(auth.authorize)],
+    dependencies=[Security(security.authorize)],
 )
-async def names_role_service(request: Request):
-    scale_user = request.state.scale_user
-
+async def names_role_service(
+    scale_user: schemas.ScaleUser = Depends(security.req_scale_user),
+):
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
     if scale_user.platform_id == "scale_api":
-        return await test_names_role_service(scale_user)
+        return []
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
@@ -608,45 +498,6 @@ async def names_role_service(request: Request):
         for m in members
         if m.get("email")
     ]
-
-
-async def test_names_role_service(scale_user: schemas.ScaleUser):
-    """Returns users from the local scale database.
-
-    If the endpoint is called from outside the LTI context such as when
-    testing, the users that are already stored in the database are
-    returned and not LTI call is attempted.
-    """
-    if not (
-        scale_user.is_instructor
-        or set(scale_user.roles)
-        and users_route.ROLES_ALL_USERS
-    ):
-        logger.error("lti.members unauthorized request from ScaleUser: %s", scale_user)
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-
-    subject = users_route.users_subject(scale_user)
-
-    def iter_users() -> list[schemas.ScaleUser]:
-        results = []
-        for user in db.user_store.users(subject):
-            if user.header is None or user.body is None:
-                continue
-            user_id = user.header + "@scale_api"
-            _, _, context_id = user.subject.split(".", maxsplit=2)
-            body = json.loads(user.body)
-            member = schemas.ScaleUser(
-                id=user_id,
-                email=body["username"],
-                name=body.get("name"),
-                picture=body.get("pic"),
-                roles=[body.get("role", "Learner")],
-                context={"id": context_id, "title": ""},
-            )
-            results.append(member)
-        return results
-
-    return await asyncio.to_thread(iter_users)
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:

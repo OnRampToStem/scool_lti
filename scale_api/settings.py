@@ -3,87 +3,131 @@ Application Settings and Configuration
 
 Application-wide configuration settings that are read in from the Environment.
 """
+import functools
+import logging.config
 import secrets
 from pathlib import Path
 from typing import Any
 
-from pydantic import AnyHttpUrl, BaseSettings, validator
+from pydantic import BaseSettings, validator
 
 BASE_PATH = Path(__file__).parent.parent
 
 VALID_ENVIRONMENTS = ("local", "sandbox", "dev", "prod")
 
 
-class ScaleSettings(BaseSettings):
+class SharedSettings(BaseSettings):
+    class Config:
+        env_file = BASE_PATH / ".env"
+
+
+class LogSettings(SharedSettings, env_prefix="LOG_"):
+    level_root: str = "WARNING"
+    level_app: str = "INFO"
+
+
+class DatabaseSettings(SharedSettings, env_prefix="SCALE_DB_"):
+    url: str = f"sqlite:///{BASE_PATH}/scale_db.sqlite?check_same_thread=False"
+    debug: bool = False
+    seed_file: Path | None = None
+
+
+class APISettings(SharedSettings, env_prefix="SCALE_"):
     """Main app settings.
 
     The attributes are populated from OS environment variables that are
     prefixed by ``SCALE_``.
     """
 
-    ENV: str = "local"
+    env: str = "local"
+    debug_app: bool = False
+    path_prefix: str = "/api"
+    secret_key: str = secrets.token_urlsafe(32)
+    jwt_algorithm: str = "HS256"
+    jwt_issuer: str = "https://scale.fresnostate.edu"
+    oauth_access_token_expiry: int = 3600
+    thread_pool_workers: int = 10
+    use_ssl_for_app_run_local: bool = True
+    frontend_launch_path: str = "/dyna/payload.php"
 
-    DB_URL: str = f"sqlite:///{BASE_PATH}/scale_db.sqlite?check_same_thread=False"
-    DEBUG_DB: bool = False
-
-    DEBUG_APP: bool = False
-
-    PATH_PREFIX: str = "/api"
-
-    SECRET_KEY: str = secrets.token_urlsafe(32)
-    JWT_ALGORITHM: str = "HS256"
-    JWT_ISSUER: str = "https://scale.fresnostate.edu"
-    OAUTH_ACCESS_TOKEN_EXPIRY: int = 3600
-    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = [
-        "http://localhost",  # type: ignore
-        "http://localhost:8080",  # type: ignore
-    ]
-    SESSION_MAX_AGE: int = 60 * 60 * 12  # 12 hours
-    THREAD_POOL_WORKERS: int = 10
-
-    USE_SSL_FOR_APP_RUN_LOCAL: bool = True
-
-    FRONTEND_V2_LAUNCH_PATH: str | None = None
-    # Comma separated list of `platform_id.context_id` values, or
-    # `platform_id.*` for all courses in the platform.
-    FRONTEND_V2_CONTEXTS: str | None = None
-
-    @validator("ENV")
-    def verify_environment(cls, v: str) -> str:
+    @validator("env")
+    def verify_environment(cls, v: str) -> str:  # noqa: N805
         """Raises a ``ValueError`` if the provided environment is not valid."""
         if v not in VALID_ENVIRONMENTS:
-            raise ValueError(
-                f"Invalid environment [{v}], must be one of: "
-                f'{" ".join(VALID_ENVIRONMENTS)}'
-            )
-        return v
+            msg = f"Invalid env [{v}], must be one of: {' '.join(VALID_ENVIRONMENTS)}"
+            raise ValueError(msg)
 
-    @validator("DB_URL")
-    def verify_sqlite_only_local(cls, v: str, values: dict[str, Any]) -> str:
-        """Raises a ``ValueError`` if sqlite is used for a non-local environment."""
-        if v.startswith("sqlite") and values.get("ENV") != "local":
-            raise ValueError("Sqlite DB_URL should only be used in local environments")
-        return v
+        db_url = DatabaseSettings().url
+        if db_url.startswith("sqlite") and v != "local":
+            msg = "Sqlite DB_URL should only be used in local environments"
+            raise ValueError(msg)
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:
-        """Converts a comma-separated string to a list."""
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        if isinstance(v, list | str):
-            return v
-        raise ValueError(v)
+        return v
 
     @property
     def is_production(self) -> bool:
         """Returns True if the environment is set to Production mode."""
-        return self.ENV == "prod"
+        return self.env == "prod"
 
     @property
     def is_local(self) -> bool:
         """Returns True if the environment is set to Local model."""
-        return self.ENV == "local"
+        return self.env == "local"
 
-    class Config:
-        env_file = BASE_PATH / ".env"
-        env_prefix = "SCALE_"
+
+class AppConfig:
+    """Application configuration.
+
+    Provides cached access to all application configuration classes.
+    """
+
+    def __init__(self) -> None:
+        logging.config.dictConfig(self.log_config)
+
+    @property
+    def base_path(self) -> Path:
+        return BASE_PATH
+
+    @functools.cached_property
+    def api(self) -> APISettings:
+        return APISettings()
+
+    @functools.cached_property
+    def db(self) -> DatabaseSettings:
+        return DatabaseSettings()
+
+    @functools.cached_property
+    def log(self) -> LogSettings:
+        return LogSettings()
+
+    @functools.cached_property
+    def log_config(self) -> dict[str, Any]:
+        return {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "basic": {
+                    "format": "%(asctime)s[%(levelname)s]%(name)s: %(message)s",
+                    "datefmt": "%Y-%m-%dT%H:%M:%S",
+                }
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "basic",
+                    "stream": "ext://sys.stdout",
+                },
+            },
+            "loggers": {
+                "": {
+                    "handlers": ["console"],
+                    "level": self.log.level_root,
+                },
+                "scale_api": {
+                    "level": self.log.level_app,
+                },
+            },
+        }
+
+
+app_config = AppConfig()

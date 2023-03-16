@@ -5,10 +5,8 @@ from typing import TypeVar
 
 import sqlalchemy as sa
 
-from scale_api import aio
-
-from .. import errors
-from ..core import SessionLocal, new_uuid
+from ... import aio
+from ..core import IntegrityError, SessionLocal, new_uuid
 from ..models import Cache
 
 logger = logging.getLogger(__name__)
@@ -120,7 +118,7 @@ class CacheStore:
             try:
                 session.add_all(entries)
                 session.commit()
-            except errors.IntegrityError:
+            except IntegrityError:
                 session.rollback()
                 # Do a purge, so we don't try to update expired entries
                 self.purge_expired()
@@ -144,7 +142,7 @@ class CacheStore:
                     return entry.value  # type: ignore[return-value]
 
                 if entry.expire_at > self.now():
-                    if entry.ttl_type == "rolling":
+                    if entry.ttl_type == "rolling" and entry.ttl is not None:
                         entry.expire_at = self._calc_expires(entry.ttl)
                         session.commit()
                     return entry.value  # type: ignore[return-value]
@@ -167,7 +165,7 @@ class CacheStore:
             for entry in session.execute(stmt).scalars():
                 if entry.expire_at is None or entry.expire_at > now:
                     entries[entry.key] = entry.value
-                    if entry.ttl_type == "rolling":
+                    if entry.ttl_type == "rolling" and entry.ttl is not None:
                         entry.expire_at = self._calc_expires(entry.ttl)
                 else:
                     session.delete(entry)
@@ -183,7 +181,7 @@ class CacheStore:
             if entry is None:
                 value = default
             elif entry.expire_at is None or entry.expire_at > self.now():
-                value = entry.value
+                value = entry.value  # type: ignore[assignment]
             else:
                 value = default
             session.delete(entry)

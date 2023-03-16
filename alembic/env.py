@@ -3,8 +3,8 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from scale_api import app_config
 from scale_api.db import models
+from scale_api.settings import app_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,17 +14,11 @@ config = context.config
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 target_metadata = models.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-config.set_main_option("sqlalchemy.url", app_config.DB_URL)
+config.set_main_option("sqlalchemy.url", app_config.db.url)
 
 
 def run_migrations_offline():
@@ -51,7 +45,7 @@ def run_migrations_offline():
         context.run_migrations()
 
 
-def include_object(object, name, type_, reflected, compare_to):
+def include_object(object, name, type_, reflected, compare_to):  # noqa: A002,ARG001
     scale_tabs = (
         "auth_jwks",
         "auth_users",
@@ -61,7 +55,7 @@ def include_object(object, name, type_, reflected, compare_to):
         "platforms",
     )
     if type_ == "table" and name not in scale_tabs:
-        print("Skipping object with None schema", name)
+        print("Skipping object with None schema", name)  # noqa: T201
         return False
     return True
 

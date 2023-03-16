@@ -5,27 +5,14 @@ API for the OR2STEM project.
 # Configuration
 
 Environment variables are used for configuration settings. For local
-development rename the `env-example.txt` to `.env` and update the values
-appropriately.
+development review the `scale_api.settings` module and create a `.env` file
+in the project root with the settings that are needed.
 
-# Running Locally
-
-## Configuration
-
-Requires a `.env` file in the root of the project directory.
-
-## Database Setup
-
-Sqlite is used for local development when running the app directly from
-Python. When running locally, the initdb script is called at startup.
-If a custom `scale_initdb.json` is not provided, the provided
-`scale_initdb-example.json` will be used to seed the database.
-
-## Running with Python
+# Running with Python
 
 Requires Python 3.11.
 
-### Virtualenv Setup
+## Virtualenv Setup
 
 It is recommended to set up a virtualenv for the project
 
@@ -41,20 +28,20 @@ or if on Linux
 
 then install the project dependencies
 
-    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
 
-### Running
+# Running
 
 To run the project
 
-    python -m scale_api.app
+    python -m scale_api
 
 This will start up the server using self-signed certificates on port 443 and
 can be accessed via
 
     https://localhost/api
 
-## Running with Docker
+# Running with Docker
 
 Docker is the recommended method to run a local server. For an alternative,
 the server can be run using Python (see following section). When running with
@@ -76,6 +63,11 @@ OpenAPI schema documentation is available at:
     https://localhost/api/docs
 
 # Database
+
+Sqlite is used for local development when running the app directly from
+Python. When running locally, the `scale_api.db.seed` module is run at startup.
+Use the OS Environment variable `SCALE_DB_SEED_FILE` to set the full path to
+the file to use to seed the database. See the example seed file format below.
 
 ## Database Setup
 
@@ -106,19 +98,31 @@ create schema if not exists authorization scale_api;
 grant select on all tables in schema public to scale_api;
 ```
 
-## Initializing
+### Example Seed File
 
-The database tables can be initialized from a json file. For an example, see
-`scale_initdb-example.json`. Make a copy of this file and pass it as an
-argument to the initdb script (see below).
+```json
 
-Before running the initdb script, ensure you have a properly configured `.env`
-file and execute:
-
-    python scale_initdb.py [path to json seed file]
-
-If an argument is not provided, it assumes there is a file in the same directory
-named `scale_initdb.json` and will use it to initialize the database.
+{
+    "platforms": [
+        {
+            "id": "87e927ab1abb46d6868760f7a081c178",
+            "name": "Canvas LMS Docker Test Rig",
+            "issuer": "https://canvas.instructure.com",
+            "oidc_auth_url": "http://canvas.docker/api/lti/authorize_redirect",
+            "auth_token_url": "http://canvas.docker/login/oauth2/token",
+            "jwks_url": "http://canvas.docker/api/lti/security/jwks",
+            "client_id": "10000000000001"
+        }
+    ],
+    "auth_users": [
+        {
+            "client_id": "scaleadmin@mail.fresnostate.edu",
+            "client_secret": "sekret",
+            "scopes": "role:superuser"
+        }
+    ]
+}
+```
 
 ## Migrations
 

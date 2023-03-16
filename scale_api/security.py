@@ -20,38 +20,42 @@ import time
 from dataclasses import dataclass
 from typing import Any, Self
 
-import authlib.jose.errors
 from authlib import jose
+from authlib.jose.errors import JoseError
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.openapi.models import OAuthFlowClientCredentials
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.security import (
+    HTTPBasic,
+    HTTPBasicCredentials,
     OAuth2,
     SecurityScopes,
 )
 from fastapi.security.utils import get_authorization_scheme_param
 from passlib.context import CryptContext
 
-from scale_api import (
-    app_config,
-    schemas,
-)
+from . import db, schemas
+from .settings import app_config
 
 logger = logging.getLogger(__name__)
 
-JWT_KEY = app_config.SECRET_KEY
-JWT_ALGORITHM = app_config.JWT_ALGORITHM
-JWT_ISSUER = app_config.JWT_ISSUER
+JWT_KEY = app_config.api.secret_key
+JWT_ALGORITHM = app_config.api.jwt_algorithm
+JWT_ISSUER = app_config.api.jwt_issuer
 
 AUTH_USER_TOKEN_OPTS = {
-    "iss": {"essential": True, "value": app_config.JWT_ISSUER},
-    "aud": {"essential": True, "value": app_config.JWT_ISSUER},
+    "iss": {"essential": True, "value": JWT_ISSUER},
+    "aud": {"essential": True, "value": JWT_ISSUER},
     "sub": {"essential": True},
 }
 
-JWT = jose.JsonWebToken([app_config.JWT_ALGORITHM])
+JWT = jose.JsonWebToken([JWT_ALGORITHM])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class AuthorizeError(Exception):
+    pass
 
 
 @dataclass
@@ -83,7 +87,7 @@ class ScopePermission:
     def from_string(cls, scope_str: str) -> Self:
         parts = scope_str.split(":") if scope_str else None
         if not parts or not 1 <= len(parts) <= 3:  # noqa: PLR2004
-            raise ValueError(f"Invalid scope {scope_str}")
+            raise ValueError("SCOPE", scope_str)
         resource = parts[0]
         actions = set()
         items = set()
@@ -142,8 +146,10 @@ class OAuth2ClientCredentials(OAuth2):
 
 
 oauth2_token = OAuth2ClientCredentials(
-    tokenUrl=f"{app_config.PATH_PREFIX}/v1/auth/oauth/token", auto_error=False
+    tokenUrl=f"{app_config.api.path_prefix}/v1/auth/oauth/token", auto_error=False
 )
+# We also support HTTP Basic auth as a fallback for Bearer tokens
+http_basic = HTTPBasic(auto_error=False)
 
 
 def hash_password(password_plain: str) -> str:
@@ -156,7 +162,7 @@ def verify_password(password_plain: str, password_hash: str) -> bool:
     return pwd_context.verify(password_plain, password_hash)
 
 
-async def request_scale_user(request: Request) -> schemas.ScaleUser:
+def req_scale_user(request: Request) -> schemas.ScaleUser:
     """Dependency that routes can use that depend on a ``scale_user``."""
     return request.state.scale_user  # type: ignore[no-any-return]
 
@@ -164,14 +170,15 @@ async def request_scale_user(request: Request) -> schemas.ScaleUser:
 async def authorize(
     request: Request,
     scopes: SecurityScopes,
-    bearer_token: str = Depends(oauth2_token),
+    bearer_token: str | None = Depends(oauth2_token),  # noqa: B008
+    basic_creds: HTTPBasicCredentials | None = Depends(http_basic),  # noqa: B008
 ) -> schemas.AuthUser:
     """Main security dependency for routes requiring authentication.
 
     All routes defined in ``scale_api.routes`` that require authentication
     and authorization depend on this function. This function first looks
     for auth info in the form of a Bearer token in the ``Authorization``
-    HTTP Header. It falls back to looking in the request session.
+    HTTP Header. It falls back to looking for Basic Auth creds.
 
     If the request is both authenticated and authorized the following state
     values will be set on the request:
@@ -185,48 +192,41 @@ async def authorize(
     """
     state = request.client.host if request.client else "0.0.0.0"  # noqa: S104
     logger.info(
-        "[%s]: authorize(bearer_token=[%s], scopes=[%s])",
+        "[%s]: authorize(bearer_token=[%s], basic_creds=[%s], scopes=[%s])",
         state,
         bearer_token,
+        basic_creds.username if basic_creds else None,
         scopes.scope_str,
     )
-    # noinspection PyUnusedLocal
-    auth_user = scale_user = None
+
     try:
-        if bearer_token:
+        if bearer_token is not None:
             auth_user = await auth_user_from_token(bearer_token)
-            logger.info(
-                "[%s]: authorize from bearer token AuthUser: %s", state, auth_user
-            )
-        elif session_user := request.session.get("scale_user"):
-            scale_user = schemas.ScaleUser.parse_obj(session_user)
-            auth_user = schemas.AuthUser.from_scale_user(scale_user)
-            logger.info("[%s]: authorize from session ScaleUser: %s", state, scale_user)
-        elif session_user := request.session.get("au"):
-            auth_user = schemas.AuthUser.parse_obj(session_user)
-            logger.info("[%s]: authorize from session AuthUser: %s", state, auth_user)
+            logger.info("[%s]: authorize from bearer token %r", state, auth_user)
+        elif basic_creds is not None:
+            auth_user = await auth_user_from_basic_creds(basic_creds)
+            logger.info("[%s]: authorize from basic auth %r", state, auth_user)
         else:
-            raise LookupError("No token or session values found")
-    except (LookupError, ValueError, authlib.jose.errors.JoseError) as exc:
-        logger.error("[%s]: authorize failed: %r", state, exc)
+            raise AuthorizeError("CREDENTIALS_REQUIRED")  # noqa: TRY301
+    except AuthorizeError as exc:
+        logger.warning("[%s]: authorize failed: %r", state, exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": "Basic"},
         ) from None
-    else:
-        if not can_access(auth_user, scopes.scopes):
-            logger.error(
-                "[%s]: authorize access failure, AuthUser: %s, Scopes: %s",
-                state,
-                auth_user,
-                scopes.scopes,
-            )
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-        request.state.auth_user = auth_user
-        if not scale_user:
-            scale_user = schemas.ScaleUser.from_auth_user(auth_user)
-        request.state.scale_user = scale_user
+
+    if not can_access(auth_user, scopes.scopes):
+        logger.error(
+            "[%s]: authorize access failure, AuthUser: %s, Scopes: %s",
+            state,
+            auth_user,
+            scopes.scopes,
+        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+    request.state.auth_user = auth_user
+    request.state.scale_user = schemas.ScaleUser.from_auth_user(auth_user)
 
     return auth_user
 
@@ -271,7 +271,7 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
     not used. The Issuer and Audience for this JWT are set to this app.
     """
     if expires_in == -1:
-        expires_in = app_config.OAUTH_ACCESS_TOKEN_EXPIRY
+        expires_in = app_config.api.oauth_access_token_expiry
     now = int(time.time())
     issued_at = now - 5
     expires_at = now + expires_in
@@ -280,9 +280,9 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
     payload["iss"] = JWT_ISSUER
     payload["aud"] = JWT_ISSUER
     token = JWT.encode(
-        header={"alg": app_config.JWT_ALGORITHM},
+        header={"alg": JWT_ALGORITHM},
         payload=payload,
-        key=app_config.SECRET_KEY,
+        key=app_config.api.secret_key,
     )
     return token.decode(encoding="ascii")  # type: ignore[no-any-return]
 
@@ -296,9 +296,20 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
     specify role scopes in addition to resource:action based scopes.
     """
     if not token:
-        raise ValueError("token value required")
-    claims = JWT.decode(token, key=JWT_KEY, claims_options=AUTH_USER_TOKEN_OPTS)
-    claims.validate(leeway=30)
+        raise AuthorizeError("TOKEN_REQUIRED")
+
+    try:
+        claims = JWT.decode(token, key=JWT_KEY, claims_options=AUTH_USER_TOKEN_OPTS)
+    except JoseError:
+        logger.exception("token decode failed: %s", token)
+        raise AuthorizeError("TOKEN_FORMAT") from None
+
+    try:
+        claims.validate(leeway=30)
+    except JoseError:
+        logger.exception("token claim validation failed: %s", claims)
+        raise AuthorizeError("TOKEN_CLAIMS") from None
+
     if client_id := claims.get("client_id"):
         scopes = claims["scopes"]
     else:
@@ -312,6 +323,19 @@ async def auth_user_from_token(token: str) -> schemas.AuthUser:
         scopes=scopes,
         context=claims["context"],
     )
+
+
+async def auth_user_from_basic_creds(
+    basic_creds: HTTPBasicCredentials,
+) -> schemas.AuthUser:
+    try:
+        auth_user = await db.store.user_by_client_id_async(basic_creds.username)
+    except LookupError:
+        raise AuthorizeError("USER_NOT_FOUND", basic_creds.username) from None
+    else:
+        if not verify_password(basic_creds.password, auth_user.client_secret_hash):
+            raise AuthorizeError("PASSWORD_MISMATCH")
+        return auth_user
 
 
 def can_access(auth_user: schemas.AuthUser, scopes: list[str] | None) -> bool:

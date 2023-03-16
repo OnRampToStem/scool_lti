@@ -1,15 +1,17 @@
 import uuid
 
 import sqlalchemy as sa
+import sqlalchemy.exc
 import sqlalchemy.orm
 
-from scale_api import app_config
+from ..settings import app_config
 
+IntegrityError = sqlalchemy.exc.IntegrityError
 Session = sqlalchemy.orm.Session
 
 engine = sa.create_engine(
-    app_config.DB_URL,
-    echo=app_config.DEBUG_DB,
+    app_config.db.url,
+    echo=app_config.db.debug,
     pool_recycle=3600,  # using `pool_pre_ping=True` seems like overkill
 )
 

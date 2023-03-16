@@ -3,14 +3,14 @@ import os
 
 from gunicorn import glogging
 
-import scale_api
+from scale_api.settings import app_config
 
 WORKER_COUNT = int(os.getenv("WEB_CONCURRENCY", os.cpu_count() * 2))  # noqa: PLW1508
 
 
 class HealthCheckFilter(logging.Filter):
     def filter(self, record):
-        prefix = scale_api.app_config.PATH_PREFIX
+        prefix = app_config.api.path_prefix
         return f"GET {prefix}/lb-status" not in record.getMessage()
 
 
@@ -41,7 +41,7 @@ access_log_format = (
 )
 errorlog = "-"
 logger_class = CustomGunicornLogger
-logconfig_dict = scale_api.LOGGING
+logconfig_dict = app_config.log_config
 worker_tmp_dir = "/dev/shm"
 forwarded_allow_ips = "*"
 proxy_allow_ips = "*"

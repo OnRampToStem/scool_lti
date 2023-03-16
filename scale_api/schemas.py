@@ -20,7 +20,7 @@ class Platform(BaseModel):
     A standalone schema class for ``scale_api.db.Platform``.
     """
 
-    id: str
+    id: str  # noqa: A003
     name: str
     issuer: str
     oidc_auth_url: HttpUrl
@@ -39,7 +39,7 @@ class AuthUser(BaseModel):
     A standalone schema class for ``scale_api.db.AuthUser``.
     """
 
-    id: str
+    id: str  # noqa: A003
     client_id: str
     client_secret_hash: str
     is_active: bool = True
@@ -48,7 +48,7 @@ class AuthUser(BaseModel):
     context: Mapping[str, str] | None
 
     @validator("scopes", pre=True)
-    def assemble_scopes(cls, v: str | (list[str] | None)) -> list[str]:
+    def assemble_scopes(cls, v: str | (list[str] | None)) -> list[str]:  # noqa: N805
         """Converts a space separated scope string to a list."""
         if v is None:
             return []
@@ -91,7 +91,7 @@ class ScaleUser(BaseModel):
     Canvas.
     """
 
-    id: str | None
+    id: str | None  # noqa: A003
     email: EmailStr
     name: str | None
     picture: str | None
@@ -119,7 +119,7 @@ class ScaleUser(BaseModel):
         if self.id is not None:
             user_id, sep, other = self.id.rpartition("@")
             return user_id if sep else other
-        raise ValueError(f"Unable to determine UUID for this user: {self!r}")
+        raise ValueError("USER_ID", repr(self))
 
     @property
     def platform_id(self) -> str:
@@ -170,26 +170,10 @@ class ScaleUser(BaseModel):
         )
 
     @validator("roles", each_item=True)
-    def normalize_roles(cls, v: str) -> str:
+    def normalize_roles(cls, v: str) -> str:  # noqa: N805
         if v.startswith("http://purl.imsglobal.org/vocab/lis/v2/membership#"):
             return v.rsplit("#")[1]
         return v
-
-
-class ScaleUserImpersonationRequest(ScaleUser):
-    """Specialized ScaleUser run-as request.
-
-    This is used to allow local developers to impersonate a ScaleUser.
-    This should only be used in non-production environments and is meant to
-    allow devs to provide the ``scale_api.app_config.SECRET_KEY`` and provide
-    custom ``ScaleUser`` values for testing purposes.
-    """
-
-    secret_key: SecretStr
-
-    def session_dict(self) -> dict[str, Any]:
-        """Returns a dict object suitable for storing in a web session."""
-        return self.dict(exclude={"secret_key"}, exclude_defaults=True)
 
 
 class AuthJsonWebKey(BaseModel):
@@ -209,42 +193,6 @@ class AuthJsonWebKey(BaseModel):
         if self.valid_from > now:
             return False
         return self.valid_to is None or self.valid_to > now
-
-    class Config:
-        orm_mode = True
-
-
-class Message(BaseModel):
-    """Messages.
-
-    A standalone schema class for ``scale_api.db.Message``.
-    """
-
-    id: str
-    subject: str
-    header: str | None
-    body: str | None
-    status: str = "active"
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
-
-    class Config:
-        orm_mode = True
-
-
-class BinaryFile(BaseModel):
-    """Binary File.
-
-    A standalone schema class for ``scale_api.db.BinData``.
-    """
-
-    id: str
-    content_type: str = "application/octet-stream"
-    name: str | None
-    status: str = "active"
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
-    data: bytes
 
     class Config:
         orm_mode = True

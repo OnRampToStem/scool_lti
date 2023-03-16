@@ -31,7 +31,9 @@ class Platform(Base):
 
     __tablename__ = "platforms"
 
-    id: Mapped[str] = mapped_column(sa.String(32), primary_key=True, default=new_uuid)
+    id: Mapped[str] = mapped_column(  # noqa: A003
+        sa.String(32), primary_key=True, default=new_uuid
+    )
     name: Mapped[str] = mapped_column(sa.String(100))
     issuer: Mapped[str | None]
     oidc_auth_url: Mapped[str | None]
@@ -57,7 +59,9 @@ class AuthUser(Base):
 
     __tablename__ = "auth_users"
 
-    id: Mapped[str] = mapped_column(sa.String(32), primary_key=True, default=new_uuid)
+    id: Mapped[str] = mapped_column(  # noqa: A003
+        sa.String(32), primary_key=True, default=new_uuid
+    )
     client_id: Mapped[str] = mapped_column(sa.String(128), unique=True)
     client_secret_hash: Mapped[str | None] = mapped_column(sa.String(128))
     scopes: Mapped[str | None]
@@ -119,36 +123,6 @@ class AuthJsonWeKey(Base):
         )
 
 
-class Message(Base):
-    """A generic message store.
-
-    This represents a generic text blob storage.
-    """
-
-    __tablename__ = "messages"
-
-    id: Mapped[str] = mapped_column(sa.String(255), primary_key=True, default=new_uuid)
-    subject: Mapped[str | None] = mapped_column(sa.String(255), index=True)
-    header: Mapped[str | None]
-    body: Mapped[str | None]
-    status: Mapped[str | None] = mapped_column(sa.String(10), default="active")
-    created_at: Mapped[datetime.datetime | None] = mapped_column(
-        sa.DateTime, default=sa.func.now()
-    )
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(
-        sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()
-    )
-
-    def __repr__(self) -> str:
-        return (
-            "Message("
-            f"id={self.id!r}"
-            f", subject={self.subject!r}"
-            f", status={self.status!r}"
-            ")"
-        )
-
-
 class Cache(Base):
     """Cache table.
 
@@ -175,38 +149,4 @@ class Cache(Base):
             f"ttl_type={self.ttl_type}, "
             f"expire_at={self.expire_at}, "
             f")"
-        )
-
-
-class BinData(Base):
-    """Binary Data table.
-
-    Designed to store any arbitrary binary data, but primarily used in order
-    to store file attachments.
-    """
-
-    __tablename__ = "bin_data"
-
-    id: Mapped[str] = mapped_column(sa.String(255), primary_key=True, default=new_uuid)
-    content_type: Mapped[str | None] = mapped_column(
-        sa.String(255), default="application/octet-stream"
-    )
-    name: Mapped[str | None] = mapped_column(sa.String(255))
-    status: Mapped[str | None] = mapped_column(sa.String(10), default="active")
-    created_at: Mapped[datetime.datetime | None] = mapped_column(
-        sa.DateTime, default=sa.func.now()
-    )
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(
-        sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()
-    )
-    data = mapped_column(sa.LargeBinary())
-
-    def __repr__(self) -> str:
-        return (
-            "BinData("
-            f"id={self.id!r}"
-            f", content_type={self.content_type!r}"
-            f", name={self.name!r}"
-            f", status={self.status!r}"
-            ")"
         )

@@ -9,13 +9,13 @@ from typing import TypeVar
 import httpx
 from fastapi.concurrency import run_in_threadpool
 
-from scale_api import app_config
+from .settings import app_config
 
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
-http_client = httpx.AsyncClient(verify=app_config.is_production)
+http_client = httpx.AsyncClient(verify=app_config.api.is_production)
 
 
 def wrap(fn: Callable[..., T]) -> Callable[..., Awaitable[T]]:

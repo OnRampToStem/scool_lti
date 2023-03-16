@@ -34,7 +34,7 @@ class LtiLaunchRequest:
         message_obj = json.loads(message) if isinstance(message, str) else message
         if message_obj[MESSAGE_VERSION_KEY] != "1.3.0":
             raise ValueError(
-                f"Invalid message version: {message_obj[MESSAGE_VERSION_KEY]}"
+                "INVALID_MESSAGE_VERSION", message_obj[MESSAGE_VERSION_KEY]
             )
         self.message = message_obj
         self.platform = platform
@@ -123,7 +123,7 @@ class LtiLaunchRequest:
             ):
                 lms_email = "test_student@canvas.instructure.com"
             else:
-                raise ValueError("LtiLaunchRequest missing required attribute: email")
+                raise ValueError("MISSING_REQUIRED_ATTRIBUTE", "email")
         # noinspection PyTypeChecker
         return schemas.ScaleUser(
             id=lms_userid,
