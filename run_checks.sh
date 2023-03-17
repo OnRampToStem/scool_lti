@@ -2,21 +2,10 @@
 
 set -e
 
-if [[ ! -z $RUN_CHECKS_DOCKER ]]; then
-    pip install --target=/tmp/.pip --upgrade --upgrade-strategy eager -r requirements-dev.txt
-    PATH=/tmp/.pip/bin:$PATH
-    PYTHONPATH=/tmp/.pip:$PYTHONPATH
-    RUFF_CACHE_DIR=/tmp/.ruff_cache
-    export PATH
-    export PYTHONPATH
-    export RUFF_CACHE_DIR
+echo "CI is set to [${CI}]"
+if [[ $CI != "true" ]]; then
+    pre-commit run --all-files
 fi
-
-echo "Running $(ruff --version)"
-ruff check .
-
-echo "Running $(black --version)"
-black --check .
 
 echo "Running $(mypy --version)"
 mypy

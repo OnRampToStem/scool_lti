@@ -1,7 +1,4 @@
 -r requirements.txt
 
-black==23.1.0
 mypy~=1.1.1
-ruff~=0.0.256
-
 types-passlib

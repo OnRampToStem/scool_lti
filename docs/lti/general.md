@@ -110,7 +110,7 @@ resource link launch request.
 https://canvas.instructure.com/doc/api/file.lti_dev_key_config.html#anatomy-of-a-json-configuration
 
 ```json
-{  
+{
    "title":"The Best Tool",
    "description":"1.3 Test Tool used for documentation purposes.",
    "privacy_level":"public",
@@ -120,18 +120,18 @@ https://canvas.instructure.com/doc/api/file.lti_dev_key_config.html#anatomy-of-a
        "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
        "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly"
     ],
-   "extensions":[  
-      {  
+   "extensions":[
+      {
          "domain":"thebesttool.com",
          "tool_id":"the-best-tool",
          "platform":"canvas.instructure.com",
-         "settings":{  
+         "settings":{
             "text":"Launch The Best Tool",
             "icon_url":"https://some.icon.url/tool-level.png",
             "selection_height": 800,
             "selection_width": 800,
-            "placements":[  
-               {  
+            "placements":[
+               {
                   "text":"User Navigation Placement",
                   "enabled":true,
                   "icon_url":"https://some.icon.url/my_dashboard.png",
@@ -139,11 +139,11 @@ https://canvas.instructure.com/doc/api/file.lti_dev_key_config.html#anatomy-of-a
                   "message_type":"LtiResourceLinkRequest",
                   "target_link_uri":"https://your.target_link_uri/my_dashboard",
                   "canvas_icon_class":"icon-lti",
-                  "custom_fields":{  
+                  "custom_fields":{
                      "foo":"$Canvas.user.id"
                    }
                },
-               {  
+               {
                   "text":"Editor Button Placement",
                   "enabled":true,
                   "icon_url":"https://some.icon.url/editor_tool.png",
@@ -157,7 +157,7 @@ https://canvas.instructure.com/doc/api/file.lti_dev_key_config.html#anatomy-of-a
          }
       }
    ],
-   "public_jwk":{  
+   "public_jwk":{
       "kty":"RSA",
       "alg":"RS256",
       "e":"AQAB",
@@ -165,7 +165,7 @@ https://canvas.instructure.com/doc/api/file.lti_dev_key_config.html#anatomy-of-a
       "n":"nZD7QWmIwj-3N_RZ1qJjX6CdibU87y2l02yMay4KunambalP9g0fU9yZLwLX9WYJINcXZDUf6QeZ-SSbblET-h8Q4OvfSQ7iuu0WqcvBGy8M0qoZ7I-NiChw8dyybMJHgpiP_AyxpCQnp3bQ6829kb3fopbb4cAkOilwVRBYPhRLboXma0cwcllJHPLvMp1oGa7Ad8osmmJhXhM9qdFFASg_OCQdPnYVzp8gOFeOGwlXfSFEgt5vgeU25E-ycUOREcnP7BnMUk7wpwYqlE537LWGOV5z_1Dqcqc9LmN-z4HmNV7b23QZW4_mzKIOY4IqjmnUGgLU9ycFj5YGDCts7Q",
       "use":"sig"
    },
-   "custom_fields":{  
+   "custom_fields":{
       "bar":"$Canvas.user.sisid"
    }
 

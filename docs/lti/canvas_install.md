@@ -13,14 +13,14 @@ steps and provide the following information back to the Tool owner:
 # Admin Setup
 
 An **LTI Key** (Developer Keys) must be created. This will generate the
-required information for the Tool such as the **client_id** and 
+required information for the Tool such as the **client_id** and
 **client_secret**.
 
 ## Add LTI Developer Key
 
 ![Add LTI Developer Key](../img/canvas/admin_lti_dev_key_add.png)
 
-## Configure with JSON URL 
+## Configure with JSON URL
 
 The **LTI Key** can be configured using the Tool provided **JSON URL**.
 
