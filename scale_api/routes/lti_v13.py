@@ -12,7 +12,7 @@ see https://www.imsglobal.org/spec/lti/v1p3
 import logging
 import urllib.parse
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from authlib import jose
 from authlib.oidc.core import IDToken
@@ -26,7 +26,7 @@ from fastapi import (
     Security,
     status,
 )
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from .. import (
     db,
@@ -55,7 +55,7 @@ ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
 
 
 @router.get("/{platform_id}/config")
-async def lti_config(request: Request, platform_id: str):
+async def lti_config(request: Request, platform_id: str) -> dict[str, Any]:
     """Canvas LTI Configuration.
 
     This route provides configuration information for the Canvas LMS. When
@@ -146,7 +146,7 @@ async def launch_query(  # noqa: PLR0913
     id_token: str | None = None,
     error: str | None = None,
     error_description: str | None = None,
-):
+) -> Response:
     """LTI Launch endpoint.
 
     This route is provided for compatibility only. Launch requests SHOULD
@@ -172,7 +172,7 @@ async def launch_form(  # noqa: PLR0913
     id_token: str | None = Form(None),
     error: str | None = Form(None),
     error_description: str | None = Form(None),
-):
+) -> Response:
     """LTI Launch endpoint.
 
     This handles the Launch Requests from the LMS. The LMS must have this
@@ -190,12 +190,12 @@ async def launch_form(  # noqa: PLR0913
             error,
             error_description,
         )
-        response.status_code = status.HTTP_403_FORBIDDEN
-        return {
+        content = {
             "error": error,
             "error_description": error_description,
             "error_state": state,
         }
+        return JSONResponse(content=content, status_code=status.HTTP_403_FORBIDDEN)
 
     platform = await platform_or_404(platform_id)
     logger.info("[%s]: %r", state, platform)
@@ -234,12 +234,12 @@ async def launch_form(  # noqa: PLR0913
             state,
             cached_nonce_plat,
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {
+        content = {
             "error": "invalid_nonce",
             "error_description": "nonce not found or platform not matched",
             "error_state": state,
         }
+        return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     # At this point the IDToken (Launch Request) is valid, and we can
     # build a ``ScaleUser`` from it. We also store it for use later
@@ -251,12 +251,12 @@ async def launch_form(  # noqa: PLR0913
         logger.warning(
             "[%s]: failed to get ScaleUser from LtiLaunchRequest: %r", state, ve
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {
+        content = {
             "error": "invalid_launch",
             "error_description": str(ve),
             "error_state": state,
         }
+        return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     await db.cache_store.put_async(
         message_launch.launch_id,
@@ -267,7 +267,7 @@ async def launch_form(  # noqa: PLR0913
 
     # Handle Deep Linking requests separately
     if message_launch.is_deep_link_launch:
-        return await deep_link_launch(request, response, message_launch)
+        return await deep_link_launch(request, message_launch)
 
     base_url = (
         "http://localhost:8080"
@@ -283,23 +283,25 @@ async def launch_form(  # noqa: PLR0913
 
 
 async def deep_link_launch(
-    request: Request, response: Response, message_launch: messages.LtiLaunchRequest
-):
+    request: Request, message_launch: messages.LtiLaunchRequest
+) -> Response:
     """Deep Linking Launch Requests."""
     # TODO: handle DeepLinking request Messages
     client = request.client.host if request.client else "0.0.0.0"  # noqa: S104
     logger.error(
         "[%s]: unexpected launch type [%s]", client, message_launch.message_type
     )
-    response.status_code = status.HTTP_501_NOT_IMPLEMENTED
+    response = JSONResponse(
+        content={"error": f"{message_launch.message_type} launches not implemented"},
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+    )
     response.delete_cookie(f"lti1p3-state-{message_launch.platform.id}")
-    return {"error": f"{message_launch.message_type} launches not implemented"}
+    return response
 
 
 @router.get("/{platform_id}/login_initiations", include_in_schema=False)
 async def login_initiations_query(  # noqa: PLR0913
     request: Request,
-    response: Response,
     platform_id: str,
     iss: str,
     login_hint: str,
@@ -307,7 +309,7 @@ async def login_initiations_query(  # noqa: PLR0913
     lti_message_hint: str,
     lti_deployment_id: str | None = None,
     client_id: str | None = None,
-):
+) -> Response:
     """LTI OIDC Login Initiation.
 
     Provided in order to support either GET or POST requests. This delegates
@@ -315,7 +317,6 @@ async def login_initiations_query(  # noqa: PLR0913
     """
     return await login_initiations_form(
         request,
-        response,
         platform_id,
         iss,
         login_hint,
@@ -329,7 +330,6 @@ async def login_initiations_query(  # noqa: PLR0913
 @router.post("/{platform_id}/login_initiations")
 async def login_initiations_form(  # noqa: PLR0913
     request: Request,
-    response: Response,
     platform_id: str,
     iss: str = Form(...),
     login_hint: str = Form(...),
@@ -337,7 +337,7 @@ async def login_initiations_form(  # noqa: PLR0913
     lti_message_hint: str = Form(...),
     lti_deployment_id: str | None = Form(None),
     client_id: str | None = Form(None),
-):
+) -> Response:
     """LTI OIDC Login Initiation.
 
     LTI 1.3 uses a modified version of OIDC 3rd Party Login Initiation. The
@@ -378,12 +378,12 @@ async def login_initiations_form(  # noqa: PLR0913
             iss,
             platform.issuer,
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {
+        content = {
             "error": "invalid_request_object",
             "error_description": "Invalid issuer",
             "error_state": state,
         }
+        return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     if client_id and client_id != platform.client_id:
         logger.error(
@@ -392,12 +392,12 @@ async def login_initiations_form(  # noqa: PLR0913
             client_id,
             platform.client_id,
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {
+        content = {
             "error": "invalid_request_object",
             "error_description": "Invalid client_id",
             "error_state": state,
         }
+        return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     expect_target_uri = request.url_for("launch_form", platform_id=platform_id)
     if expect_target_uri != target_link_uri:
@@ -407,12 +407,12 @@ async def login_initiations_form(  # noqa: PLR0913
             target_link_uri,
             expect_target_uri,
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {
+        content = {
             "error": "invalid_request_object",
             "error_description": "Invalid target_link_uri",
             "error_state": state,
         }
+        return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     nonce = uuid.uuid4().hex  # prevent replay attacks
     await db.cache_store.put_async(f"lti1p3-nonce-{nonce}", platform_id, ttl=120)
@@ -477,7 +477,7 @@ async def login_initiations_form(  # noqa: PLR0913
     response_model_exclude_unset=True,
     dependencies=[Security(security.authorize)],
 )
-async def names_role_service(scale_user: ScaleUser):
+async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
     if scale_user.platform_id == "scale_api":
@@ -485,9 +485,12 @@ async def names_role_service(scale_user: ScaleUser):
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
-    cached_launch = await db.cache_store.get_async(launch_id)
-    # TODO: what if `cached_launch` is None?
-    launch_request = messages.LtiLaunchRequest.loads(cached_launch)  # type: ignore
+    if not (cached_launch := await db.cache_store.get_async(launch_id)):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="LTI Launch Message not found",
+        )
+    launch_request = messages.LtiLaunchRequest.loads(cached_launch)
     if not launch_request.is_instructor:
         logger.error("lti.members unauthorized request from ScaleUser: %s", scale_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)

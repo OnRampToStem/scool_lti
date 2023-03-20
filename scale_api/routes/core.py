@@ -14,14 +14,18 @@ from ..settings import app_config
 router = APIRouter()
 
 
-@router.get("/", dependencies=[Security(security.authorize)])
-async def index(request: Request):
+@router.get(
+    "/",
+    include_in_schema=False,
+    dependencies=[Security(security.authorize)],
+)
+async def index(request: Request) -> RedirectResponse:
     target_url = request.url_for("index_api")
     return RedirectResponse(url=target_url)
 
 
-@router.get("/lb-status")
-async def health_check():
+@router.get("/lb-status", include_in_schema=False)
+async def health_check() -> dict[str, str]:
     """Provides a health check endpoint for the Load Balancer."""
     return {
         "app_version": app_version,

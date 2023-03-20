@@ -196,3 +196,9 @@ class AuthJsonWebKey(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class OAuth20Response(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int

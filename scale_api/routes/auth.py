@@ -6,12 +6,13 @@ and token services for ``ScaleUser`` requests.
 """
 import logging
 import urllib.parse
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import (
     APIRouter,
     Depends,
     Form,
+    HTTPException,
     Request,
     Response,
     Security,
@@ -42,7 +43,7 @@ ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
     include_in_schema=False,
     dependencies=[Security(security.authorize)],
 )
-async def index_api(request: Request, scale_user: ScaleUser):
+async def index_api(request: Request, scale_user: ScaleUser) -> Response:
     scale_user.name = "Demo User"
     scale_user.context = {
         "id": "demo-or2stem-edu",
@@ -62,20 +63,22 @@ async def index_api(request: Request, scale_user: ScaleUser):
     response_model=schemas.AuthUser,
     response_model_exclude={"client_secret_hash"},
 )
-def user_info(request: Request):
+def user_info(request: Request) -> schemas.AuthUser:
     """User Info endpoint."""
-    return request.state.auth_user
+    return cast(schemas.AuthUser, request.state.auth_user)
 
 
-@router.post("/oauth/token")
-async def oauth_token(  # noqa: PLR0913
+@router.post(
+    "/oauth/token",
+    response_model=schemas.OAuth20Response,
+)
+async def oauth_token(
     request: Request,
-    response: Response,
     grant_type: str = Form(...),
     scope: str | None = Form(None),
     client_id: str | None = Form(None),
     client_secret: str | None = Form(None),
-):
+) -> schemas.OAuth20Response:
     """OAuth 2.0 Token Endpoint.
 
     This endpoint supports the ``client_credentials`` grant type and is
@@ -83,8 +86,10 @@ async def oauth_token(  # noqa: PLR0913
     """
     if grant_type != "client_credentials":
         logger.error("oauth token unsupported grant_type [%s] requested", grant_type)
-        response.status_code = 400
-        return {"error": "invalid_request"}
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "invalid_request"},
+        )
 
     if not client_id or not client_secret:
         basic_auth = await http_basic(request)
@@ -93,8 +98,10 @@ async def oauth_token(  # noqa: PLR0913
             client_secret = basic_auth.password
         else:
             logger.error("oauth token request missing credentials")
-            response.status_code = 400
-            return {"error": "invalid_client"}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "invalid_client"},
+            )
 
     # TODO: verify scope?
     logger.info("oauth_token(scopes=%r)", scope)
@@ -103,18 +110,21 @@ async def oauth_token(  # noqa: PLR0913
         auth_user = await db.store.user_by_client_id_async(client_id)
     except LookupError:
         logger.warning("oauth token client not found: %s", client_id)
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return {"error": "invalid_client"}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "invalid_client"},
+        ) from None
 
     if not security.verify_password(client_secret, auth_user.client_secret_hash):
         logger.error("oauth token invalid password AuthUser: %s", auth_user)
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return {"error": "invalid_client"}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "invalid_client"},
+        )
 
     token = security.create_auth_user_token(auth_user)
     logger.info("Return token for AuthUser: %s", auth_user)
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "expires_in": app_config.api.oauth_access_token_expiry,
-    }
+    return schemas.OAuth20Response(
+        access_token=token,
+        expires_in=app_config.api.oauth_access_token_expiry,
+    )

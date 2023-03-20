@@ -18,7 +18,7 @@ Learning Tools Interoperability (LTI).
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Self
+from typing import Annotated, Any, Self, cast
 
 from authlib import jose
 from authlib.jose.errors import JoseError
@@ -164,14 +164,14 @@ def verify_password(password_plain: str, password_hash: str) -> bool:
 
 def req_scale_user(request: Request) -> schemas.ScaleUser:
     """Dependency that routes can use that depend on a ``scale_user``."""
-    return request.state.scale_user  # type: ignore[no-any-return]
+    return cast(schemas.ScaleUser, request.state.scale_user)
 
 
 async def authorize(
     request: Request,
     scopes: SecurityScopes,
-    bearer_token: str | None = Depends(oauth2_token),  # noqa: B008
-    basic_creds: HTTPBasicCredentials | None = Depends(http_basic),  # noqa: B008
+    bearer_token: Annotated[str | None, Depends(oauth2_token)] = None,
+    basic_creds: Annotated[HTTPBasicCredentials | None, Depends(http_basic)] = None,
 ) -> schemas.AuthUser:
     """Main security dependency for routes requiring authentication.
 

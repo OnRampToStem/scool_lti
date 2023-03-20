@@ -2,6 +2,7 @@ import asyncio
 import concurrent.futures
 import contextlib
 import logging
+from typing import Any
 
 from fastapi import FastAPI
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @contextlib.asynccontextmanager
-async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
+async def lifespan(app: FastAPI) -> Any:
     await on_startup_app(app)
     yield
     await on_shutdown_app(app)

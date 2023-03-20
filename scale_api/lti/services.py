@@ -5,9 +5,8 @@ import logging
 import re
 import time
 import uuid
-from collections import namedtuple
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import MutableMapping, Sequence
+from typing import Any, NamedTuple, cast
 
 from authlib import jose
 
@@ -21,8 +20,16 @@ NEXT_PAGE_REGEX = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-TokenCacheItem = namedtuple("TokenCacheItem", "token expires_at")
-ServiceResponse = namedtuple("ServiceResponse", "headers body next_page")
+
+class TokenCacheItem(NamedTuple):
+    token: str
+    expires_at: float
+
+
+class ServiceResponse(NamedTuple):
+    headers: MutableMapping[str, str]
+    body: dict[str, Any]
+    next_page: str | None
 
 
 class LtiServiceError(Exception):
@@ -49,7 +56,9 @@ async def create_platform_token(platform: schemas.Platform) -> str:
     }
     private_key = await keys.private_key()
     header = {"typ": "JWT", "alg": "RS256", "kid": private_key.thumbprint()}
-    return jose.jwt.encode(header, payload, private_key).decode("ascii")  # type: ignore
+    return jose.jwt.encode(  # type: ignore[no-any-return]
+        header, payload, private_key
+    ).decode("ascii")
 
 
 class LtiServicesClient:
@@ -64,7 +73,7 @@ class LtiServicesClient:
         cache_key = " ".join(sorted(scopes))
         cache_item = self.token_cache.get(cache_key)
         if cache_item and time.time() < (cache_item.expires_at - 10.0):
-            return cache_item.token  # type: ignore
+            return cache_item.token
 
         if self.platform.auth_token_url is None:
             raise ValueError("PLATFORM_NO_TOKEN_URL")
@@ -90,7 +99,7 @@ class LtiServicesClient:
             token=access_token,
             expires_at=time.time() + expires_in,
         )
-        return access_token  # type: ignore
+        return cast(str, access_token)
 
     async def authorize_header(self, scopes: Sequence[str]) -> dict[str, str]:
         token = await self._access_token(scopes)

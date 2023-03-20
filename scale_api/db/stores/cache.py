@@ -1,7 +1,7 @@
 import datetime
+import functools
 import logging
 from collections.abc import Callable, Mapping
-from typing import TypeVar
 
 import sqlalchemy as sa
 
@@ -11,9 +11,7 @@ from ..models import Cache
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
-
-NowFunc = Callable[..., datetime.datetime]
+NowFunc = Callable[[], datetime.datetime]
 
 
 class CacheStore:
@@ -23,7 +21,9 @@ class CacheStore:
     TTL_TYPE_FIXED = "fixed"
     TTL_TYPE_ROLLING = "rolling"
 
-    def __init__(self, now_func: NowFunc = datetime.datetime.utcnow) -> None:
+    def __init__(self, now_func: NowFunc | None = None) -> None:
+        if now_func is None:
+            now_func = functools.partial(datetime.datetime.now, tz=datetime.UTC)
         self.now = now_func
         self.next_purge_time = now_func()
 
@@ -133,24 +133,24 @@ class CacheStore:
                         entry.expire_at = expire_at
                 session.commit()
 
-    def get(self, key: str, default: T | None = None) -> str | T:
+    def get(self, key: str, default: str | None = None) -> str | None:
         """Returns an entry from the cache else ``default`` if no entry exists."""
         with SessionLocal() as session:
             entry = session.get(Cache, key)
             if entry:
                 if entry.expire_at is None:
-                    return entry.value  # type: ignore[return-value]
+                    return entry.value
 
                 if entry.expire_at > self.now():
                     if entry.ttl_type == "rolling" and entry.ttl is not None:
                         entry.expire_at = self._calc_expires(entry.ttl)
                         session.commit()
-                    return entry.value  # type: ignore[return-value]
+                    return entry.value
 
                 session.delete(entry)
                 session.commit()
 
-        return default  # type: ignore[return-value]
+        return default
 
     def get_many(self, key_prefix: str) -> Mapping[str, str]:
         """Returns entries from the cache.
@@ -169,9 +169,9 @@ class CacheStore:
                         entry.expire_at = self._calc_expires(entry.ttl)
                 else:
                     session.delete(entry)
-        return entries  # type: ignore[return-value]
+        return entries
 
-    def pop(self, key: str, default: T | None = None) -> str | T | None:
+    def pop(self, key: str, default: str | None = None) -> str | None:
         """Returns an entry from the cache else ``default``.
 
         If the entry exists it will be removed from the cache.
@@ -181,7 +181,7 @@ class CacheStore:
             if entry is None:
                 value = default
             elif entry.expire_at is None or entry.expire_at > self.now():
-                value = entry.value  # type: ignore[assignment]
+                value = entry.value
             else:
                 value = default
             session.delete(entry)

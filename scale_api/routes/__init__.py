@@ -5,33 +5,30 @@ Contains the configuration for all API endpoint routers.
 """
 from fastapi import APIRouter
 
-from .auth import router as router_auth
-from .core import router as router_core
-from .lti_v13 import router as router_lti
-from .well_known import router as router_well_known
+from . import auth, core, lti_v13, well_known
 
 api_router = APIRouter()
 
 api_router.include_router(
-    router_core,
+    core.router,
     prefix="",
     tags=["Core"],
 )
 
 api_router.include_router(
-    router_auth,
+    auth.router,
     prefix="/v1/auth",
     tags=["Authentication"],
 )
 
 api_router.include_router(
-    router_well_known,
+    well_known.router,
     prefix="/.well-known",
     tags=["Well Known"],
 )
 
 api_router.include_router(
-    router_lti,
+    lti_v13.router,
     prefix="/lti/v1.3",
     tags=["LTI 1.3"],
 )

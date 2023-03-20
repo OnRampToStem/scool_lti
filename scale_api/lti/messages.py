@@ -74,7 +74,7 @@ class LtiLaunchRequest:
     @property
     def message_type(self) -> str:
         """Returns the message type, could be either a resource or deep link type."""
-        return self.message[MESSAGE_TYPE_KEY]  # type: ignore
+        return self.message[MESSAGE_TYPE_KEY]  # type: ignore[no-any-return]
 
     @property
     def is_resource_link_launch(self) -> bool:
@@ -141,7 +141,9 @@ class LtiLaunchRequest:
         details on how to add the custom fields.
         """
         logger.warning("Looking for custom field [%s]", field_name)
-        return self.message.get(MESSAGE_CUSTOM_KEY, {}).get(field_name)  # type: ignore
+        return self.message.get(  # type: ignore[no-any-return]
+            MESSAGE_CUSTOM_KEY, {}
+        ).get(field_name)
 
     def dumps(self) -> str:
         """Serializes the request to a string suitable for storing."""

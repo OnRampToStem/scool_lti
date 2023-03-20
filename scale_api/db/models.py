@@ -63,14 +63,14 @@ class AuthUser(Base):
         sa.String(32), primary_key=True, default=new_uuid
     )
     client_id: Mapped[str] = mapped_column(sa.String(128), unique=True)
-    client_secret_hash: Mapped[str | None] = mapped_column(sa.String(128))
+    client_secret_hash: Mapped[str] = mapped_column(sa.String(128))
     scopes: Mapped[str | None]
-    is_active: Mapped[bool | None] = mapped_column(sa.Boolean, default=True)
-    is_verified: Mapped[bool | None] = mapped_column(sa.Boolean, default=False)
-    created_at: Mapped[datetime.datetime | None] = mapped_column(
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, default=True)
+    is_verified: Mapped[bool] = mapped_column(sa.Boolean, default=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, default=sa.func.now()
     )
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(
+    updated_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()
     )
 
@@ -108,7 +108,7 @@ class AuthJsonWeKey(Base):
 
     kid: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
     data: Mapped[str]
-    valid_from: Mapped[datetime.datetime | None] = mapped_column(
+    valid_from: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, default=sa.func.now()
     )
     valid_to: Mapped[datetime.datetime | None]
@@ -137,10 +137,10 @@ class Cache(Base):
     __tablename__ = "cache_objects"
 
     key: Mapped[str] = mapped_column(sa.String(255), primary_key=True)
-    ttl: Mapped[int | None] = mapped_column(sa.Integer, default=3600)
-    ttl_type: Mapped[str | None] = mapped_column(sa.String(10), default="fixed")
+    ttl: Mapped[int] = mapped_column(sa.Integer, default=3600)
+    ttl_type: Mapped[str] = mapped_column(sa.String(10), default="fixed")
     expire_at: Mapped[datetime.datetime | None]
-    value: Mapped[str | None]
+    value: Mapped[str]
 
     def __repr__(self) -> str:
         return (

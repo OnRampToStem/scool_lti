@@ -11,10 +11,6 @@ warn_unreachable = true
 module = ["authlib.*"]
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]
-module = ["scale_api.routes.*"]
-disable_error_code = ["no-untyped-def"]
-
 [tool.ruff]
 target-version = "py311"
 line-length = 88

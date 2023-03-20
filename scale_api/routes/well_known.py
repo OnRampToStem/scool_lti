@@ -1,6 +1,8 @@
 """
 OAuth/OIDC Well Known routes
 """
+from typing import Any
+
 from fastapi import APIRouter, Request
 
 from .. import keys
@@ -10,10 +12,10 @@ router = APIRouter()
 
 
 @router.get("/jwks.json")
-async def jwks():
+async def jwks() -> dict[str, str]:
     """JSON Web Key Set endpoint."""
     ks = await keys.public_key_set()
-    ks_dict = ks.as_dict()
+    ks_dict: dict[str, Any] = ks.as_dict()
     for entry in ks_dict["keys"]:
         if "use" not in entry:
             entry["use"] = "sig"
@@ -23,7 +25,7 @@ async def jwks():
 
 
 @router.get("/oauth-authorization-server")
-async def oauth_server_metadata(request: Request):
+async def oauth_server_metadata(request: Request) -> dict[str, Any]:
     """OAuth 2.0 configuration endpoint."""
     return {
         "issuer": app_config.api.jwt_issuer,
