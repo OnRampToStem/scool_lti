@@ -170,8 +170,8 @@ async def launch_form(  # noqa: PLR0913
     platform_id: str,
     state: str = Form(...),
     id_token: str | None = Form(None),
-    error: str = Form(None),
-    error_description: str = Form(None),
+    error: str | None = Form(None),
+    error_description: str | None = Form(None),
 ):
     """LTI Launch endpoint.
 
@@ -335,8 +335,8 @@ async def login_initiations_form(  # noqa: PLR0913
     login_hint: str = Form(...),
     target_link_uri: str = Form(...),
     lti_message_hint: str = Form(...),
-    lti_deployment_id: str = Form(None),
-    client_id: str = Form(None),
+    lti_deployment_id: str | None = Form(None),
+    client_id: str | None = Form(None),
 ):
     """LTI OIDC Login Initiation.
 
