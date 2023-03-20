@@ -163,7 +163,7 @@ async def launch_query(  # noqa: PLR0913
     )
 
 
-@router.post("/{platform_id}/launches")
+@router.post("/{platform_id}/launches", include_in_schema=False)
 async def launch_form(  # noqa: PLR0913
     request: Request,
     response: Response,
@@ -327,7 +327,7 @@ async def login_initiations_query(  # noqa: PLR0913
     )
 
 
-@router.post("/{platform_id}/login_initiations")
+@router.post("/{platform_id}/login_initiations", include_in_schema=False)
 async def login_initiations_form(  # noqa: PLR0913
     request: Request,
     platform_id: str,
