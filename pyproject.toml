@@ -50,3 +50,5 @@ extend-exclude = [".*", "docker", "docs", "etc", "temp"]
 
 [tool.ruff.per-file-ignores]
 "gunicorn.conf.py" = ["A003", "ARG001", "S108"]
+"scale_api/routes/auth.py" = ["B008"]  # Do not perform function call `Form` in argument defaults
+"scale_api/routes/lti_v13.py" = ["B008"]  # Do not perform function call `Form` in argument defaults

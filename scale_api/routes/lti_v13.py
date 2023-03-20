@@ -12,6 +12,7 @@ see https://www.imsglobal.org/spec/lti/v1p3
 import logging
 import urllib.parse
 import uuid
+from typing import Annotated
 
 from authlib import jose
 from authlib.oidc.core import IDToken
@@ -20,7 +21,6 @@ from fastapi import (
     Depends,
     Form,
     HTTPException,
-    Query,
     Request,
     Response,
     Security,
@@ -50,6 +50,8 @@ NO_CACHE_HEADERS = {
 }
 
 LTI_TOKEN_EXPIRY = 60 * 60 * 12
+
+ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
 
 
 @router.get("/{platform_id}/config")
@@ -140,10 +142,10 @@ async def launch_query(  # noqa: PLR0913
     request: Request,
     response: Response,
     platform_id: str,
-    state: str = Query(...),
-    id_token: str = Query(None),
-    error: str = Query(None),
-    error_description: str = Query(None),
+    state: str,
+    id_token: str | None = None,
+    error: str | None = None,
+    error_description: str | None = None,
 ):
     """LTI Launch endpoint.
 
@@ -299,12 +301,12 @@ async def login_initiations_query(  # noqa: PLR0913
     request: Request,
     response: Response,
     platform_id: str,
-    iss: str = Query(...),
-    login_hint: str = Query(...),
-    target_link_uri: str = Query(...),
-    lti_message_hint: str = Query(...),
-    lti_deployment_id: str = Query(None),
-    client_id: str = Query(None),
+    iss: str,
+    login_hint: str,
+    target_link_uri: str,
+    lti_message_hint: str,
+    lti_deployment_id: str | None = None,
+    client_id: str | None = None,
 ):
     """LTI OIDC Login Initiation.
 
@@ -475,9 +477,7 @@ async def login_initiations_form(  # noqa: PLR0913
     response_model_exclude_unset=True,
     dependencies=[Security(security.authorize)],
 )
-async def names_role_service(
-    scale_user: schemas.ScaleUser = Depends(security.req_scale_user),
-):
+async def names_role_service(scale_user: ScaleUser):
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
     if scale_user.platform_id == "scale_api":

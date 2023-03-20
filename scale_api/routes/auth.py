@@ -6,6 +6,7 @@ and token services for ``ScaleUser`` requests.
 """
 import logging
 import urllib.parse
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
@@ -33,16 +34,15 @@ router = APIRouter()
 # Use this just for extracting the basic auth for the client_credentials auth
 http_basic = HTTPBasic(auto_error=False)
 
+ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
+
 
 @router.get(
     "/",
     include_in_schema=False,
     dependencies=[Security(security.authorize)],
 )
-async def index_api(
-    request: Request,
-    scale_user: schemas.ScaleUser = Depends(security.req_scale_user),
-):
+async def index_api(request: Request, scale_user: ScaleUser):
     scale_user.name = "Demo User"
     scale_user.context = {
         "id": "demo-or2stem-edu",
