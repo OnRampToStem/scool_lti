@@ -68,7 +68,7 @@ def user_info(request: Request):
 
 
 @router.post("/oauth/token")
-async def oauth_token(
+async def oauth_token(  # noqa: PLR0913
     request: Request,
     response: Response,
     grant_type: str = Form(...),

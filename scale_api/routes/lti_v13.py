@@ -136,7 +136,7 @@ async def lti_config(request: Request, platform_id: str):
 
 
 @router.get("/{platform_id}/launches", include_in_schema=False)
-async def launch_query(
+async def launch_query(  # noqa: PLR0913
     request: Request,
     response: Response,
     platform_id: str,
@@ -162,7 +162,7 @@ async def launch_query(
 
 
 @router.post("/{platform_id}/launches")
-async def launch_form(
+async def launch_form(  # noqa: PLR0913
     request: Request,
     response: Response,
     platform_id: str,
@@ -295,7 +295,7 @@ async def deep_link_launch(
 
 
 @router.get("/{platform_id}/login_initiations", include_in_schema=False)
-async def login_initiations_query(
+async def login_initiations_query(  # noqa: PLR0913
     request: Request,
     response: Response,
     platform_id: str,
@@ -325,7 +325,7 @@ async def login_initiations_query(
 
 
 @router.post("/{platform_id}/login_initiations")
-async def login_initiations_form(
+async def login_initiations_form(  # noqa: PLR0913
     request: Request,
     response: Response,
     platform_id: str,

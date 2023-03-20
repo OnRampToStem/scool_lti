@@ -107,7 +107,7 @@ class LtiServicesClient:
         next_page = m[1] if m else None
         return ServiceResponse(r.headers, r.json(), next_page)
 
-    async def post(
+    async def post(  # noqa: PLR0913
         self,
         scopes: Sequence[str],
         url: str,

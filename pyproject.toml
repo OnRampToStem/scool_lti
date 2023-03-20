@@ -46,9 +46,6 @@ extend-select = [
     "W",  # pycodestyle (warnings)
     "YTT",  # flake8-2020
 ]
-ignore = [
-    "PLR0913",  # Too many arguments to function call
-]
 extend-exclude = [".*", "docker", "docs", "etc", "temp"]
 
 [tool.ruff.per-file-ignores]
