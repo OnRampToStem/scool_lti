@@ -22,10 +22,10 @@ class Platform(BaseModel, orm_mode=True):
 
     id: str
     name: str
-    issuer: str
-    oidc_auth_url: HttpUrl
+    issuer: str | None
+    oidc_auth_url: HttpUrl | None
     auth_token_url: HttpUrl | None
-    jwks_url: HttpUrl
+    jwks_url: HttpUrl | None
     client_id: str | None
     client_secret: SecretStr | None
 

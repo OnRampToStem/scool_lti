@@ -530,6 +530,11 @@ async def decode_lti_id_token(
     id_token: str,
     platform: schemas.Platform,
 ) -> jose.JWTClaims:
+    if platform.jwks_url is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"No JWKS URL set for Platform {platform.id}",
+        )
     # Some basic jwt claims validation options
     id_token_opts = {
         "iss": {"essential": True, "value": platform.issuer},
