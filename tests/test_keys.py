@@ -72,7 +72,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(RuntimeError):
             await keys.private_key()
 
-    @patch("scale_api.db.store.json_web_keys_async")
+    @patch("scale_api.db.store.json_web_keys")
     async def test_private_keys_returns_only_valid_keys(
         self,
         db_mock,
