@@ -81,11 +81,12 @@ def cache_put(
         ttl_type=ttl_type,
         expire_at=expires_at,
     )
-    with SessionLocal.begin() as session:
+    with SessionLocal() as session:
         try:
             session.add(entry)
-            session.flush()
+            session.commit()
         except IntegrityError:
+            session.rollback()
             if db_entry := session.get(Cache, key):
                 db_entry.value = value
                 db_entry.ttl = ttl
@@ -93,6 +94,7 @@ def cache_put(
                 db_entry.expire_at = expires_at
             else:
                 session.add(entry)
+            session.commit()
 
     return key
 
