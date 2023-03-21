@@ -228,7 +228,7 @@ async def launch_form(
     # the same nonce will fail.
     nonce = claims.get("nonce")
     cached_nonce_plat = await asyncio.to_thread(
-        db.cache_store.pop, key=f"lti1p3-nonce-{nonce}"
+        db.store.cache_pop, key=f"lti1p3-nonce-{nonce}"
     )
     if not cached_nonce_plat or cached_nonce_plat != platform_id:
         logger.error(
@@ -261,11 +261,11 @@ async def launch_form(
         return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     await asyncio.to_thread(
-        db.cache_store.put,
+        db.store.cache_put,
         key=message_launch.launch_id,
         value=message_launch.dumps(),
         ttl=LTI_TOKEN_EXPIRY,
-        ttl_type=db.cache_store.TTL_TYPE_ROLLING,
+        ttl_type=db.store.CACHE_TTL_TYPE_ROLLING,
     )
 
     # Handle Deep Linking requests separately
@@ -419,7 +419,7 @@ async def login_initiations_form(
 
     nonce = uuid.uuid4().hex  # prevent replay attacks
     await asyncio.to_thread(
-        db.cache_store.put,
+        db.store.cache_put,
         key=f"lti1p3-nonce-{nonce}",
         value=platform_id,
         ttl=120,
@@ -493,10 +493,7 @@ async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
-    cached_launch = await asyncio.to_thread(
-        db.cache_store.get,
-        key=launch_id,
-    )
+    cached_launch = await asyncio.to_thread(db.store.cache_get, key=launch_id)
     if cached_launch is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

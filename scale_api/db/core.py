@@ -12,7 +12,7 @@ Session = sqlalchemy.orm.Session
 engine = sa.create_engine(
     app_config.db.url,
     echo=app_config.db.debug,
-    pool_recycle=3600,  # using `pool_pre_ping=True` seems like overkill
+    pool_recycle=3600,
 )
 
 SessionLocal = sqlalchemy.orm.sessionmaker(
