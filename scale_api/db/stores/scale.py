@@ -53,7 +53,7 @@ class ScaleStore:
         stmt = sa.select(AuthJsonWeKey).where(
             AuthJsonWeKey.valid_from <= sa.func.now(),
             sa.or_(
-                AuthJsonWeKey.valid_to == None,  # noqa: E711
+                AuthJsonWeKey.valid_to.is_(None),
                 AuthJsonWeKey.valid_to > sa.func.now(),
             ),
         )
