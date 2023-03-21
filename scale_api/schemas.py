@@ -20,7 +20,7 @@ class Platform(BaseModel):
     A standalone schema class for ``scale_api.db.Platform``.
     """
 
-    id: str  # noqa: A003
+    id: str
     name: str
     issuer: str
     oidc_auth_url: HttpUrl
@@ -39,7 +39,7 @@ class AuthUser(BaseModel):
     A standalone schema class for ``scale_api.db.AuthUser``.
     """
 
-    id: str  # noqa: A003
+    id: str
     client_id: str
     client_secret_hash: str
     is_active: bool = True
@@ -91,7 +91,7 @@ class ScaleUser(BaseModel):
     Canvas.
     """
 
-    id: str | None  # noqa: A003
+    id: str | None
     email: EmailStr
     name: str | None
     picture: str | None

@@ -5,11 +5,12 @@ from gunicorn import glogging
 
 from scale_api.settings import app_config
 
-WORKER_COUNT = int(os.getenv("WEB_CONCURRENCY", os.cpu_count() * 2))  # noqa: PLW1508
+MAX_WORKERS = os.cpu_count() * 2
+WORKER_COUNT = int(os.getenv("WEB_CONCURRENCY", f"{MAX_WORKERS}"))
 
 
 class HealthCheckFilter(logging.Filter):
-    def filter(self, record):
+    def filter(self, record):  # noqa: A003
         prefix = app_config.api.path_prefix
         return f"GET {prefix}/lb-status" not in record.getMessage()
 
@@ -21,17 +22,17 @@ class CustomGunicornLogger(glogging.Logger):
         logger.addFilter(HealthCheckFilter())
 
 
-# noinspection PyUnusedLocal
 def on_starting(server):
     import scale_api.events
 
+    logging.warning("on_starting(%r)", server)
     scale_api.events.on_startup_main()
 
 
-# noinspection PyUnusedLocal
 def on_exit(server):
     import scale_api.events
 
+    logging.warning("on_exit(%r)", server)
     scale_api.events.on_shutdown_main()
 
 
@@ -42,7 +43,7 @@ access_log_format = (
 errorlog = "-"
 logger_class = CustomGunicornLogger
 logconfig_dict = app_config.log_config
-worker_tmp_dir = "/dev/shm"
+worker_tmp_dir = "/dev/shm"  # noqa: S108
 forwarded_allow_ips = "*"
 proxy_allow_ips = "*"
 bind = ":8000"

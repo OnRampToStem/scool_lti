@@ -31,9 +31,7 @@ class Platform(Base):
 
     __tablename__ = "platforms"
 
-    id: Mapped[str] = mapped_column(  # noqa: A003
-        sa.String(32), primary_key=True, default=new_uuid
-    )
+    id: Mapped[str] = mapped_column(sa.String(32), primary_key=True, default=new_uuid)
     name: Mapped[str] = mapped_column(sa.String(100))
     issuer: Mapped[str | None]
     oidc_auth_url: Mapped[str | None]
@@ -59,9 +57,7 @@ class AuthUser(Base):
 
     __tablename__ = "auth_users"
 
-    id: Mapped[str] = mapped_column(  # noqa: A003
-        sa.String(32), primary_key=True, default=new_uuid
-    )
+    id: Mapped[str] = mapped_column(sa.String(32), primary_key=True, default=new_uuid)
     client_id: Mapped[str] = mapped_column(sa.String(128), unique=True)
     client_secret_hash: Mapped[str] = mapped_column(sa.String(128))
     scopes: Mapped[str | None]
