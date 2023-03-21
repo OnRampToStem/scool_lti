@@ -1,6 +1,7 @@
 """
 JSON Web Keys
 """
+import asyncio
 import datetime
 import logging
 import time
@@ -62,7 +63,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
 
 async def private_keys() -> list[schemas.AuthJsonWebKey]:
     """Returns a list of private ``AuthJsonWebKeys`` from the database."""
-    web_keys = await db.store.json_web_keys_async()
+    web_keys = await asyncio.to_thread(db.store.json_web_keys)
     return [k for k in web_keys if k.is_valid]
 
 

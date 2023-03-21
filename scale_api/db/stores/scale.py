@@ -2,7 +2,7 @@ import logging
 
 import sqlalchemy as sa
 
-from ... import aio, schemas
+from ... import schemas
 from ..core import SessionLocal
 from ..models import AuthJsonWeKey, AuthUser, Platform
 
@@ -60,9 +60,3 @@ class ScaleStore:
         with SessionLocal() as session:
             result = session.execute(stmt).scalars()
             return [schemas.AuthJsonWebKey.from_orm(row) for row in result]
-
-    platforms_async = aio.wrap(platforms)
-    platform_async = aio.wrap(platform)
-    user_async = aio.wrap(user)
-    user_by_client_id_async = aio.wrap(user_by_client_id)
-    json_web_keys_async = aio.wrap(json_web_keys)

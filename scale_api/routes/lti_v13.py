@@ -518,7 +518,7 @@ async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
 async def platform_or_404(platform_id: str) -> schemas.Platform:
     """Returns a ``Platform``, else HTTP 404 if one is not found for the id."""
     try:
-        return await db.store.platform_async(platform_id)
+        return await asyncio.to_thread(db.store.platform, platform_id=platform_id)
     except LookupError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

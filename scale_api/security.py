@@ -15,6 +15,7 @@ A ``ScaleUser`` is a user that launched this application from a Learning
 Management System (LMS) such as Canvas and have been authenticated via
 Learning Tools Interoperability (LTI).
 """
+import asyncio
 import logging
 import time
 from dataclasses import dataclass
@@ -291,7 +292,9 @@ async def auth_user_from_basic_creds(
     basic_creds: HTTPBasicCredentials,
 ) -> schemas.AuthUser:
     try:
-        auth_user = await db.store.user_by_client_id_async(basic_creds.username)
+        auth_user = await asyncio.to_thread(
+            db.store.user_by_client_id, client_id=basic_creds.username
+        )
     except LookupError:
         raise AuthorizeError("USER_NOT_FOUND", basic_creds.username) from None
     else:

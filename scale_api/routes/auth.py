@@ -4,6 +4,7 @@ Authentication routes
 Provides endpoints for authentication for ``AuthUser`` requests
 and token services for ``ScaleUser`` requests.
 """
+import asyncio
 import logging
 import urllib.parse
 from typing import Annotated
@@ -101,7 +102,9 @@ async def oauth_token(
     logger.info("oauth_token(scopes=%r)", scope)
 
     try:
-        auth_user = await db.store.user_by_client_id_async(client_id)
+        auth_user = await asyncio.to_thread(
+            db.store.user_by_client_id, client_id=client_id
+        )
     except LookupError:
         logger.warning("oauth token client not found: %s", client_id)
         raise HTTPException(
