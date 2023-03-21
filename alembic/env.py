@@ -49,9 +49,7 @@ def include_object(object, name, type_, reflected, compare_to):  # noqa: A002,AR
     scale_tabs = (
         "auth_jwks",
         "auth_users",
-        "bin_data",
         "cache_objects",
-        "messages",
         "platforms",
     )
     if type_ == "table" and name not in scale_tabs:
