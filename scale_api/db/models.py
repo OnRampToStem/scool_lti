@@ -62,7 +62,6 @@ class AuthUser(Base):
     client_secret_hash: Mapped[str] = mapped_column(sa.String(128))
     scopes: Mapped[str | None]
     is_active: Mapped[bool] = mapped_column(sa.Boolean, default=True)
-    is_verified: Mapped[bool] = mapped_column(sa.Boolean, default=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, default=sa.func.now()
     )
@@ -85,7 +84,6 @@ class AuthUser(Base):
             "AuthUser("
             f"client_id={self.client_id!r}"
             f", is_active={self.is_active}"
-            f", is_verified={self.is_verified}"
             ")"
         )
 

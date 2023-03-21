@@ -40,7 +40,6 @@ class AuthUser(BaseModel, orm_mode=True):
     client_id: str
     client_secret_hash: str
     is_active: bool = True
-    is_verified: bool = False
     scopes: list[str] | None
     context: Mapping[str, str] | None
 

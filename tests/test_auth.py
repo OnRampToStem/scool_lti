@@ -70,7 +70,6 @@ class ScopeAuthUserAccessTestCase(unittest.TestCase):
             "client_id": "testuser@mail.fresnostate.edu",
             "client_secret_hash": "none",
             "is_active": True,
-            "is_verified": False,
             "scopes": [],
         }
 

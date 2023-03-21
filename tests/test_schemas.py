@@ -13,7 +13,6 @@ class AuthUserTestCase(unittest.TestCase):
     def test_defaults(self):
         u = AuthUser(**self.DEFAULTS)
         self.assertTrue(u.is_active)
-        self.assertFalse(u.is_verified)
         self.assertFalse(u.is_superuser)
         self.assertIsNone(u.scopes)
 

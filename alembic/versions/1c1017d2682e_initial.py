@@ -33,7 +33,6 @@ def upgrade():
         sa.Column("client_secret_hash", sa.String(length=128), nullable=False),
         sa.Column("scopes", sa.Text(), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=False),
-        sa.Column("is_verified", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
