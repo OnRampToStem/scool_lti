@@ -30,7 +30,6 @@ extend-select = [
     "PIE",  # misc lints
     "PL",  # Pylint
     "PTH",  # pathlib
-    "Q",  # quotes
     "RET",  # returns
     "RSE",  # raises
     "RUF",  # ruff rules
@@ -40,7 +39,6 @@ extend-select = [
     "TRY",  # tryceratops
     "UP",  # pyupgrade
     "W",  # pycodestyle (warnings)
-    "YTT",  # flake8-2020
 ]
 extend-exclude = [".*", "docker", "docs", "etc", "temp"]
 
