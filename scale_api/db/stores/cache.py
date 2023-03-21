@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping
 
 import sqlalchemy as sa
 
-from ... import aio
 from ..core import IntegrityError, SessionLocal, new_uuid
 from ..models import Cache
 
@@ -17,6 +16,7 @@ NowFunc = Callable[[], datetime.datetime]
 class CacheStore:
     """Cache Repository."""
 
+    DEFAULT_GUID_PREFIX = ""
     TTL_DEFAULT = 3600
     TTL_TYPE_FIXED = "fixed"
     TTL_TYPE_ROLLING = "rolling"
@@ -30,8 +30,13 @@ class CacheStore:
     def _calc_expires(self, ttl: int) -> datetime.datetime:
         return self.now() + datetime.timedelta(seconds=ttl)
 
-    # noinspection PyMethodMayBeStatic
-    def guid(self, prefix: str = "") -> str:
+    def _is_live(self, entry: Cache) -> bool:
+        expiry: datetime.datetime = entry.expire_at
+        return expiry.replace(tzinfo=datetime.UTC) > self.now()
+
+    def guid(self, prefix: str | None = None) -> str:
+        if prefix is None:
+            prefix = self.DEFAULT_GUID_PREFIX
         return f"{prefix}{new_uuid()}"
 
     def add(
@@ -138,10 +143,7 @@ class CacheStore:
         with SessionLocal() as session:
             entry = session.get(Cache, key)
             if entry:
-                if entry.expire_at is None:
-                    return entry.value
-
-                if entry.expire_at > self.now():
+                if self._is_live(entry):
                     if entry.ttl_type == "rolling" and entry.ttl is not None:
                         entry.expire_at = self._calc_expires(entry.ttl)
                         session.commit()
@@ -180,7 +182,7 @@ class CacheStore:
             entry = session.get(Cache, key)
             if entry is None:
                 value = default
-            elif entry.expire_at is None or entry.expire_at > self.now():
+            elif self._is_live(entry):
                 value = entry.value
             else:
                 value = default
@@ -202,12 +204,3 @@ class CacheStore:
             logger.info("Cache.purge_expired count %s", purge_count)
         except Exception as exc:
             logger.warning("Cache.purge_expired failed: %r", exc)
-
-    add_async = aio.wrap(add)
-    add_many_async = aio.wrap(add_many)
-    put_async = aio.wrap(put)
-    put_many_async = aio.wrap(put_many)
-    get_async = aio.wrap(get)
-    get_many_async = aio.wrap(get_many)
-    pop_async = aio.wrap(pop)
-    purge_expired_async = aio.wrap(purge_expired)

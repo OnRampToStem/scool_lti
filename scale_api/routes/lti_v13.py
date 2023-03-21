@@ -9,6 +9,7 @@ that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
 """
+import asyncio
 import logging
 import urllib.parse
 import uuid
@@ -227,7 +228,9 @@ async def launch_form(  # noqa: PLR0913
     # stored, and then we remove from the cache so any future requests with
     # the same nonce will fail.
     nonce = claims.get("nonce")
-    cached_nonce_plat = await db.cache_store.pop_async(f"lti1p3-nonce-{nonce}")
+    cached_nonce_plat = await asyncio.to_thread(
+        db.cache_store.pop, key=f"lti1p3-nonce-{nonce}"
+    )
     if not cached_nonce_plat or cached_nonce_plat != platform_id:
         logger.error(
             "[%s]: nonce not found or platform not matched: %s",
@@ -258,9 +261,10 @@ async def launch_form(  # noqa: PLR0913
         }
         return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
-    await db.cache_store.put_async(
-        message_launch.launch_id,
-        message_launch.dumps(),
+    await asyncio.to_thread(
+        db.cache_store.put,
+        key=message_launch.launch_id,
+        value=message_launch.dumps(),
         ttl=LTI_TOKEN_EXPIRY,
         ttl_type=db.cache_store.TTL_TYPE_ROLLING,
     )
@@ -415,7 +419,12 @@ async def login_initiations_form(  # noqa: PLR0913
         return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     nonce = uuid.uuid4().hex  # prevent replay attacks
-    await db.cache_store.put_async(f"lti1p3-nonce-{nonce}", platform_id, ttl=120)
+    await asyncio.to_thread(
+        db.cache_store.put,
+        key=f"lti1p3-nonce-{nonce}",
+        value=platform_id,
+        ttl=120,
+    )
     query_string = {
         # only supported type is id_token
         "response_type": "id_token",
@@ -485,7 +494,11 @@ async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
-    if not (cached_launch := await db.cache_store.get_async(launch_id)):
+    cached_launch = await asyncio.to_thread(
+        db.cache_store.get,
+        key=launch_id,
+    )
+    if cached_launch:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="LTI Launch Message not found",
