@@ -135,7 +135,7 @@ class Cache(Base):
     key: Mapped[str] = mapped_column(sa.String(255), primary_key=True)
     ttl: Mapped[int] = mapped_column(sa.Integer, default=3600)
     ttl_type: Mapped[str] = mapped_column(sa.String(10), default="fixed")
-    expire_at: Mapped[datetime.datetime | None]
+    expire_at: Mapped[datetime.datetime]
     value: Mapped[str]
 
     def __repr__(self) -> str:

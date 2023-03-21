@@ -233,8 +233,8 @@ def req_scale_user(
 
 
 async def auth_user_from(
-    bearer_token: str,
-    basic_creds: HTTPBasicCredentials,
+    bearer_token: str | None,
+    basic_creds: HTTPBasicCredentials | None,
     state: str,
 ) -> schemas.AuthUser:
     if bearer_token is not None:

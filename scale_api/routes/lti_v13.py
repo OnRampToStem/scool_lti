@@ -497,7 +497,7 @@ async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
         db.cache_store.get,
         key=launch_id,
     )
-    if cached_launch:
+    if cached_launch is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="LTI Launch Message not found",
