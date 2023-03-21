@@ -122,7 +122,7 @@ class OAuth2ClientCredentials(OAuth2):
 
     def __init__(
         self,
-        tokenUrl: str,  # noqa: N803
+        tokenUrl: str,
         scheme_name: str | None = None,
         scopes: dict[str, str] | None = None,
         auto_error: bool = False,
@@ -200,14 +200,7 @@ async def authorize(
     )
 
     try:
-        if bearer_token is not None:
-            auth_user = await auth_user_from_token(bearer_token)
-            logger.info("[%s]: authorize from bearer token %r", state, auth_user)
-        elif basic_creds is not None:
-            auth_user = await auth_user_from_basic_creds(basic_creds)
-            logger.info("[%s]: authorize from basic auth %r", state, auth_user)
-        else:
-            raise AuthorizeError("CREDENTIALS_REQUIRED")  # noqa: TRY301
+        auth_user = await auth_user_from(bearer_token, basic_creds, state)
     except AuthorizeError as exc:
         logger.warning("[%s]: authorize failed: %r", state, exc)
         raise HTTPException(
@@ -227,6 +220,23 @@ async def authorize(
 
     request.state.auth_user = auth_user
     request.state.scale_user = schemas.ScaleUser.from_auth_user(auth_user)
+
+    return auth_user
+
+
+async def auth_user_from(
+    bearer_token: str,
+    basic_creds: HTTPBasicCredentials,
+    state: str,
+) -> schemas.AuthUser:
+    if bearer_token is not None:
+        auth_user = await auth_user_from_token(bearer_token)
+        logger.info("[%s]: authorize from bearer token %r", state, auth_user)
+    elif basic_creds is not None:
+        auth_user = await auth_user_from_basic_creds(basic_creds)
+        logger.info("[%s]: authorize from basic auth %r", state, auth_user)
+    else:
+        raise AuthorizeError("CREDENTIALS_REQUIRED")
 
     return auth_user
 

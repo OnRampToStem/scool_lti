@@ -51,7 +51,7 @@ class APISettings(SharedSettings, env_prefix="SCALE_"):
     frontend_launch_path: str = "/dyna/payload.php"
 
     @validator("env")
-    def verify_environment(cls, v: str) -> str:  # noqa: N805
+    def verify_environment(cls, v: str) -> str:
         """Raises a ``ValueError`` if the provided environment is not valid."""
         if v not in VALID_ENVIRONMENTS:
             msg = f"Invalid env [{v}], must be one of: {' '.join(VALID_ENVIRONMENTS)}"

@@ -139,7 +139,7 @@ async def lti_config(request: Request, platform_id: str) -> dict[str, Any]:
 
 
 @router.get("/{platform_id}/launches", include_in_schema=False)
-async def launch_query(  # noqa: PLR0913
+async def launch_query(
     request: Request,
     response: Response,
     platform_id: str,
@@ -165,7 +165,7 @@ async def launch_query(  # noqa: PLR0913
 
 
 @router.post("/{platform_id}/launches", include_in_schema=False)
-async def launch_form(  # noqa: PLR0913
+async def launch_form(
     request: Request,
     response: Response,
     platform_id: str,
@@ -304,7 +304,7 @@ async def deep_link_launch(
 
 
 @router.get("/{platform_id}/login_initiations", include_in_schema=False)
-async def login_initiations_query(  # noqa: PLR0913
+async def login_initiations_query(
     request: Request,
     platform_id: str,
     iss: str,
@@ -332,7 +332,7 @@ async def login_initiations_query(  # noqa: PLR0913
 
 
 @router.post("/{platform_id}/login_initiations", include_in_schema=False)
-async def login_initiations_form(  # noqa: PLR0913
+async def login_initiations_form(
     request: Request,
     platform_id: str,
     iss: str = Form(...),

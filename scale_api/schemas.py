@@ -48,7 +48,7 @@ class AuthUser(BaseModel):
     context: Mapping[str, str] | None
 
     @validator("scopes", pre=True)
-    def assemble_scopes(cls, v: str | (list[str] | None)) -> list[str]:  # noqa: N805
+    def assemble_scopes(cls, v: str | (list[str] | None)) -> list[str]:
         """Converts a space separated scope string to a list."""
         if v is None:
             return []
@@ -170,7 +170,7 @@ class ScaleUser(BaseModel):
         )
 
     @validator("roles", each_item=True)
-    def normalize_roles(cls, v: str) -> str:  # noqa: N805
+    def normalize_roles(cls, v: str) -> str:
         if v.startswith("http://purl.imsglobal.org/vocab/lis/v2/membership#"):
             return v.rsplit("#")[1]
         return v

@@ -47,3 +47,10 @@ extend-immutable-calls = ["fastapi.Form"]
 
 [tool.ruff.flake8-builtins]
 builtins-ignorelist = ["id"]
+
+[tool.ruff.pep8-naming]
+classmethod-decorators = ["pydantic.validator"]
+ignore-names = ["setUp", "tokenUrl"]
+
+[tool.ruff.pylint]
+max-args = 8

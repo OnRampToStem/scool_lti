@@ -55,7 +55,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
         raise
     else:
         # TODO: check headers to see if there is a ttl use for `expire_in`
-        #   'cache-control': 'max-age=864000, private'  # noqa: ERA001
+        # TODO: 'cache-control': 'max-age=864000, private'
         _jwks_cache[url] = CachedKeySet(ks)
         return ks
 

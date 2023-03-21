@@ -99,7 +99,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         rv = await keys.private_keys()
         self.assertListEqual(rv, [])
 
-        # valid_from <= valid_to < now  # noqa: ERA001
+        # XXX: valid_from <= valid_to < now
         self.test_key_1.valid_from = now - delta
         self.test_key_1.valid_to = now - delta
         db_mock.return_value = [self.test_key_1]
