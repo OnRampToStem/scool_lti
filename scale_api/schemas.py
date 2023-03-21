@@ -14,7 +14,7 @@ from pydantic import (
 )
 
 
-class Platform(BaseModel):
+class Platform(BaseModel, orm_mode=True):
     """Learning Management System (LMS) Platform.
 
     A standalone schema class for ``scale_api.db.Platform``.
@@ -29,11 +29,8 @@ class Platform(BaseModel):
     client_id: str | None
     client_secret: SecretStr | None
 
-    class Config:
-        orm_mode = True
 
-
-class AuthUser(BaseModel):
+class AuthUser(BaseModel, orm_mode=True):
     """Authorized User.
 
     A standalone schema class for ``scale_api.db.AuthUser``.
@@ -79,9 +76,6 @@ class AuthUser(BaseModel):
     def session_dict(self) -> dict[str, Any]:
         """Returns a dict object suitable for storing in a web session."""
         return self.dict(exclude_defaults=True)
-
-    class Config:
-        orm_mode = True
 
 
 class ScaleUser(BaseModel):
@@ -176,7 +170,7 @@ class ScaleUser(BaseModel):
         return v
 
 
-class AuthJsonWebKey(BaseModel):
+class AuthJsonWebKey(BaseModel, orm_mode=True):
     """JSON Web Key.
 
     A standalone schema class for ``scale_api.db.AuthJsonWebKey``.
@@ -187,18 +181,17 @@ class AuthJsonWebKey(BaseModel):
     valid_from: datetime.datetime
     valid_to: datetime.datetime | None
 
+    @validator("valid_from", "valid_to", pre=True)
+    def tz_aware_dates(cls, v: datetime.datetime | None) -> datetime.datetime | None:
+        if v is None:
+            return None
+        if v.tzinfo is not None and v.tzinfo.utcoffset(None) is not None:
+            return v
+        return v.replace(tzinfo=datetime.UTC)
+
     @property
     def is_valid(self) -> bool:
         now = datetime.datetime.now(tz=datetime.UTC)
         if self.valid_from > now:
             return False
         return self.valid_to is None or self.valid_to > now
-
-    class Config:
-        orm_mode = True
-
-
-class OAuth20Response(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int

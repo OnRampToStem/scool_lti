@@ -6,7 +6,7 @@ and token services for ``ScaleUser`` requests.
 """
 import logging
 import urllib.parse
-from typing import Annotated, cast
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
@@ -15,10 +15,10 @@ from fastapi import (
     HTTPException,
     Request,
     Response,
-    Security,
     status,
 )
 from fastapi.security import HTTPBasic
+from pydantic import BaseModel
 
 from .. import (
     db,
@@ -38,11 +38,13 @@ http_basic = HTTPBasic(auto_error=False)
 ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
 
 
-@router.get(
-    "/",
-    include_in_schema=False,
-    dependencies=[Security(security.authorize)],
-)
+class OAuth20Response(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
+@router.get("/", include_in_schema=False)
 async def index_api(request: Request, scale_user: ScaleUser) -> Response:
     scale_user.name = "Demo User"
     scale_user.context = {
@@ -57,28 +59,20 @@ async def index_api(request: Request, scale_user: ScaleUser) -> Response:
     return templates.redirect_lms_auth(target_url, token)
 
 
-@router.get(
-    "/userinfo",
-    dependencies=[Depends(security.authorize)],
-    response_model=schemas.AuthUser,
-    response_model_exclude={"client_secret_hash"},
-)
-def user_info(request: Request) -> schemas.AuthUser:
+@router.get("/userinfo", response_model=schemas.ScaleUser)
+def user_info(scale_user: ScaleUser) -> schemas.ScaleUser:
     """User Info endpoint."""
-    return cast(schemas.AuthUser, request.state.auth_user)
+    return scale_user
 
 
-@router.post(
-    "/oauth/token",
-    response_model=schemas.OAuth20Response,
-)
+@router.post("/oauth/token", response_model=OAuth20Response)
 async def oauth_token(
     request: Request,
     grant_type: str = Form(...),
     scope: str | None = Form(None),
     client_id: str | None = Form(None),
     client_secret: str | None = Form(None),
-) -> schemas.OAuth20Response:
+) -> OAuth20Response:
     """OAuth 2.0 Token Endpoint.
 
     This endpoint supports the ``client_credentials`` grant type and is
@@ -124,7 +118,7 @@ async def oauth_token(
 
     token = security.create_auth_user_token(auth_user)
     logger.info("Return token for AuthUser: %s", auth_user)
-    return schemas.OAuth20Response(
+    return OAuth20Response(
         access_token=token,
         expires_in=app_config.api.oauth_access_token_expiry,
     )

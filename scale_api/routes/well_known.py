@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 @router.get("/jwks.json")
-async def jwks() -> dict[str, str]:
+async def jwks() -> dict[str, Any]:
     """JSON Web Key Set endpoint."""
     ks = await keys.public_key_set()
     ks_dict: dict[str, Any] = ks.as_dict()

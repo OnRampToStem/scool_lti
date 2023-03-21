@@ -24,7 +24,6 @@ from fastapi import (
     HTTPException,
     Request,
     Response,
-    Security,
     status,
 )
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -484,12 +483,12 @@ async def login_initiations_form(
     "/members",
     response_model=list[schemas.ScaleUser],
     response_model_exclude_unset=True,
-    dependencies=[Security(security.authorize)],
 )
 async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
     if scale_user.platform_id == "scale_api":
+        logger.warning("names_role_service(%r): no LMS context", scale_user)
         return []
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)

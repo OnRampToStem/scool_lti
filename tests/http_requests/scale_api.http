@@ -1,0 +1,42 @@
+GET {{api_base_url}}/lb-status
+Accept: application/json
+
+
+###
+GET {{api_base_url}}/.well-known/jwks.json
+Accept: application/json
+
+
+###
+GET {{api_base_url}}/.well-known/oauth-authorization-server
+Accept: application/json
+
+
+###
+POST {{api_base_url}}/v1/auth/oauth/token
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic {{username}} {{password}}
+
+grant_type=client_credentials
+
+
+###
+GET {{api_base_url}}/v1/auth/
+Authorization: Basic {{username}} {{password}}
+
+
+###
+GET {{api_base_url}}/v1/auth/userinfo
+Accept: application/json
+Authorization: Bearer {{oauth_token}}
+
+
+###
+GET {{api_base_url}}/lti/v1.3/87e927ab1abb46d6868760f7a081c178/config
+Accept: application/json
+
+
+###
+GET {{ api_base_url }}/lti/v1.3/members
+Accept: application/json
+Authorization: Bearer {{oauth_token}}

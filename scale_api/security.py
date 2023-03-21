@@ -18,7 +18,7 @@ Learning Tools Interoperability (LTI).
 import logging
 import time
 from dataclasses import dataclass
-from typing import Annotated, Any, Self, cast
+from typing import Annotated, Any, NamedTuple, Self
 
 from authlib import jose
 from authlib.jose.errors import JoseError
@@ -56,6 +56,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class AuthorizeError(Exception):
     pass
+
+
+class AuthUsers(NamedTuple):
+    auth_user: schemas.AuthUser
+    scale_user: schemas.ScaleUser
 
 
 @dataclass
@@ -162,17 +167,12 @@ def verify_password(password_plain: str, password_hash: str) -> bool:
     return pwd_context.verify(password_plain, password_hash)
 
 
-def req_scale_user(request: Request) -> schemas.ScaleUser:
-    """Dependency that routes can use that depend on a ``scale_user``."""
-    return cast(schemas.ScaleUser, request.state.scale_user)
-
-
 async def authorize(
     request: Request,
     scopes: SecurityScopes,
     bearer_token: Annotated[str | None, Depends(oauth2_token)] = None,
     basic_creds: Annotated[HTTPBasicCredentials | None, Depends(http_basic)] = None,
-) -> schemas.AuthUser:
+) -> AuthUsers:
     """Main security dependency for routes requiring authentication.
 
     All routes defined in ``scale_api.routes`` that require authentication
@@ -219,9 +219,17 @@ async def authorize(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     request.state.auth_user = auth_user
-    request.state.scale_user = schemas.ScaleUser.from_auth_user(auth_user)
+    scale_user = schemas.ScaleUser.from_auth_user(auth_user)
+    request.state.scale_user = scale_user
 
-    return auth_user
+    return AuthUsers(auth_user, scale_user)
+
+
+def req_scale_user(
+    auth_users: Annotated[AuthUsers, Depends(authorize)]
+) -> schemas.ScaleUser:
+    """Dependency that routes can use that depend on a ``scale_user``."""
+    return auth_users.scale_user
 
 
 async def auth_user_from(
@@ -239,62 +247,6 @@ async def auth_user_from(
         raise AuthorizeError("CREDENTIALS_REQUIRED")
 
     return auth_user
-
-
-def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) -> str:
-    """Returns an access token (JWT) for an ``AuthUser``."""
-    payload = {
-        "sub": auth_user.id,
-        "client_id": auth_user.client_id,
-        "scopes": auth_user.scopes,
-        "context": auth_user.context,
-    }
-    return create_token(payload, expires_in)
-
-
-def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1) -> str:
-    """Returns an access token (JWT) for a ``ScaleUser``.
-
-    This token is also used by the front-end web app to gather role and
-    course info for the user.
-    """
-    payload = {
-        "sub": scale_user.id,
-        # TODO: legacy claim used by dotnet
-        # TODO: delete this after moving the front-end to use `email` claim
-        "unique_name": scale_user.email,
-        "email": scale_user.email,
-        "name": scale_user.name,
-        "roles": scale_user.roles,
-        "context": scale_user.context,
-    }
-    if scale_user.picture:
-        payload["picture"] = scale_user.picture
-    return create_token(payload, expires_in)
-
-
-def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
-    """Returns a JWT signed with a secret key.
-
-    Tokens returned from this function are meant to only be validated
-    by this application and not externally, so that is why an RSA key is
-    not used. The Issuer and Audience for this JWT are set to this app.
-    """
-    if expires_in == -1:
-        expires_in = app_config.api.oauth_access_token_expiry
-    now = int(time.time())
-    issued_at = now - 5
-    expires_at = now + expires_in
-    payload["iat"] = issued_at
-    payload["exp"] = expires_at
-    payload["iss"] = JWT_ISSUER
-    payload["aud"] = JWT_ISSUER
-    token = JWT.encode(
-        header={"alg": JWT_ALGORITHM},
-        payload=payload,
-        key=app_config.api.secret_key,
-    )
-    return token.decode(encoding="ascii")  # type: ignore[no-any-return]
 
 
 async def auth_user_from_token(token: str) -> schemas.AuthUser:
@@ -367,3 +319,59 @@ def can_access(auth_user: schemas.AuthUser, scopes: list[str] | None) -> bool:
         else:
             return False
     return True
+
+
+def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) -> str:
+    """Returns an access token (JWT) for an ``AuthUser``."""
+    payload = {
+        "sub": auth_user.id,
+        "client_id": auth_user.client_id,
+        "scopes": auth_user.scopes,
+        "context": auth_user.context,
+    }
+    return create_token(payload, expires_in)
+
+
+def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1) -> str:
+    """Returns an access token (JWT) for a ``ScaleUser``.
+
+    This token is also used by the front-end web app to gather role and
+    course info for the user.
+    """
+    payload = {
+        "sub": scale_user.id,
+        # TODO: legacy claim used by dotnet
+        # TODO: delete this after moving the front-end to use `email` claim
+        "unique_name": scale_user.email,
+        "email": scale_user.email,
+        "name": scale_user.name,
+        "roles": scale_user.roles,
+        "context": scale_user.context,
+    }
+    if scale_user.picture:
+        payload["picture"] = scale_user.picture
+    return create_token(payload, expires_in)
+
+
+def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
+    """Returns a JWT signed with a secret key.
+
+    Tokens returned from this function are meant to only be validated
+    by this application and not externally, so that is why an RSA key is
+    not used. The Issuer and Audience for this JWT are set to this app.
+    """
+    if expires_in == -1:
+        expires_in = app_config.api.oauth_access_token_expiry
+    now = int(time.time())
+    issued_at = now - 5
+    expires_at = now + expires_in
+    payload["iat"] = issued_at
+    payload["exp"] = expires_at
+    payload["iss"] = JWT_ISSUER
+    payload["aud"] = JWT_ISSUER
+    token = JWT.encode(
+        header={"alg": JWT_ALGORITHM},
+        payload=payload,
+        key=app_config.api.secret_key,
+    )
+    return token.decode(encoding="ascii")  # type: ignore[no-any-return]
