@@ -120,11 +120,9 @@ def cache_pop(key: str, default: str | None = None) -> str | None:
     """
     with SessionLocal.begin() as session:
         if (entry := session.get(Cache, key)) is None:
-            value = default
-        elif _cache_is_live(entry):
-            value = entry.value
-        else:
-            value = default
+            return default
+
+        value = entry.value if _cache_is_live(entry) else default
         session.delete(entry)
 
     return value
