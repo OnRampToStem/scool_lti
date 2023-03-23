@@ -18,7 +18,6 @@ from fastapi import (
     Response,
     status,
 )
-from fastapi.security import HTTPBasic
 from pydantic import BaseModel
 
 from .. import (
@@ -32,9 +31,6 @@ from ..settings import app_config
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# Use this just for extracting the basic auth for the client_credentials auth
-http_basic = HTTPBasic(auto_error=False)
 
 ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
 
@@ -60,19 +56,18 @@ async def index_api(request: Request, scale_user: ScaleUser) -> Response:
     return templates.redirect_lms_auth(target_url, token)
 
 
-@router.get("/userinfo", response_model=schemas.ScaleUser)
-def user_info(scale_user: ScaleUser) -> schemas.ScaleUser:
-    """User Info endpoint."""
+@router.get("/userinfo")
+async def user_info(scale_user: ScaleUser) -> schemas.ScaleUser:
     return scale_user
 
 
-@router.post("/oauth/token", response_model=OAuth20Response)
+@router.post("/oauth/token")
 async def oauth_token(
-    request: Request,
-    grant_type: str = Form(...),
+    grant_type: Annotated[str, Form()],
     scope: str | None = Form(None),
     client_id: str | None = Form(None),
     client_secret: str | None = Form(None),
+    basic_auth: security.HTTPBasicCreds = None,
 ) -> OAuth20Response:
     """OAuth 2.0 Token Endpoint.
 
@@ -87,7 +82,6 @@ async def oauth_token(
         )
 
     if not client_id or not client_secret:
-        basic_auth = await http_basic(request)
         if basic_auth:
             client_id = basic_auth.username
             client_secret = basic_auth.password
@@ -98,7 +92,6 @@ async def oauth_token(
                 detail={"error": "invalid_client"},
             )
 
-    # TODO: verify scope?
     logger.info("oauth_token(scopes=%r)", scope)
 
     try:

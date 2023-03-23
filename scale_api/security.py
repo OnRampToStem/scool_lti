@@ -154,25 +154,19 @@ class OAuth2ClientCredentials(OAuth2):
 oauth2_token = OAuth2ClientCredentials(
     tokenUrl=f"{app_config.api.path_prefix}/v1/auth/oauth/token", auto_error=False
 )
+OAuth2Token = Annotated[str | None, Depends(oauth2_token)]
+
 # We also support HTTP Basic auth as a fallback for Bearer tokens
-http_basic = HTTPBasic(auto_error=False)
-
-
-def hash_password(password_plain: str) -> str:
-    """Returns a hashed string suitable for storing in a database."""
-    return pwd_context.hash(password_plain)
-
-
-def verify_password(password_plain: str, password_hash: str) -> bool:
-    """Returns True if the plain string matches the provided hash."""
-    return pwd_context.verify(password_plain, password_hash)
+HTTPBasicCreds = Annotated[
+    HTTPBasicCredentials | None, Depends(HTTPBasic(auto_error=False))
+]
 
 
 async def authorize(
     request: Request,
     scopes: SecurityScopes,
-    bearer_token: Annotated[str | None, Depends(oauth2_token)] = None,
-    basic_creds: Annotated[HTTPBasicCredentials | None, Depends(http_basic)] = None,
+    bearer_token: OAuth2Token,
+    basic_creds: HTTPBasicCreds,
 ) -> AuthUsers:
     """Main security dependency for routes requiring authentication.
 
@@ -239,7 +233,7 @@ async def auth_user_from(
     state: str,
 ) -> schemas.AuthUser:
     if bearer_token is not None:
-        auth_user = await auth_user_from_token(bearer_token)
+        auth_user = auth_user_from_token(bearer_token)
         logger.info("[%s]: authorize from bearer token %r", state, auth_user)
     elif basic_creds is not None:
         auth_user = await auth_user_from_basic_creds(basic_creds)
@@ -250,7 +244,7 @@ async def auth_user_from(
     return auth_user
 
 
-async def auth_user_from_token(token: str) -> schemas.AuthUser:
+def auth_user_from_token(token: str) -> schemas.AuthUser:
     """Returns an ``AuthUser`` from the provided JWT.
 
     This functions handles tokens that were generated for either an
@@ -378,3 +372,13 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
         key=app_config.api.secret_key,
     )
     return token.decode(encoding="ascii")  # type: ignore[no-any-return]
+
+
+def hash_password(password_plain: str) -> str:
+    """Returns a hashed string suitable for storing in a database."""
+    return pwd_context.hash(password_plain)
+
+
+def verify_password(password_plain: str, password_hash: str) -> bool:
+    """Returns True if the plain string matches the provided hash."""
+    return pwd_context.verify(password_plain, password_hash)
