@@ -220,7 +220,7 @@ async def authorize(
     return AuthUsers(auth_user, scale_user)
 
 
-def req_scale_user(
+async def req_scale_user(
     auth_users: Annotated[AuthUsers, Depends(authorize)]
 ) -> schemas.ScaleUser:
     """Dependency that routes can use that depend on a ``scale_user``."""

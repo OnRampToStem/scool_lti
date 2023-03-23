@@ -479,11 +479,7 @@ async def login_initiations_form(
     return response
 
 
-@router.get(
-    "/members",
-    response_model=list[schemas.ScaleUser],
-    response_model_exclude_unset=True,
-)
+@router.get("/members", response_model_exclude_unset=True)
 async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
