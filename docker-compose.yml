@@ -18,7 +18,7 @@ services:
       - proxy
     environment:
       SCALE_ENV: local
-      SCALE_DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
+      SCALE_DB_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}?ssl=disable
     env_file:
       - .env
     networks:

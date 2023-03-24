@@ -27,7 +27,9 @@ class LogSettings(SharedSettings, env_prefix="LOG_"):
 
 
 class DatabaseSettings(SharedSettings, env_prefix="SCALE_DB_"):
-    url: str = f"sqlite:///{BASE_PATH}/scale_db.sqlite?check_same_thread=False"
+    url: str = (
+        f"sqlite+aiosqlite:///{BASE_PATH}/scale_db.sqlite?check_same_thread=False"
+    )
     debug: bool = False
     seed_file: Path | None = None
 

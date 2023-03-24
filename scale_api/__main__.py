@@ -2,7 +2,6 @@ from pathlib import Path
 
 import uvicorn
 
-from scale_api import events
 from scale_api.settings import app_config
 
 
@@ -22,12 +21,10 @@ def main() -> None:
         run_opts["ssl_keyfile"] = f"{cert_path / 'local_ssl_key.pem'}"
         run_opts["ssl_certfile"] = f"{cert_path / 'local_ssl_cert.pem'}"
 
-    events.on_startup_main()
     uvicorn.run(
         "scale_api.app:app",
         **run_opts,  # type: ignore[arg-type]
     )
-    events.on_shutdown_main()
 
 
 if __name__ == "__main__":

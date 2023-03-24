@@ -1,4 +1,5 @@
 -r requirements.txt
 
+aiosqlite==0.18.0
 mypy~=1.1.1
 types-passlib

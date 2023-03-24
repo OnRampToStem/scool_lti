@@ -22,20 +22,6 @@ class CustomGunicornLogger(glogging.Logger):
         logger.addFilter(HealthCheckFilter())
 
 
-def on_starting(server):
-    import scale_api.events
-
-    logging.warning("on_starting(%r)", server)
-    scale_api.events.on_startup_main()
-
-
-def on_exit(server):
-    import scale_api.events
-
-    logging.warning("on_exit(%r)", server)
-    scale_api.events.on_shutdown_main()
-
-
 accesslog = "-"
 access_log_format = (
     '%(t)s %({x-forwarded-for}i)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(L)s'

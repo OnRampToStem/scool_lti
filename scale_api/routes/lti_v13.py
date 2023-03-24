@@ -9,7 +9,6 @@ that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
 """
-import asyncio
 import logging
 import urllib.parse
 import uuid
@@ -227,9 +226,7 @@ async def launch_form(
     # stored, and then we remove from the cache so any future requests with
     # the same nonce will fail.
     nonce = claims.get("nonce")
-    cached_nonce_plat = await asyncio.to_thread(
-        db.store.cache_pop, key=f"lti1p3-nonce-{nonce}"
-    )
+    cached_nonce_plat = await db.store.cache_pop(key=f"lti1p3-nonce-{nonce}")
     if not cached_nonce_plat or cached_nonce_plat != platform_id:
         logger.error(
             "[%s]: nonce not found or platform not matched: %s",
@@ -260,8 +257,7 @@ async def launch_form(
         }
         return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
-    await asyncio.to_thread(
-        db.store.cache_put,
+    await db.store.cache_put(
         key=message_launch.launch_id,
         value=message_launch.dumps(),
         ttl=LTI_TOKEN_EXPIRY,
@@ -418,8 +414,7 @@ async def login_initiations_form(
         return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     nonce = uuid.uuid4().hex  # prevent replay attacks
-    await asyncio.to_thread(
-        db.store.cache_put,
+    await db.store.cache_put(
         key=f"lti1p3-nonce-{nonce}",
         value=platform_id,
         ttl=120,
@@ -489,7 +484,7 @@ async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
-    cached_launch = await asyncio.to_thread(db.store.cache_get, key=launch_id)
+    cached_launch = await db.store.cache_get(key=launch_id)
     if cached_launch is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -511,7 +506,7 @@ async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
 async def platform_or_404(platform_id: str) -> schemas.Platform:
     """Returns a ``Platform``, else HTTP 404 if one is not found for the id."""
     try:
-        return await asyncio.to_thread(db.store.platform, platform_id=platform_id)
+        return await db.store.platform(platform_id=platform_id)
     except LookupError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
