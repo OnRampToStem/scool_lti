@@ -127,12 +127,13 @@ async def cache_pop(key: str, default: str | None = None) -> str | None:
 
 
 def _cache_calc_expires(ttl: int) -> datetime.datetime:
-    return datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(seconds=ttl)
+    # we store without a timezone, so we produce a naive timestamp
+    return datetime.datetime.utcnow() + datetime.timedelta(seconds=ttl)  # noqa: DTZ003
 
 
 def _cache_is_live(entry: Cache) -> bool:
-    expiry: datetime.datetime = entry.expire_at
-    return expiry.replace(tzinfo=datetime.UTC) > datetime.datetime.now(tz=datetime.UTC)
+    # we store without a timezone, so compare against a naive UTC now
+    return entry.expire_at > datetime.datetime.utcnow()  # noqa: DTZ003
 
 
 def _cache_guid(prefix: str | None = None) -> str:
@@ -143,7 +144,8 @@ def _cache_guid(prefix: str | None = None) -> str:
 
 async def _cache_purge_expired() -> None:
     """Removes all entries that are expired."""
-    now = datetime.datetime.now(tz=datetime.UTC)
-    stmt = sa.delete(Cache).where(Cache.expire_at <= now)
+    # we store without a timezone, so compare against a naive UTC now
+    utc_now = datetime.datetime.utcnow()  # noqa: DTZ003
+    stmt = sa.delete(Cache).where(Cache.expire_at <= utc_now)
     async with async_session.begin() as session:
         await session.execute(stmt)
