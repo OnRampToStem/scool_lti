@@ -26,8 +26,7 @@ SeedData = dict[str, Any]
 
 
 async def init_platforms(data: SeedData) -> None:
-    platforms = store.platforms()
-    if platforms:
+    if await store.platforms():
         logger.info("Platforms exist, skipping")
         return
     async with async_session.begin() as session:
