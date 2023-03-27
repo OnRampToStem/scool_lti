@@ -17,7 +17,7 @@ app_info = {
     "framework_version": fastapi_version,
     "lang_version": sys.version,
     "environment": settings.api.env,
-    "engine": str(db.engine),
+    "engine": str(db.engine.sync_engine),
 }
 
 
