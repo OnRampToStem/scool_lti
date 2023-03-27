@@ -23,6 +23,6 @@ COPY . .
 
 USER app
 
-CMD ["gunicorn", "scale_api.app:app"]
+CMD ["python3.11", "-m", "scale_api", "prod"]
 
 EXPOSE 8000

@@ -10,8 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-from .. import keys, security
-from ..settings import app_config
+from .. import keys, security, settings
 from . import store
 from .core import async_session, engine
 from .models import (
@@ -81,10 +80,10 @@ async def run(seed_file: Path) -> None:
 
 
 async def async_main() -> None:
-    if app_config.api.is_production:
-        raise RuntimeError("INVALID_ENV", app_config.api.env)
+    if settings.api.is_production:
+        raise RuntimeError("INVALID_ENV", settings.api.env)
 
-    seed_file = Path(sys.argv[1]) if len(sys.argv) > 1 else app_config.db.seed_file
+    seed_file = Path(sys.argv[1]) if len(sys.argv) > 1 else settings.db.seed_file
     if seed_file:
         await run(seed_file)
     else:

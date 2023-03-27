@@ -23,9 +23,9 @@ from .. import (
     db,
     schemas,
     security,
+    settings,
     templates,
 )
-from ..settings import app_config
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ async def index_api(request: Request, scale_user: ScaleUser) -> Response:
     }
     target_url = urllib.parse.urljoin(
         str(request.url_for("index_api")),
-        app_config.api.frontend_launch_path,
+        settings.api.frontend_launch_path,
     )
     token = security.create_scale_user_token(scale_user, expires_in=60 * 60 * 12)
     return templates.redirect_lms_auth(target_url, token)
@@ -113,5 +113,5 @@ async def oauth_token(
     logger.info("Return token for AuthUser: %s", auth_user)
     return OAuth20Response(
         access_token=token,
-        expires_in=app_config.api.oauth_access_token_expiry,
+        expires_in=settings.api.oauth_access_token_expiry,
     )

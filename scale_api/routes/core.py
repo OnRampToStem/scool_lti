@@ -8,10 +8,17 @@ from fastapi import __version__ as fastapi_version
 from fastapi.responses import RedirectResponse
 
 from .. import __version__ as app_version
-from .. import db, security
-from ..settings import app_config
+from .. import db, security, settings
 
 router = APIRouter()
+
+app_info = {
+    "app_version": app_version,
+    "framework_version": fastapi_version,
+    "lang_version": sys.version,
+    "environment": settings.api.env,
+    "engine": str(db.engine),
+}
 
 
 @router.get(
@@ -27,10 +34,4 @@ async def index(request: Request) -> RedirectResponse:
 @router.get("/lb-status", include_in_schema=False)
 async def health_check() -> dict[str, str]:
     """Provides a health check endpoint for the Load Balancer."""
-    return {
-        "app_version": app_version,
-        "framework_version": fastapi_version,
-        "lang_version": sys.version,
-        "environment": app_config.api.env,
-        "engine": str(db.engine),
-    }
+    return app_info

@@ -3,9 +3,13 @@ API Endpoints
 
 Contains the configuration for all API endpoint routers.
 """
+import logging
+
 from fastapi import APIRouter
 
 from . import auth, core, lti_v13, well_known
+
+logger = logging.getLogger(__name__)
 
 api_router = APIRouter()
 
@@ -32,3 +36,5 @@ api_router.include_router(
     prefix="/lti/v1.3",
     tags=["LTI 1.3"],
 )
+
+logger.info("Routes configured: %s", core.app_info)

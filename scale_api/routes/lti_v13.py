@@ -32,10 +32,10 @@ from .. import (
     keys,
     schemas,
     security,
+    settings,
     templates,
 )
 from ..lti import messages, services
-from ..settings import app_config
 
 logger = logging.getLogger(__name__)
 
@@ -270,10 +270,10 @@ async def launch_form(
 
     base_url = (
         "http://localhost:8080"
-        if app_config.api.is_local
+        if settings.api.is_local
         else str(request.url_for("index_api"))
     )
-    target_url = urllib.parse.urljoin(base_url, app_config.api.frontend_launch_path)
+    target_url = urllib.parse.urljoin(base_url, settings.api.frontend_launch_path)
     logger.info("[%s]: redirecting via POST to v2: %s", state, target_url)
     token = security.create_scale_user_token(scale_user, expires_in=LTI_TOKEN_EXPIRY)
     response = templates.redirect_lms_auth(target_url, token)

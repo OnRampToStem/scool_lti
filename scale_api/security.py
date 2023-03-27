@@ -34,14 +34,13 @@ from fastapi.security import (
 from fastapi.security.utils import get_authorization_scheme_param
 from passlib.context import CryptContext
 
-from . import db, schemas
-from .settings import app_config
+from . import db, schemas, settings
 
 logger = logging.getLogger(__name__)
 
-JWT_KEY = app_config.api.secret_key
-JWT_ALGORITHM = app_config.api.jwt_algorithm
-JWT_ISSUER = app_config.api.jwt_issuer
+JWT_KEY = settings.api.secret_key
+JWT_ALGORITHM = settings.api.jwt_algorithm
+JWT_ISSUER = settings.api.jwt_issuer
 
 AUTH_USER_TOKEN_OPTS = {
     "iss": {"essential": True, "value": JWT_ISSUER},
@@ -151,7 +150,7 @@ class OAuth2ClientCredentials(OAuth2):
 
 
 oauth2_token = OAuth2ClientCredentials(
-    tokenUrl=f"{app_config.api.path_prefix}/v1/auth/oauth/token", auto_error=False
+    tokenUrl=f"{settings.api.path_prefix}/v1/auth/oauth/token", auto_error=False
 )
 OAuth2Token = Annotated[str | None, Depends(oauth2_token)]
 
@@ -355,7 +354,7 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
     not used. The Issuer and Audience for this JWT are set to this app.
     """
     if expires_in == -1:
-        expires_in = app_config.api.oauth_access_token_expiry
+        expires_in = settings.api.oauth_access_token_expiry
     now = int(time.time())
     issued_at = now - 5
     expires_at = now + expires_in
@@ -366,7 +365,7 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
     token = JWT.encode(
         header={"alg": JWT_ALGORITHM},
         payload=payload,
-        key=app_config.api.secret_key,
+        key=JWT_KEY,
     )
     return token.decode(encoding="ascii")  # type: ignore[no-any-return]
 

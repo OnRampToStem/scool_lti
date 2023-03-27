@@ -3,11 +3,9 @@ Application Settings and Configuration
 
 Application-wide configuration settings that are read in from the Environment.
 """
-import functools
 import logging.config
 import secrets
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseSettings, validator
 
@@ -24,6 +22,7 @@ class SharedSettings(BaseSettings):
 class LogSettings(SharedSettings, env_prefix="LOG_"):
     level_root: str = "WARNING"
     level_app: str = "INFO"
+    level_uvicorn: str = "INFO"
 
 
 class DatabaseSettings(SharedSettings, env_prefix="SCALE_DB_"):
@@ -44,6 +43,7 @@ class APISettings(SharedSettings, env_prefix="SCALE_"):
     env: str = "local"
     debug_app: bool = False
     path_prefix: str = "/api"
+    port: int = 8000
     secret_key: str = secrets.token_urlsafe(32)
     jwt_algorithm: str = "HS256"
     jwt_issuer: str = "https://scale.fresnostate.edu"
@@ -77,59 +77,11 @@ class APISettings(SharedSettings, env_prefix="SCALE_"):
         return self.env == "local"
 
 
-class AppConfig:
-    """Application configuration.
+api = APISettings()
+db = DatabaseSettings()
+log = LogSettings()
 
-    Provides cached access to all application configuration classes.
-    """
-
-    def __init__(self) -> None:
-        logging.config.dictConfig(self.log_config)
-
-    @property
-    def base_path(self) -> Path:
-        return BASE_PATH
-
-    @functools.cached_property
-    def api(self) -> APISettings:
-        return APISettings()
-
-    @functools.cached_property
-    def db(self) -> DatabaseSettings:
-        return DatabaseSettings()
-
-    @functools.cached_property
-    def log(self) -> LogSettings:
-        return LogSettings()
-
-    @functools.cached_property
-    def log_config(self) -> dict[str, Any]:
-        return {
-            "version": 1,
-            "disable_existing_loggers": False,
-            "formatters": {
-                "basic": {
-                    "format": "%(asctime)s[%(levelname)s]%(name)s: %(message)s",
-                    "datefmt": "%Y-%m-%dT%H:%M:%S",
-                }
-            },
-            "handlers": {
-                "console": {
-                    "class": "logging.StreamHandler",
-                    "formatter": "basic",
-                    "stream": "ext://sys.stdout",
-                },
-            },
-            "loggers": {
-                "": {
-                    "handlers": ["console"],
-                    "level": self.log.level_root,
-                },
-                "scale_api": {
-                    "level": self.log.level_app,
-                },
-            },
-        }
-
-
-app_config = AppConfig()
+logging.basicConfig(format="%(asctime)s[%(levelname)s]%(name)s: %(message)s")
+logging.getLogger("").setLevel(log.level_root)
+logging.getLogger("uvicorn").setLevel(log.level_uvicorn)
+logging.getLogger("scale_api").setLevel(log.level_app)

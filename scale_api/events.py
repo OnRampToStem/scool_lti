@@ -7,8 +7,7 @@ from typing import Any, TypedDict
 import httpx
 from fastapi import FastAPI
 
-from . import aio, db
-from .settings import app_config
+from . import aio, db, settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ class State(TypedDict):
 async def lifespan(_: FastAPI) -> Any:
     loop = asyncio.get_running_loop()
     logger.info("Running in loop [%r]", loop)
-    workers = app_config.api.thread_pool_workers
+    workers = settings.api.thread_pool_workers
     logger.info("ThreadPoolExecutor(max_workers=%s)", workers)
     executor = concurrent.futures.ThreadPoolExecutor(
         max_workers=workers,

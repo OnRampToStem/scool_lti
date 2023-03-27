@@ -7,14 +7,14 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from ..settings import app_config
+from .. import settings
 
 IntegrityError = sqlalchemy.exc.IntegrityError
 Session = sqlalchemy.orm.Session
 
 engine = create_async_engine(
-    app_config.db.url,
-    echo=app_config.db.debug,
+    settings.db.url,
+    echo=settings.db.debug,
     pool_recycle=3600,
 )
 

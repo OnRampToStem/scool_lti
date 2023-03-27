@@ -5,8 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Request
 
-from .. import keys
-from ..settings import app_config
+from .. import keys, settings
 
 router = APIRouter()
 
@@ -28,7 +27,7 @@ async def jwks() -> dict[str, Any]:
 async def oauth_server_metadata(request: Request) -> dict[str, Any]:
     """OAuth 2.0 configuration endpoint."""
     return {
-        "issuer": app_config.api.jwt_issuer,
+        "issuer": settings.api.jwt_issuer,
         "token_endpoint": request.url_for("oauth_token"),
         "response_types_supported": "token",
         "token_endpoint_auth_methods_supported": [
