@@ -1,4 +1,4 @@
-# OR2STEM Canvas Integration
+# Canvas Integration
 
 This guide steps through the process of using the On-Ramp To STEM
 Tool as an External App in a Canvas course.

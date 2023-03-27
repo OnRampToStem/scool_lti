@@ -1,4 +1,4 @@
-# OR2STEM LTI 1.3 Integration
+# Learning Management System (LMS) Integration
 
 [General LTI Overview](general.md)
 

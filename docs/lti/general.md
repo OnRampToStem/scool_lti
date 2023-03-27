@@ -1,4 +1,4 @@
-# LTI 1.3 Integration
+# General LTI 1.3 Integration
 
 # Resources
 

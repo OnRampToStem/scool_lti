@@ -8,7 +8,26 @@ site_description: >
 site_dir: temp/docs
 
 nav:
-  - 'index.md'
+  - index.md
+  - Integration:
+      - lti/index.md
+      - lti/general.md
+      - Canvas:
+          - lti/canvas.md
+          - lti/canvas_install.md
+          - lti/canvas_module.md
+  - server/index.md
+  - Project Site: https://sites.google.com/mail.fresnostate.edu/onramptostem
 
 theme:
-  name: 'material'
+  name: "material"
+  features:
+    - content.code.copy
+    - navigation.footer
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+
+markdown_extensions:
+  - toc:
+      permalink: "#"

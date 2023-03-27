@@ -1,4 +1,4 @@
-# OR2STEM Canvas LTI
+# Canvas LTI Setup
 
 This document steps through the process of enabling the **On-Ramp To STEM**
 Tool in Canvas using LTI v1.3.

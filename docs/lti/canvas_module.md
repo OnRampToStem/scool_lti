@@ -1,4 +1,4 @@
-# OR2STEM Canvas LTI Module Link
+# Canvas LTI Module Link
 
 This guide covers the steps required in order to add a Canvas Module Link for
 the OR2STEM SCALE application.
