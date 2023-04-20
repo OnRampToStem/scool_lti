@@ -1,7 +1,7 @@
 alembic==1.10.3
 asyncpg==0.27.0
 authlib==1.2.0
-fastapi==0.95.0
+fastapi==0.95.1
 httpx==0.24.0
 passlib[bcrypt]==1.7.4
 pydantic[email]==1.10.7
