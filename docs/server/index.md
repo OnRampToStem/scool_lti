@@ -17,7 +17,7 @@ for the `scale` user in a *chrooted* environment and to allow password
 authentication. The SFTP subsystem is also changed to `internal-sftp`, which
 is an in-process server and does not require running a separate process.
 
-```
+```text
 #Subsystem sftp /usr/libexec/openssh/sftp-server
 Subsystem sftp internal-sftp
 

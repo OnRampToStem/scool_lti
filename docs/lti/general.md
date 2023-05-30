@@ -1,6 +1,6 @@
 # General LTI 1.3 Integration
 
-# Resources
+## Resources
 
 * [LTI 1.3 Core Specification][ims_lti_1.3_core_spec]
 * [LTI 1.3 Implementation Guide][ims_lti_1.3_impl_guide]
@@ -12,10 +12,9 @@
 * [OpenID Connect Core 1.0][oidc_core]
 * [VitalSource Example Setup](https://success.vitalsource.com/hc/en-gb/articles/360052315753-LTI-1-3-Tool-Setup-Instructions-for-Canvas)
 
+## Samples
 
-# Samples
-
-## Sample LtiResourceLinkRequest
+### Sample LtiResourceLinkRequest
 
 Using the IMS RI, the following is an example IDToken that is returned from a
 resource link launch request.
@@ -105,9 +104,9 @@ resource link launch request.
 }
 ```
 
-## Sample Canvas Tool Config
+### Sample Canvas Tool Config
 
-https://canvas.instructure.com/doc/api/file.lti_dev_key_config.html#anatomy-of-a-json-configuration
+<https://canvas.instructure.com/doc/api/file.lti_dev_key_config.html#anatomy-of-a-json-configuration>
 
 ```json
 {

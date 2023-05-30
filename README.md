@@ -2,46 +2,56 @@
 
 API for the OR2STEM project.
 
-# Configuration
+## Configuration
 
 Environment variables are used for configuration settings. For local
 development review the `scale_api.settings` module and create a `.env` file
 in the project root with the settings that are needed.
 
-# Running with Python
+## Running with Python
 
 Requires Python 3.11.
 
-## Virtualenv Setup
+### Virtualenv Setup
 
 It is recommended to set up a virtualenv for the project
 
-    python -m venv .venv
+```shell
+python -m venv .venv
+```
 
 on Windows activate the environment
 
-    .venv\scripts\activate
+```shell
+.venv\scripts\activate
+```
 
 or if on Linux
 
-    .venv/bin/activate
+```shell
+.venv/bin/activate
+```
 
 then install the project dependencies
 
-    pip install -r requirements-dev.txt
+```shell
+pip install -r requirements-dev.txt
+```
 
-# Running
+## Running
 
 To run the project
 
-    python -m scale_api
+```shell
+python -m scale_api
+```
 
 This will start up the server using self-signed certificates on port 443 and
 can be accessed via
 
-    https://localhost/api
+<https://localhost/api>
 
-# Running with Docker
+## Running with Docker
 
 Docker is the recommended method to run a local server. For an alternative,
 the server can be run using Python (see following section). When running with
@@ -50,31 +60,35 @@ closely reflect the production environment.
 
 The recommended method is to use the provided `docker-compose.yml`:
 
-    docker-compose up --build
+```shell
+docker-compose up --build
+```
 
 This will start the container and make the api available on port `443`
 
-    https://localhost/api
+<https://localhost/api>
 
-# API Documentation
+## API Documentation
 
 OpenAPI schema documentation is available at:
 
-    https://localhost/api/docs
+<https://localhost/api/docs>
 
-# Database
+## Database
 
 Sqlite is used for local development when running the app directly from
 Python. When running locally, the `scale_api.db.seed` module is run at startup.
 Use the OS Environment variable `SCALE_DB_SEED_FILE` to set the full path to
 the file to use to seed the database. See the example seed file format below.
 
-## Database Setup
+### Database Setup
 
 The commands below require the use of `psql`, to run from docker use:
 
-    docker-compose up -d db
-    docker-compose exec db psql -U postgres -h stem-scale-db.priv.fresnostate.edu swa
+```shell
+docker-compose up -d db
+docker-compose exec db psql -U postgres -h stem-scale-db.priv.fresnostate.edu swa
+```
 
 The following commands must be run on a new Postgres server in order to create
 the database, user and associated schema where the database objects will be
@@ -98,10 +112,9 @@ create schema if not exists authorization scale_api;
 grant select on all tables in schema public to scale_api;
 ```
 
-### Example Seed File
+#### Example Seed File
 
 ```json
-
 {
     "platforms": [
         {
@@ -124,18 +137,22 @@ grant select on all tables in schema public to scale_api;
 }
 ```
 
-## Migrations
+### Migrations
 
 Ensure you have a properly configured `.env`.
 
 Alembic is configured to use the SQLAlchemy metadata so that automated
 migrations can be generated with the following command:
 
-    alembic revision --autogenerate -m "<commit message>"
+```shell
+alembic revision --autogenerate -m "<commit message>"
+```
 
 The resulting migration file should be reviewed to ensure it captured all
 the required changes correctly.
 
 To update the database to the current revision run:
 
-    alembic upgrade head
+```shell
+alembic upgrade head
+```
