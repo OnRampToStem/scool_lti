@@ -39,6 +39,9 @@ select = [
     "UP",  # pyupgrade
     "W",  # pycodestyle (warnings)
 ]
+ignore = [
+    "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
+]
 extend-exclude = [".*", "docker", "docs", "etc", "temp"]
 
 [tool.ruff.flake8-bugbear]

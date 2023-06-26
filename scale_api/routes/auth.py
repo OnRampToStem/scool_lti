@@ -66,7 +66,7 @@ async def oauth_token(
     scope: str | None = Form(None),
     client_id: str | None = Form(None),
     client_secret: str | None = Form(None),
-    basic_auth: security.HTTPBasicCreds = None,
+    basic_auth: security.HTTPBasicCreds | None = None,
 ) -> OAuth20Response:
     """OAuth 2.0 Token Endpoint.
 

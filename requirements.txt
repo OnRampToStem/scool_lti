@@ -1,11 +1,11 @@
 alembic==1.11.1
 asyncpg==0.27.0
-authlib==1.2.0
-fastapi==0.97.0
+authlib==1.2.1
+fastapi==0.98.0
 httpx==0.24.1
 passlib[bcrypt]==1.7.4
 pydantic[email]==1.10.9
 python-dotenv==1.0.0
 python-multipart==0.0.6
-sqlalchemy[asyncio]==2.0.16
+sqlalchemy[asyncio]==2.0.17
 uvicorn[standard]==0.22.0
