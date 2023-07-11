@@ -79,8 +79,8 @@ async def lti_config(request: Request, platform_id: str) -> dict[str, Any]:
     return {
         "title": tool_title,
         "description": tool_description,
-        "oidc_initiation_url": oidc_init_url,
-        "target_link_uri": target_link_uri,
+        "oidc_initiation_url": str(oidc_init_url),
+        "target_link_uri": str(target_link_uri),
         # see https://github.com/instructure/canvas-lms/blob/master/lib/token_scopes.rb
         "scopes": [
             "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
@@ -103,7 +103,7 @@ async def lti_config(request: Request, platform_id: str) -> dict[str, Any]:
                             "enabled": True,
                             "placement": "link_selection",
                             "message_type": "LtiResourceLinkRequest",
-                            "target_link_uri": target_link_uri,
+                            "target_link_uri": str(target_link_uri),
                             "selection_height": 800,
                             "selection_width": 800,
                             "custom_fields": {
@@ -116,7 +116,7 @@ async def lti_config(request: Request, platform_id: str) -> dict[str, Any]:
                             "enabled": True,
                             "placement": "assignment_selection",
                             "message_type": "LtiDeepLinkingRequest",
-                            "target_link_uri": target_link_uri,
+                            "target_link_uri": str(target_link_uri),
                             "selection_height": 800,
                             "selection_width": 800,
                             "custom_fields": {
@@ -128,7 +128,7 @@ async def lti_config(request: Request, platform_id: str) -> dict[str, Any]:
                 },
             }
         ],
-        "public_jwk_url": jwks_url,
+        "public_jwk_url": str(jwks_url),
         "custom_fields": {
             "canvas_user_id": "$Canvas.user.id",
             "canvas_user_login_id": "$Canvas.user.loginId",
