@@ -60,9 +60,8 @@ async def index_api(request: Request, scale_user: ScaleUser) -> Response:
 
 
 @router.get("/userinfo")
-async def user_info() -> dict[str, str]:
-    # FIXME
-    return {"foo": "bar"}
+async def user_info(scale_user: ScaleUser) -> schemas.ScaleUser:
+    return scale_user
 
 
 @router.post("/oauth/token")
