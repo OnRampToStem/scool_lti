@@ -12,11 +12,7 @@ from .routes import api_router
 
 logger = logging.getLogger(__name__)
 
-logger.info(
-    "Using Environment [%s] file for settings: %s",
-    settings.api.env,
-    settings.api.Config.env_file,
-)
+logger.info("Using Environment [%s]", settings.api.env)
 
 logger.info("Is Production: %s", settings.api.is_production)
 

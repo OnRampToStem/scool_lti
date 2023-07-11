@@ -17,6 +17,7 @@ from fastapi import (
     Response,
     status,
 )
+from fastapi.security import HTTPBasic
 from pydantic import BaseModel
 
 from .. import (
@@ -32,6 +33,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
+
+# We also support HTTP Basic auth as a fallback for Bearer tokens
+HTTPBasicParser = HTTPBasic(auto_error=False)
 
 
 class OAuth20Response(BaseModel):
@@ -56,17 +60,18 @@ async def index_api(request: Request, scale_user: ScaleUser) -> Response:
 
 
 @router.get("/userinfo")
-async def user_info(scale_user: ScaleUser) -> schemas.ScaleUser:
-    return scale_user
+async def user_info() -> dict[str, str]:
+    # FIXME
+    return {"foo": "bar"}
 
 
 @router.post("/oauth/token")
 async def oauth_token(
+    request: Request,
     grant_type: Annotated[str, Form()],
     scope: str | None = Form(None),
     client_id: str | None = Form(None),
     client_secret: str | None = Form(None),
-    basic_auth: security.HTTPBasicCreds | None = None,
 ) -> OAuth20Response:
     """OAuth 2.0 Token Endpoint.
 
@@ -81,7 +86,7 @@ async def oauth_token(
         )
 
     if not client_id or not client_secret:
-        if basic_auth:
+        if basic_auth := await HTTPBasicParser(request):
             client_id = basic_auth.username
             client_secret = basic_auth.password
         else:

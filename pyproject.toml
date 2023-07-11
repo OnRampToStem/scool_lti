@@ -51,7 +51,7 @@ extend-immutable-calls = ["fastapi.Form"]
 builtins-ignorelist = ["id"]
 
 [tool.ruff.pep8-naming]
-classmethod-decorators = ["pydantic.validator"]
+classmethod-decorators = ["pydantic.field_validator"]
 ignore-names = ["setUp", "tokenUrl"]
 
 [tool.ruff.pylint]

@@ -18,14 +18,14 @@ async def platforms() -> list[schemas.Platform]:
     stmt = sa.select(Platform)
     async with async_session() as session:
         result = await session.execute(stmt)
-        return [schemas.Platform.from_orm(row) for row in result.scalars()]
+        return [schemas.Platform.model_validate(row) for row in result.scalars()]
 
 
 async def platform(platform_id: str) -> schemas.Platform:
     stmt = sa.select(Platform).where(Platform.id == platform_id)
     async with async_session() as session:
         if result := await session.execute(stmt):
-            return schemas.Platform.from_orm(result.scalar())
+            return schemas.Platform.model_validate(result.scalar())
         raise LookupError(platform_id)
 
 
@@ -34,7 +34,7 @@ async def user(user_id: str) -> schemas.AuthUser:
         result = await session.get(AuthUser, user_id)
         if not result:
             raise LookupError(user_id)
-        return schemas.AuthUser.from_orm(result)
+        return schemas.AuthUser.model_validate(result)
 
 
 async def user_by_client_id(client_id: str) -> schemas.AuthUser:
@@ -43,7 +43,7 @@ async def user_by_client_id(client_id: str) -> schemas.AuthUser:
     )
     async with async_session() as session:
         if result := await session.execute(stmt):
-            return schemas.AuthUser.from_orm(result.scalar())
+            return schemas.AuthUser.model_validate(result.scalar())
         raise LookupError(client_id)
 
 
@@ -57,7 +57,7 @@ async def json_web_keys() -> list[schemas.AuthJsonWebKey]:
     )
     async with async_session() as session:
         result = await session.execute(stmt)
-        return [schemas.AuthJsonWebKey.from_orm(row) for row in result.scalars()]
+        return [schemas.AuthJsonWebKey.model_validate(row) for row in result.scalars()]
 
 
 async def cache_put(

@@ -3,18 +3,32 @@ SCALE Application schemas
 """
 import datetime
 from collections.abc import Mapping
-from typing import Any, Self
+from typing import Annotated, Any, Self
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     EmailStr,
     HttpUrl,
     SecretStr,
-    validator,
+    field_validator,
 )
 
 
-class Platform(BaseModel, orm_mode=True):
+def _normalize_lti_role(v: str) -> str:
+    if v.startswith("http://purl.imsglobal.org/vocab/lis/v2/membership#"):
+        return v.rsplit("#")[1]
+    return v
+
+
+LTIRole = Annotated[str, AfterValidator(_normalize_lti_role)]
+
+
+class DBBaseModel(BaseModel):
+    model_config = {"from_attributes": True}
+
+
+class Platform(DBBaseModel):
     """Learning Management System (LMS) Platform.
 
     A standalone schema class for ``scale_api.db.Platform``.
@@ -22,15 +36,15 @@ class Platform(BaseModel, orm_mode=True):
 
     id: str
     name: str
-    issuer: str | None
-    oidc_auth_url: HttpUrl | None
-    auth_token_url: HttpUrl | None
-    jwks_url: HttpUrl | None
-    client_id: str | None
-    client_secret: SecretStr | None
+    issuer: str | None = None
+    oidc_auth_url: HttpUrl | None = None
+    auth_token_url: HttpUrl | None = None
+    jwks_url: HttpUrl | None = None
+    client_id: str | None = None
+    client_secret: SecretStr | None = None
 
 
-class AuthUser(BaseModel, orm_mode=True):
+class AuthUser(DBBaseModel):
     """Authorized User.
 
     A standalone schema class for ``scale_api.db.AuthUser``.
@@ -40,10 +54,10 @@ class AuthUser(BaseModel, orm_mode=True):
     client_id: str
     client_secret_hash: str
     is_active: bool = True
-    scopes: list[str] | None
-    context: Mapping[str, str] | None
+    scopes: list[str] | None = None
+    context: Mapping[str, str] | None = None
 
-    @validator("scopes", pre=True)
+    @field_validator("scopes", mode="before")
     def assemble_scopes(cls, v: str | (list[str] | None)) -> list[str]:
         """Converts a space separated scope string to a list."""
         if v is None:
@@ -74,7 +88,7 @@ class AuthUser(BaseModel, orm_mode=True):
 
     def session_dict(self) -> dict[str, Any]:
         """Returns a dict object suitable for storing in a web session."""
-        return self.dict(exclude_defaults=True)
+        return self.model_dump(exclude_defaults=True)
 
 
 class ScaleUser(BaseModel):
@@ -84,10 +98,10 @@ class ScaleUser(BaseModel):
     Canvas.
     """
 
-    id: str | None
+    id: str | None = None
     email: EmailStr
-    name: str | None
-    picture: str | None
+    name: str | None = None
+    picture: str | None = None
 
     # Roles provided by LTI. There are different types of roles such as
     # those the user has in the system overall and those assigned for the
@@ -95,16 +109,16 @@ class ScaleUser(BaseModel):
     # assigned for the Context.
     #
     # see https://www.imsglobal.org/spec/lti/v1p3#context-claim
-    roles: list[str] = []
+    roles: list[LTIRole] = []
 
     # Context is the term used by LTI to represent a Course in the LMS.
     # We keep the same terminology in our schema. Context provides both
     # a Course ID and Title.
-    context: Mapping[str, str] | None
+    context: Mapping[str, str] | None = None
 
     def session_dict(self) -> dict[str, Any]:
         """Returns a dict object suitable for storing in a web session."""
-        return self.dict(exclude_defaults=True)
+        return self.model_dump(exclude_defaults=True)
 
     @property
     def user_id(self) -> str:
@@ -155,21 +169,15 @@ class ScaleUser(BaseModel):
             roles = []
         return cls(
             id=auth_user.id,
-            email=auth_user.client_id,  # type: ignore[arg-type]
+            email=auth_user.client_id,
             name=None,
             picture=None,
             roles=roles,
             context=auth_user.context,
         )
 
-    @validator("roles", each_item=True)
-    def normalize_roles(cls, v: str) -> str:
-        if v.startswith("http://purl.imsglobal.org/vocab/lis/v2/membership#"):
-            return v.rsplit("#")[1]
-        return v
 
-
-class AuthJsonWebKey(BaseModel, orm_mode=True):
+class AuthJsonWebKey(DBBaseModel):
     """JSON Web Key.
 
     A standalone schema class for ``scale_api.db.AuthJsonWebKey``.
@@ -178,9 +186,9 @@ class AuthJsonWebKey(BaseModel, orm_mode=True):
     kid: str
     data: SecretStr
     valid_from: datetime.datetime
-    valid_to: datetime.datetime | None
+    valid_to: datetime.datetime | None = None
 
-    @validator("valid_from", "valid_to", pre=True)
+    @field_validator("valid_from", "valid_to", mode="before")
     def tz_aware_dates(cls, v: datetime.datetime | None) -> datetime.datetime | None:
         if v is None:
             return None

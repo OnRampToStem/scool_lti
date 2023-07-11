@@ -127,7 +127,7 @@ class LtiLaunchRequest:
         # noinspection PyTypeChecker
         return schemas.ScaleUser(
             id=lms_userid,
-            email=lms_email,  # type: ignore[arg-type]
+            email=lms_email,
             name=lms_name,
             picture=lms_picture,
             roles=self.roles,
@@ -147,17 +147,15 @@ class LtiLaunchRequest:
 
     def dumps(self) -> str:
         """Serializes the request to a string suitable for storing."""
-        data = {
-            "platform": self.platform.dict(exclude={"client_secret"}),
-            "message": self.message,
-        }
-        return json.dumps(data)
+        p = self.platform.model_dump_json(exclude={"client_secret"})
+        m = json.dumps(self.message)
+        return "{" f'"platform":{p},"message":{m}' "}"  # noqa: ISC001
 
     @staticmethod
     def loads(data: str) -> "LtiLaunchRequest":
         """Returns a ``LtiLaunchRequest`` from a json string."""
         content = json.loads(data)
-        platform = schemas.Platform.parse_obj(content["platform"])
+        platform = schemas.Platform.model_validate(content["platform"])
         return LtiLaunchRequest(platform, content["message"])
 
     def __str__(self) -> str:

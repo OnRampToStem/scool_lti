@@ -26,7 +26,6 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.openapi.models import OAuthFlowClientCredentials
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.security import (
-    HTTPBasic,
     HTTPBasicCredentials,
     OAuth2,
     SecurityScopes,
@@ -154,17 +153,12 @@ oauth2_token = OAuth2ClientCredentials(
 )
 OAuth2Token = Annotated[str | None, Depends(oauth2_token)]
 
-# We also support HTTP Basic auth as a fallback for Bearer tokens
-HTTPBasicCreds = Annotated[
-    HTTPBasicCredentials | None, Depends(HTTPBasic(auto_error=False))
-]
-
 
 async def authorize(
     request: Request,
     scopes: SecurityScopes,
     bearer_token: OAuth2Token,
-    basic_creds: HTTPBasicCreds,
+    basic_creds: HTTPBasicCredentials | None,
 ) -> AuthUsers:
     """Main security dependency for routes requiring authentication.
 
