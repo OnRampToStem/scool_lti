@@ -529,7 +529,7 @@ async def decode_lti_id_token(
         "aud": {"essential": True, "value": platform.client_id},
         "nonce": {"essential": True},
     }
-    key_set = await keys.get_jwks_from_url(platform.jwks_url)
+    key_set = await keys.get_jwks_from_url(str(platform.jwks_url))
     try:
         return JWT.decode(
             id_token,
@@ -538,7 +538,7 @@ async def decode_lti_id_token(
             claims_options=id_token_opts,
         )
     except jose.errors.KeyMismatchError:
-        key_set = await keys.get_jwks_from_url(platform.jwks_url, use_cache=False)
+        key_set = await keys.get_jwks_from_url(str(platform.jwks_url), use_cache=False)
         return JWT.decode(
             id_token,
             key_set,
