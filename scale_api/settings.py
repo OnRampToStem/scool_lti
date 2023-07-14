@@ -7,32 +7,25 @@ import logging.config
 import secrets
 from pathlib import Path
 
-import dotenv
+import pydantic_settings
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
-
-dotenv.load_dotenv()
 
 BASE_PATH = Path(__file__).parent.parent
 
 VALID_ENVIRONMENTS = ("local", "sandbox", "dev", "prod")
 
 
-class SharedSettings(BaseSettings):
-    model_config = {"frozen": True}
+class SharedSettings(pydantic_settings.BaseSettings):
+    model_config = {"env_file": BASE_PATH / ".env", "frozen": True}
 
 
-class LogSettings(SharedSettings):
-    model_config = {"env_prefix": "LOG_"}
-
+class LogSettings(SharedSettings, env_prefix="LOG_"):
     level_root: str = "WARNING"
     level_app: str = "INFO"
     level_uvicorn: str = "INFO"
 
 
-class DatabaseSettings(SharedSettings):
-    model_config = {"env_prefix": "SCALE_DB_"}
-
+class DatabaseSettings(SharedSettings, env_prefix="SCALE_DB_"):
     url: str = (
         f"sqlite+aiosqlite:///{BASE_PATH}/scale_db.sqlite?check_same_thread=False"
     )
@@ -40,14 +33,12 @@ class DatabaseSettings(SharedSettings):
     seed_file: Path | None = None
 
 
-class APISettings(SharedSettings):
+class APISettings(SharedSettings, env_prefix="SCALE_"):
     """Main app settings.
 
     The attributes are populated from OS environment variables that are
     prefixed by ``SCALE_``.
     """
-
-    model_config = {"env_prefix": "SCALE_"}
 
     env: str = "local"
     debug_app: bool = False
@@ -62,7 +53,7 @@ class APISettings(SharedSettings):
     frontend_launch_path: str = "/dyna/payload.php"
 
     @field_validator("env")
-    def verify_environment(cls, v: str) -> str:
+    def _verify_environment(cls, v: str) -> str:
         """Raises a ``ValueError`` if the provided environment is not valid."""
         if v not in VALID_ENVIRONMENTS:
             msg = f"Invalid env [{v}], must be one of: {' '.join(VALID_ENVIRONMENTS)}"
