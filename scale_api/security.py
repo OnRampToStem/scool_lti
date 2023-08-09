@@ -107,7 +107,7 @@ class ScopePermission:
         return cls(resource, actions, items)
 
     def allows(self, other: Self) -> bool:
-        if not (self.resource == "*" or self.resource == other.resource):
+        if self.resource not in ("*", other.resource):
             return False
         if other.actions:
             return self.actions == {"*"} or self.actions >= other.actions

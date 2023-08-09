@@ -27,7 +27,7 @@ logger = logging.getLogger(f"{MAIN_PACKAGE}.main")
 
 
 class EndpointLogFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+    def filter(self, record: logging.LogRecord) -> bool:
         return "lb-status" not in record.getMessage()
 
 
