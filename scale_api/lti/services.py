@@ -8,7 +8,7 @@ import uuid
 from collections.abc import MutableMapping, Sequence
 from typing import Any, NamedTuple, cast
 
-from authlib import jose
+import joserfc.jwt
 
 from .. import aio, keys, schemas
 from .messages import LtiLaunchRequest
@@ -56,9 +56,11 @@ async def create_platform_token(platform: schemas.Platform) -> str:
     }
     private_key = await keys.private_key()
     header = {"typ": "JWT", "alg": "RS256", "kid": private_key.thumbprint()}
-    return jose.jwt.encode(  # type: ignore[no-any-return]
-        header, payload, private_key
-    ).decode("ascii")
+    return joserfc.jwt.encode(
+        header=header,
+        claims=payload,
+        key=private_key,
+    )
 
 
 class LtiServicesClient:

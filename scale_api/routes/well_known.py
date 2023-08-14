@@ -14,13 +14,13 @@ router = APIRouter()
 async def jwks() -> dict[str, Any]:
     """JSON Web Key Set endpoint."""
     ks = await keys.public_key_set()
-    ks_dict: dict[str, Any] = ks.as_dict()
+    ks_dict = ks.as_dict()
     for entry in ks_dict["keys"]:
         if "use" not in entry:
             entry["use"] = "sig"
         if "alg" not in entry:
             entry["alg"] = "RS256"
-    return ks_dict
+    return ks_dict  # type: ignore[return-value]
 
 
 @router.get("/oauth-authorization-server")

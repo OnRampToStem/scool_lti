@@ -20,8 +20,8 @@ import time
 from dataclasses import dataclass
 from typing import Annotated, Any, NamedTuple, Self
 
-from authlib import jose
-from authlib.jose.errors import JoseError
+import joserfc.errors
+import joserfc.jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.openapi.models import OAuthFlowClientCredentials
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
@@ -41,14 +41,11 @@ logger = logging.getLogger(__name__)
 JWT_KEY = settings.api.secret_key
 JWT_ALGORITHM = settings.api.jwt_algorithm
 JWT_ISSUER = settings.api.jwt_issuer
-
-AUTH_USER_TOKEN_OPTS = {
+JWT_AUTH_USER_TOKEN_OPTS: dict[str, joserfc.jwt.ClaimsOption] = {
     "iss": {"essential": True, "value": JWT_ISSUER},
     "aud": {"essential": True, "value": JWT_ISSUER},
     "sub": {"essential": True},
 }
-
-JWT = jose.JsonWebToken([JWT_ALGORITHM])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -254,14 +251,20 @@ def auth_user_from_token(token: str) -> schemas.AuthUser:
         raise AuthorizeError("TOKEN_REQUIRED")
 
     try:
-        claims = JWT.decode(token, key=JWT_KEY, claims_options=AUTH_USER_TOKEN_OPTS)
-    except JoseError:
+        jwt_token = joserfc.jwt.decode(
+            value=token, key=JWT_KEY, algorithms=[JWT_ALGORITHM]
+        )
+    except joserfc.errors.JoseError:
         logger.exception("token decode failed: %s", token)
         raise AuthorizeError("TOKEN_FORMAT") from None
+    else:
+        claims = jwt_token.claims
 
     try:
-        claims.validate(leeway=30)
-    except JoseError:
+        joserfc.jwt.JWTClaimsRegistry(
+            now=None, leeway=30, **JWT_AUTH_USER_TOKEN_OPTS
+        ).validate(claims)
+    except joserfc.errors.JoseError:
         logger.exception("token claim validation failed: %s", claims)
         raise AuthorizeError("TOKEN_CLAIMS") from None
 
@@ -362,12 +365,11 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
     payload["exp"] = expires_at
     payload["iss"] = JWT_ISSUER
     payload["aud"] = JWT_ISSUER
-    token = JWT.encode(
+    return joserfc.jwt.encode(
         header={"alg": JWT_ALGORITHM},
-        payload=payload,
+        claims=payload,
         key=JWT_KEY,
     )
-    return token.decode(encoding="ascii")  # type: ignore[no-any-return]
 
 
 def hash_password(password_plain: str) -> str:

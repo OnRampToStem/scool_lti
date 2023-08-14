@@ -15,6 +15,10 @@ from pydantic import (
 )
 
 
+def make_secret(val: str) -> SecretStr:
+    return SecretStr(val)
+
+
 def _normalize_lti_role(v: str) -> str:
     if v.startswith("http://purl.imsglobal.org/vocab/lis/v2/membership#"):
         return v.rsplit("#")[1]

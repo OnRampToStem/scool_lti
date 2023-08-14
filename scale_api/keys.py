@@ -5,7 +5,7 @@ import datetime
 import logging
 import time
 
-from authlib import jose
+import joserfc.jwk
 
 from . import aio, db, schemas
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class CachedKeySet:
     def __init__(
         self,
-        key_set: jose.KeySet,
+        key_set: joserfc.jwk.KeySet,
         expire_in: float | None = None,
     ) -> None:
         self.key_set = key_set
@@ -32,7 +32,7 @@ class CachedKeySet:
 _jwks_cache: dict[str, CachedKeySet] = {}
 
 
-async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
+async def get_jwks_from_url(url: str, use_cache: bool = True) -> joserfc.jwk.KeySet:
     """Returns a JWKS from the given URL."""
     if use_cache:
         if cks := _jwks_cache.get(url):
@@ -49,7 +49,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> jose.KeySet:
     r.raise_for_status()
     jwks_json = r.json()
     try:
-        ks = jose.JsonWebKey.import_key_set(jwks_json)
+        ks = joserfc.jwk.KeySet.import_key_set(jwks_json)
     except Exception:
         logger.exception("Failed to import key set: %s", jwks_json)
         raise
@@ -66,12 +66,12 @@ async def private_keys() -> list[schemas.AuthJsonWebKey]:
     return [k for k in web_keys if k.is_valid]
 
 
-async def json_web_private_keys() -> list[jose.RSAKey]:
+async def json_web_private_keys() -> list[joserfc.jwk.RSAKey]:
     web_keys = await private_keys()
-    return [jose.JsonWebKey.import_key(k.data.get_secret_value()) for k in web_keys]
+    return [joserfc.jwk.RSAKey.import_key(k.data.get_secret_value()) for k in web_keys]
 
 
-async def private_key() -> jose.RSAKey:
+async def private_key() -> joserfc.jwk.RSAKey:
     """Returns the default JSON Web Key from the database.
 
     If more than one key is stored then the key that has the greater
@@ -98,30 +98,29 @@ async def private_key() -> jose.RSAKey:
     if main_key is None:
         raise RuntimeError("VALID_JWKS_NOT_FOUND")
 
-    return jose.JsonWebKey.import_key(main_key.data.get_secret_value())
+    return joserfc.jwk.RSAKey.import_key(main_key.data.get_secret_value())
 
 
 # TODO: cache to speed up our ``/jwks.json`` endpoint
-async def public_keys() -> list[jose.RSAKey]:
+async def public_keys() -> list[joserfc.jwk.RSAKey]:
     """Returns a list of public JSON Web Keys."""
     privates = await json_web_private_keys()
-    return [jose.JsonWebKey.import_key(pk.as_pem(is_private=False)) for pk in privates]
+    return [joserfc.jwk.RSAKey.import_key(pk.as_pem(private=False)) for pk in privates]
 
 
-async def public_key_set() -> jose.KeySet:
+async def public_key_set() -> joserfc.jwk.KeySet:
     """Returns a public JSON Web Key Set."""
     pub_keys = await public_keys()
-    return jose.KeySet(pub_keys)
+    return joserfc.jwk.KeySet(pub_keys)  # type: ignore[arg-type]
 
 
 def generate_private_key() -> schemas.AuthJsonWebKey:
     """Returns a newly generated private JSON Web Key"""
-    pkey = jose.JsonWebKey.generate_key(kty="RSA", crv_or_size=2048, is_private=True)
-    kid = pkey.as_dict(add_kid=True)["kid"]
-    data = pkey.as_pem(is_private=True)
+    pkey = joserfc.jwk.RSAKey.generate_key(key_size=2048, private=True)
+    data = pkey.as_pem(private=True)
     return schemas.AuthJsonWebKey(
-        kid=kid,
-        data=data,
+        kid=pkey.kid,
+        data=schemas.make_secret(data.decode("ascii")),
         valid_to=None,
         valid_from=datetime.datetime.now(tz=datetime.UTC),
     )

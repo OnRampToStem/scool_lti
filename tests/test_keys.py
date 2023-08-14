@@ -25,7 +25,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
             + datetime.timedelta(days=90),
         )
 
-    @patch("authlib.jose.JsonWebKey.import_key")
+    @patch("joserfc.jwk.RSAKey.import_key")
     @patch("scale_api.keys.private_keys")
     async def test_private_key_returns_newest_from_if_no_to(
         self,
@@ -38,7 +38,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         await keys.private_key()
         import_key_mock.assert_called_with(self.test_key_2.data.get_secret_value())
 
-    @patch("authlib.jose.JsonWebKey.import_key")
+    @patch("joserfc.jwk.RSAKey.import_key")
     @patch("scale_api.keys.private_keys")
     async def test_private_key_returns_valid_to_none_if_other_has_valid_to(
         self,
@@ -51,7 +51,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         await keys.private_key()
         import_key_mock.assert_called_with(self.test_key_1.data.get_secret_value())
 
-    @patch("authlib.jose.JsonWebKey.import_key")
+    @patch("joserfc.jwk.RSAKey.import_key")
     @patch("scale_api.keys.private_keys")
     async def test_private_key_returns_further_valid_to(
         self,

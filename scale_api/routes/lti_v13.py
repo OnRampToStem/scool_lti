@@ -14,8 +14,8 @@ import urllib.parse
 import uuid
 from typing import Annotated, Any
 
-from authlib import jose
-from authlib.oidc.core import IDToken
+import joserfc.errors
+import joserfc.jwt
 from fastapi import (
     APIRouter,
     Depends,
@@ -40,8 +40,6 @@ from ..lti import messages, services
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-JWT = jose.JsonWebToken(["RS256", "RS512"])
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-store",
@@ -215,12 +213,15 @@ async def launch_form(
         logger.info("[%s]: state matched in Cookie", state)
         response.delete_cookie(state_cookie_key)
 
-    # Since the IDToken is being provided by the user-agent and not from
-    # a direct call from our application, we MUST validate the sig.
     claims = await decode_lti_id_token(id_token, platform)
-
     logger.info("[%s]: IDToken claims: %r", state, claims)
-    claims.validate(leeway=5)
+    # Some basic jwt claims validation options
+    id_token_opts: dict[str, joserfc.jwt.ClaimsOption] = {
+        "iss": {"essential": True, "value": platform.issuer or ""},
+        "aud": {"essential": True, "value": platform.client_id or ""},
+        "nonce": {"essential": True},
+    }
+    joserfc.jwt.JWTClaimsRegistry(now=None, leeway=5, **id_token_opts).validate(claims)
 
     # To avoid replay attacks we verify the nonce provided was previously
     # stored, and then we remove from the cache so any future requests with
@@ -517,31 +518,27 @@ async def platform_or_404(platform_id: str) -> schemas.Platform:
 async def decode_lti_id_token(
     id_token: str,
     platform: schemas.Platform,
-) -> jose.JWTClaims:
+) -> joserfc.jwt.Claims:
     if platform.jwks_url is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"No JWKS URL set for Platform {platform.id}",
         )
-    # Some basic jwt claims validation options
-    id_token_opts = {
-        "iss": {"essential": True, "value": platform.issuer},
-        "aud": {"essential": True, "value": platform.client_id},
-        "nonce": {"essential": True},
-    }
+    # Since the IDToken is being provided by the user-agent and not from
+    # a direct call from our application, we MUST validate the sig.
     key_set = await keys.get_jwks_from_url(str(platform.jwks_url))
     try:
-        return JWT.decode(
-            id_token,
-            key_set,
-            claims_cls=IDToken,
-            claims_options=id_token_opts,
+        jwt_token = joserfc.jwt.decode(
+            value=id_token,
+            key=key_set,
+            algorithms=["RS256", "RS512"],
         )
-    except jose.errors.KeyMismatchError:
+    except joserfc.errors.InvalidEncryptedKeyError:
         key_set = await keys.get_jwks_from_url(str(platform.jwks_url), use_cache=False)
-        return JWT.decode(
-            id_token,
-            key_set,
-            claims_cls=IDToken,
-            claims_options=id_token_opts,
+        jwt_token = joserfc.jwt.decode(
+            value=id_token,
+            key=key_set,
+            algorithms=["RS256", "RS512"],
         )
+
+    return jwt_token.claims
