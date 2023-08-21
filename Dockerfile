@@ -6,10 +6,7 @@ ENV PIP_NO_CACHE_DIR=off
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN apt-get update -y && apt-get upgrade -y && apt-get install -y --no-install-recommends \
-        build-essential \
         ca-certificates \
-        libpq-dev \
-        libssl-dev \
     && rm -rf /var/lib/apt/lists/* \
     && useradd app
 
