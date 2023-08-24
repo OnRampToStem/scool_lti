@@ -13,8 +13,7 @@ from typing import Any
 import fastapi
 import shortuuid
 
-from . import __version__, aio, db, settings
-from .routes import api_router
+from . import __version__, aio, db, routes, settings
 
 logger = logging.getLogger(__name__)
 
@@ -87,4 +86,4 @@ async def logging_middleware(
         return response
 
 
-app.include_router(api_router, prefix=settings.api.path_prefix)
+app.include_router(routes.router, prefix=settings.api.path_prefix)
