@@ -48,7 +48,6 @@ class APISettings(SharedSettings, env_prefix="SCALE_"):
     jwt_algorithm: str = "HS256"
     jwt_issuer: str = "https://scale.fresnostate.edu"
     oauth_access_token_expiry: int = 3600
-    thread_pool_workers: int = 10
     use_ssl_for_app_run_local: bool = True
     frontend_launch_path: str = "/dyna/payload.php"
 
