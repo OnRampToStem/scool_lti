@@ -26,51 +26,47 @@ MAIN_PACKAGE = Path(__file__).parent.name
 logger = logging.getLogger(f"{MAIN_PACKAGE}.main")
 
 
-class EndpointLogFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        return "lb-status" not in record.getMessage()
-
-
 def main() -> None:
-    config = uvicorn.Config(app=f"{MAIN_PACKAGE}.app:app")
-    config.port = settings.api.port
-    config.server_header = False
-    config.forwarded_allow_ips = "*"
-    config.proxy_headers = True
-    config.log_level = settings.log.level_uvicorn.lower()
+    if not (cpu_count := os.cpu_count()):
+        cpu_count = 1
+    app = f"{MAIN_PACKAGE}.app:app"
+    host = "0.0.0.0"  # noqa:S104
+    port = settings.api.port
+    reload = False
+    workers = max(2, min(cpu_count, 4))
+    log_level = settings.log.level_uvicorn.lower()
+    access_log = False
+    proxy_headers = True
+    server_header = False
+    forwarded_allow_ips = "*"
+    ssl_keyfile = None
+    ssl_certfile = None
 
-    # do not log health checks
-    logging.getLogger("uvicorn.access").addFilter(EndpointLogFilter())
-
-    if len(sys.argv) > 1 and sys.argv[1] == "prod":
-        config.host = "0.0.0.0"  # noqa: S104
-        cpu_count = os.cpu_count() or 1
-        config.workers = max(2, min(4, cpu_count * 2))
-        server = uvicorn.Server(config=config)
-        logger.warning("running in prod mode: Config(%s)", config.__dict__)
-        server.run()
-    else:
-        config.reload = True
+    if len(sys.argv) < 2 or sys.argv[1] != "prod":  # noqa:PLR2004
+        logger.warning("Running in dev mode")
+        host = "127.0.0.1"
+        reload = True
+        workers = 1
         if settings.api.use_ssl_for_app_run_local:
-            cert_path = Path(__file__).parent.parent / "tests/certs"
-            config.port = 443
-            config.ssl_keyfile = f"{cert_path / 'local_ssl_key.pem'}"
-            config.ssl_certfile = f"{cert_path / 'local_ssl_cert.pem'}"
+            port = 443
+            ssl_keyfile = str(settings.BASE_PATH / "tests/certs/local_ssl_key.pem")
+            ssl_certfile = str(settings.BASE_PATH / "tests/certs/local_ssl_cert.pem")
 
-        logger.warning("running in dev mode: Config(%s)", config.__dict__)
-
-        # must use `run` for reloading to work
-        uvicorn.run(
-            app=config.app,
-            reload=config.reload,
-            port=config.port,
-            ssl_keyfile=config.ssl_keyfile,
-            ssl_certfile=config.ssl_certfile,
-            server_header=config.server_header,
-            forwarded_allow_ips=config.forwarded_allow_ips,
-            proxy_headers=config.proxy_headers,
-            log_level=config.log_level,
-        )
+    logger.info(locals())
+    uvicorn.run(
+        app=app,
+        host=host,
+        port=port,
+        reload=reload,
+        workers=workers,
+        log_level=log_level,
+        access_log=access_log,
+        proxy_headers=proxy_headers,
+        server_header=server_header,
+        forwarded_allow_ips=forwarded_allow_ips,
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile,
+    )
 
 
 if __name__ == "__main__":
