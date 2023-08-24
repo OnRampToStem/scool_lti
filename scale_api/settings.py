@@ -3,9 +3,11 @@ Application Settings and Configuration
 
 Application-wide configuration settings that are read in from the Environment.
 """
+import contextvars
 import logging.config
 import secrets
 from pathlib import Path
+from typing import Any
 
 import pydantic_settings
 from pydantic import field_validator
@@ -13,6 +15,8 @@ from pydantic import field_validator
 BASE_PATH = Path(__file__).parent.parent
 
 VALID_ENVIRONMENTS = ("local", "sandbox", "dev", "prod")
+
+ctx_request_id = contextvars.ContextVar("ctx_request_id", default="-")
 
 
 class SharedSettings(pydantic_settings.BaseSettings):
@@ -80,7 +84,19 @@ api = APISettings()
 db = DatabaseSettings()
 log = LogSettings()
 
-logging.basicConfig(format="%(asctime)s[%(levelname)s]%(name)s: %(message)s")
+old_factory = logging.getLogRecordFactory()
+
+
+def log_record_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
+    record = old_factory(*args, **kwargs)
+    record.request_id = ctx_request_id.get()
+    return record
+
+
+logging.setLogRecordFactory(log_record_factory)
+logging.basicConfig(
+    format="%(asctime)s[%(levelname)s][%(request_id)s]%(name)s: %(message)s"
+)
 logging.getLogger("").setLevel(log.level_root)
 logging.getLogger("uvicorn").setLevel(log.level_uvicorn)
 logging.getLogger("scale_api").setLevel(log.level_app)
