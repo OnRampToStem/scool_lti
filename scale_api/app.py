@@ -56,9 +56,10 @@ async def logging_middleware(
         return await call_next(request)
     if not (request_id := request.headers.get("x-request-id")):
         request_id = shortuuid.uuid()
-    request.state.request_id = request_id
-    settings.ctx_request_id.set(request_id)
-    client_ip = request.client.host if request.client else ""
+    client_ip = request.client.host if request.client else "0.0.0.0"  # noqa:S104
+    settings.ctx_request.set(
+        settings.RequestContext(request_id=request_id, client_ip=client_ip)
+    )
     path = request.url.path
     if query := request.url.query:
         path += f"?{query}"

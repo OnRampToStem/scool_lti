@@ -4,19 +4,35 @@ Application Settings and Configuration
 Application-wide configuration settings that are read in from the Environment.
 """
 import contextvars
+import dataclasses
 import logging.config
 import secrets
 from pathlib import Path
 from typing import Any
 
 import pydantic_settings
+import shortuuid
 from pydantic import field_validator
 
 BASE_PATH = Path(__file__).parent.parent
 
 VALID_ENVIRONMENTS = ("local", "sandbox", "dev", "prod")
 
-ctx_request_id = contextvars.ContextVar("ctx_request_id", default="-")
+
+@dataclasses.dataclass(frozen=True)
+class RequestContext:
+    """Context information to pass from routes to other services."""
+
+    request_id: str
+    client_ip: str
+
+
+ctx_request: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
+    "RequestContext",
+    default=RequestContext(
+        request_id=shortuuid.uuid(), client_ip="0.0.0.0"  # noqa:S104
+    ),
+)
 
 
 class SharedSettings(pydantic_settings.BaseSettings):
@@ -89,7 +105,7 @@ old_factory = logging.getLogRecordFactory()
 
 def log_record_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
     record = old_factory(*args, **kwargs)
-    record.request_id = ctx_request_id.get()
+    record.request_id = ctx_request.get().request_id
     return record
 
 
