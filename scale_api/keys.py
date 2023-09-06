@@ -118,6 +118,8 @@ def generate_private_key() -> schemas.AuthJsonWebKey:
     """Returns a newly generated private JSON Web Key"""
     pkey = joserfc.jwk.RSAKey.generate_key(key_size=2048, private=True)
     data = pkey.as_pem(private=True)
+    if pkey.kid is None:
+        raise ValueError
     return schemas.AuthJsonWebKey(
         kid=pkey.kid,
         data=schemas.make_secret(data.decode("ascii")),
