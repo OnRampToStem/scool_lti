@@ -92,8 +92,7 @@ class LtiServicesClient:
         }
         headers = {"Accept": "application/json"}
         r = await aio.http_client.post(auth_url, headers=headers, data=auth_data)
-        r.raise_for_status()
-        grant_response = r.json()
+        grant_response = r.raise_for_status().json()
         access_token = grant_response["access_token"]
         expires_in = grant_response["expires_in"]
 
@@ -113,10 +112,10 @@ class LtiServicesClient:
         headers = await self.authorize_header(scopes)
         headers["Accept"] = accept
         r = await aio.http_client.get(url, headers=headers)
-        r.raise_for_status()
+        data = r.raise_for_status().json()
         m = NEXT_PAGE_REGEX.match(r.headers.get("Link", ""))
         next_page = m[1] if m else None
-        return ServiceResponse(r.headers, r.json(), next_page)
+        return ServiceResponse(r.headers, data, next_page)
 
     async def post(
         self,

@@ -46,8 +46,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> joserfc.jwk.Key
     logger.info("Fetching JWKS from %s", url)
     r = await aio.http_client.get(url, timeout=5.0)
     logger.debug("JWKS headers: %r", r.headers)
-    r.raise_for_status()
-    jwks_json = r.json()
+    jwks_json = r.raise_for_status().json()
     try:
         ks = joserfc.jwk.KeySet.import_key_set(jwks_json)
     except Exception:
