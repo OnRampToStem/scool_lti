@@ -109,6 +109,12 @@ class LtiLaunchRequest:
         )
 
     @property
+    def assignment_grade_service(self) -> dict[str, Any] | None:
+        return self.message.get(  # type: ignore[no-any-return]
+            "https://purl.imsglobal.org/spec/lti-ags/claim/endpoint"
+        )
+
+    @property
     def scale_user(self) -> schemas.ScaleUser:
         """Returns a ``ScaleUser`` based on data from the request."""
         lms_userid = self.message["sub"] + "@" + self.platform.id

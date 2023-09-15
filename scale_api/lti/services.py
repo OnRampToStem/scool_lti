@@ -1,6 +1,7 @@
 """
 LTI Advantage Services
 """
+import json
 import logging
 import re
 import time
@@ -153,17 +154,82 @@ class NamesRoleService:
     def __init__(self, launch_request: LtiLaunchRequest) -> None:
         self.launch_request = launch_request
         self.client = LtiServicesClient(launch_request.platform)
-
-    async def members(self) -> list[dict[str, Any]]:
-        nrps = self.launch_request.names_role_service
-        if not nrps:
+        if launch_request.names_role_service is None:
             msg = "Launch Request does not contain the NRPS Service"
             logger.warning(msg)
             raise LtiServiceError(msg)
-        url = nrps["context_memberships_url"]
+        self.service_url = launch_request.names_role_service["context_memberships_url"]
+
+    async def members(self) -> list[dict[str, Any]]:
+        url = self.service_url
         result = []
         while url:
             r = await self.client.get(self.SCOPES, url, accept=self.CONTENT_TYPE)
             url = r.next_page
             result += r.body["members"]
         return result
+
+
+class AssignmentGradeService:
+    """LTI Advantage Assignment and Grade Service client.
+
+    see https://www.imsglobal.org/spec/lti-ags/v2p0
+    """
+
+    SCOPES = [
+        "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
+        "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly",
+        "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly",
+        "https://purl.imsglobal.org/spec/lti-ags/scope/score",
+    ]
+    CONTENT_TYPE = "application/vnd.ims.lis.v2.lineitem+json"
+    CONTENT_TYPE_LIST = "application/vnd.ims.lis.v2.lineitemcontainer+json"
+    CONTENT_TYPE_SCORE = "application/vnd.ims.lis.v1.score+json"
+
+    def __init__(self, launch_request: LtiLaunchRequest) -> None:
+        self.launch_request = launch_request
+        self.client = LtiServicesClient(launch_request.platform)
+        if launch_request.assignment_grade_service is None:
+            msg = "Launch Request does not contain the AGS Service"
+            logger.warning(msg)
+            raise LtiServiceError(msg)
+        self.lineitems_url = launch_request.assignment_grade_service["lineitems"]
+        self.scopes = launch_request.assignment_grade_service["scope"]
+
+    async def lineitems(self) -> list:
+        url = self.lineitems_url
+        result = []
+        while url:
+            r = await self.client.get(self.scopes, url, self.CONTENT_TYPE_LIST)
+            url = r.next_page
+            logger.debug("lineitems r.body: %s", r.body)
+        return result
+
+    async def new_lineitem(self) -> None:
+        data = {
+            "scoreMaximum": 100,
+            "label": "Chapter 1 Test",
+            "tag": "grade",
+        }
+        r = await self.client.post(
+            self.scopes, self.lineitems_url, json.dumps(data), self.CONTENT_TYPE
+        )
+        logger.info(r.body)
+
+    async def grade(self) -> None:
+        url = "https://fresnostate.instructure.com/api/lti/courses/48069/line_items/9184/scores"
+        data = {
+            "timestamp": "2023-09-15T21:04:36.736+00:00",
+            "scoreGiven": 92,
+            "scoreMaximum": 100,
+            "activityProgress": "Completed",
+            "gradingProgress": "FullyGraded",
+            "userId": "74655e36-b83c-451a-a8f3-1883ae0a46bc",
+        }
+        r = await self.client.post(
+            self.scopes, url, json.dumps(data), self.CONTENT_TYPE_SCORE
+        )
+        logger.info(r)
+
+    def __repr__(self) -> str:
+        return f"AssignmentGradeService({self.lineitems_url}, scopes={self.scopes})"
