@@ -277,7 +277,7 @@ async def launch_form(
     target_url = urllib.parse.urljoin(base_url, settings.api.frontend_launch_path)
     logger.info("[%s]: redirecting via POST to v2: %s", state, target_url)
     token = security.create_scale_user_token(scale_user, expires_in=LTI_TOKEN_EXPIRY)
-    logger.info("Launch token: %s", token)
+    logger.info("Launch ID/Token: %s [%s]", message_launch.launch_id, token)
     response = templates.redirect_lms_auth(target_url, token)
     response.delete_cookie(state_cookie_key)
     return response
@@ -486,6 +486,11 @@ async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
+    return await names_role_service_from_launch_id(launch_id)
+
+
+@router.get("/members/{launch_id}", response_model_exclude_unset=True)
+async def names_role_service_from_launch_id(launch_id: str) -> list[schemas.ScaleUser]:
     cached_launch = await db.store.cache_get(key=launch_id)
     if cached_launch is None:
         raise HTTPException(
@@ -494,7 +499,7 @@ async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
         )
     launch_request = messages.LtiLaunchRequest.loads(cached_launch)
     if not launch_request.is_instructor:
-        logger.error("lti.members unauthorized request from ScaleUser: %s", scale_user)
+        logger.error("lti.members unauthorized request: %s", launch_request.scale_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     nrps = services.NamesRoleService(launch_request)
     members = await nrps.members()
