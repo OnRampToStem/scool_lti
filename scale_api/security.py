@@ -271,8 +271,8 @@ def auth_user_from_token(token: str) -> schemas.AuthUser:
     if client_id := claims.get("client_id"):
         scopes = claims["scopes"]
     else:
-        client_id = (claims["email"],)
-        scopes = ([f"role:{r}" for r in claims["roles"]],)
+        client_id = claims["email"]
+        scopes = [f"role:{r}" for r in claims["roles"]]
 
     return schemas.AuthUser(
         id=claims["sub"],
