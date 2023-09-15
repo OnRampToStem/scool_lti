@@ -277,6 +277,7 @@ async def launch_form(
     target_url = urllib.parse.urljoin(base_url, settings.api.frontend_launch_path)
     logger.info("[%s]: redirecting via POST to v2: %s", state, target_url)
     token = security.create_scale_user_token(scale_user, expires_in=LTI_TOKEN_EXPIRY)
+    logger.info("Launch token: %s", token)
     response = templates.redirect_lms_auth(target_url, token)
     response.delete_cookie(state_cookie_key)
     return response
