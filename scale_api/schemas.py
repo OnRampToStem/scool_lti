@@ -128,15 +128,15 @@ class ScaleUser(BaseModel):
     def user_id(self) -> str:
         """Returns the Platform uuid for this user."""
         if self.id is not None:
-            user_id, sep, other = self.id.partition("|")
-            return user_id if sep else self.id
+            user_id, sep, other = self.id.rpartition("@")
+            return user_id if sep else other
         raise ValueError("USER_ID", repr(self))
 
     @property
     def platform_id(self) -> str:
         """Returns the Platform ID for this user."""
         if self.id:
-            user_id, sep, plat_id = self.id.rpartition("|")
+            user_id, sep, plat_id = self.id.rpartition("@")
             if sep:
                 return plat_id
         return "scale_api"

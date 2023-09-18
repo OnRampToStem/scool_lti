@@ -103,6 +103,7 @@ class LtiServicesClient:
             "scope": cache_key,
         }
         headers = {"Accept": "application/json"}
+        logger.info("Retrieving access token from: %s", auth_url)
         r = await aio.http_client.post(auth_url, headers=headers, data=auth_data)
         grant_response = r.raise_for_status().json()
         access_token = grant_response["access_token"]

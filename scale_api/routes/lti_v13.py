@@ -503,10 +503,8 @@ async def names_role_service_from_launch_id(launch_id: str) -> list[schemas.Scal
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     nrps = services.NamesRoleService(launch_request)
     members = await nrps.members()
-    ctx_id = launch_request.context["id"]
-    plat_id = launch_request.platform.id
     return [
-        schemas.ScaleUser(id=f"{m['user_id']}|{ctx_id}|{plat_id}", **m)
+        schemas.ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
         for m in members
         if m.get("email")
     ]
@@ -516,7 +514,9 @@ async def names_role_service_from_launch_id(launch_id: str) -> list[schemas.Scal
 async def assignment_grade_service(scale_user: ScaleUser) -> None:
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     if not (cached_request := await db.store.cache_get(key=launch_id)):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+        msg = f"Launch Request [{launch_id}] not found in cache"
+        logger.warning(msg)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
     launch_request = messages.LtiLaunchRequest.loads(cached_request)
     ags_service = services.AssignmentGradeService(launch_request)
     items = await ags_service.lineitems()

@@ -46,7 +46,7 @@ class LtiLaunchRequest:
     @property
     def launch_id(self) -> str:
         """Returns an id for this request that is associated with a given user."""
-        return f"lti-launch-request-{self.scale_user.id}"
+        return self.launch_id_for(self.scale_user)
 
     @staticmethod
     def launch_id_for(scale_user: schemas.ScaleUser) -> str:
@@ -55,7 +55,7 @@ class LtiLaunchRequest:
         This method is meant to be used to retrieve a cached
         ``LtiLaunchRequest`` for the given user.
         """
-        return f"lti-launch-request-{scale_user.id}"
+        return f"lti-launch-request-{scale_user.id}@{scale_user.context_id}"
 
     @property
     def roles(self) -> list[str]:
@@ -121,7 +121,7 @@ class LtiLaunchRequest:
     @property
     def scale_user(self) -> schemas.ScaleUser:
         """Returns a ``ScaleUser`` based on data from the request."""
-        lms_userid = f"{self.message['sub']}|{self.context['id']}|{self.platform.id}"
+        lms_userid = self.message["sub"] + "@" + self.platform.id
         lms_email = self.message.get("email") or self._custom_field("email")
         lms_name = self.message.get("name") or self._custom_field("name")
         lms_picture = self.message.get("picture") or self._custom_field("picture")

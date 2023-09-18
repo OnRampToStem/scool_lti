@@ -31,6 +31,6 @@ class LaunchMessageTestCase(unittest.TestCase):
 
         self.assertEqual(
             msg.scale_user.id,
-            "2b93d9e3-2bc8-4ded-a5a0-81202704e8f7|cfd70b5da3ce9018402b66c1d4ecfdc6b9d6eeef|7f2308ab9092411aafe7f47279b47dfa",
+            "2b93d9e3-2bc8-4ded-a5a0-81202704e8f7@7f2308ab9092411aafe7f47279b47dfa",
         )
         self.assertEqual(msg.scale_user.email, "johnwa@csufresno.edu")
