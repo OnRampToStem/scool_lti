@@ -88,23 +88,23 @@ class ScaleUserTestCase(unittest.TestCase):
         self.assertTrue(u.is_instructor)
 
     def test_user_id(self):
-        # Format of a ScaleUser.id is ``<LMS uid>@<Platform.id>``
-        u = ScaleUser(id="foo@bar", **self.DEFAULTS)
+        # Format of a ScaleUser.id is ``<LMS uid>|<LMS Context ID>|<Platform.id>``
+        u = ScaleUser(id="foo|bar|baz", **self.DEFAULTS)
         self.assertEqual(u.user_id, "foo")
 
     def test_user_id_if_from_auth_user(self):
         # AuthUser.id will be a uuid and have no ``@``
         u = ScaleUser(id="foo", **self.DEFAULTS)
-        self.assertEqual(u.user_id, "foo")
+        self.assertEqual("foo", u.user_id)
 
     def test_platform_id(self):
-        u = ScaleUser(id="foo@bar", **self.DEFAULTS)
-        self.assertEqual(u.platform_id, "bar")
+        u = ScaleUser(id="foo|bar|baz", **self.DEFAULTS)
+        self.assertEqual("baz", u.platform_id)
 
     def test_platform_id_if_from_auth_user(self):
         # AuthUser's should have a fixed value
         u = ScaleUser(id="foo", **self.DEFAULTS)
-        self.assertEqual(u.platform_id, "scale_api")
+        self.assertEqual("scale_api", u.platform_id)
 
     def test_context_id(self):
         u = ScaleUser(

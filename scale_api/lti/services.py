@@ -1,6 +1,7 @@
 """
 LTI Advantage Services
 """
+import datetime
 import json
 import logging
 import re
@@ -9,7 +10,9 @@ import uuid
 from collections.abc import MutableMapping, Sequence
 from typing import Any, NamedTuple, cast
 
+import httpx
 import joserfc.jwt
+import pydantic
 
 from .. import aio, keys, schemas
 from .messages import LtiLaunchRequest
@@ -22,12 +25,20 @@ NEXT_PAGE_REGEX = re.compile(
 )
 
 
+class LineItem(pydantic.BaseModel):
+    id: str | None = None
+    scoreMaximum: int  # noqa: N815
+    label: str
+    tag: str = "grade"  # TODO: should this tag indicate Scale somehow?
+
+
 class TokenCacheItem(NamedTuple):
     token: str
     expires_at: float
 
 
 class ServiceResponse(NamedTuple):
+    status_code: int
     headers: MutableMapping[str, str]
     body: dict[str, Any]
     next_page: str | None
@@ -108,7 +119,10 @@ class LtiServicesClient:
         return {"Authorization": "Bearer " + token}
 
     async def get(
-        self, scopes: Sequence[str], url: str, accept: str = "application/json"
+        self,
+        scopes: Sequence[str],
+        url: str | httpx.URL,
+        accept: str = "application/json",
     ) -> ServiceResponse:
         headers = await self.authorize_header(scopes)
         headers["Accept"] = accept
@@ -116,12 +130,12 @@ class LtiServicesClient:
         data = r.raise_for_status().json()
         m = NEXT_PAGE_REGEX.match(r.headers.get("Link", ""))
         next_page = m[1] if m else None
-        return ServiceResponse(r.headers, data, next_page)
+        return ServiceResponse(r.status_code, r.headers, data, next_page)
 
     async def post(
         self,
         scopes: Sequence[str],
-        url: str,
+        url: str | httpx.URL,
         data: str,
         content_type: str = "application/json",
         accept: str = "application/json",
@@ -137,7 +151,12 @@ class LtiServicesClient:
             next_page = m[1] if m else None
         else:
             next_page = None
-        return ServiceResponse(r.headers, r.json(), next_page)
+        return ServiceResponse(
+            status_code=r.status_code,
+            headers=r.headers,
+            body=r.raise_for_status().json(),
+            next_page=next_page,
+        )
 
 
 class NamesRoleService:
@@ -193,43 +212,59 @@ class AssignmentGradeService:
             msg = "Launch Request does not contain the AGS Service"
             logger.warning(msg)
             raise LtiServiceError(msg)
-        self.lineitems_url = launch_request.assignment_grade_service["lineitems"]
+        self.service_url = launch_request.assignment_grade_service["lineitems"]
         self.scopes = launch_request.assignment_grade_service["scope"]
 
-    async def lineitems(self) -> list:
-        url = self.lineitems_url
-        result = []
+    async def lineitems(self) -> list[LineItem]:
+        """Returns the list of assignments for this launch request context."""
+        url = self.service_url
+        items = []
         while url:
-            r = await self.client.get(self.scopes, url, self.CONTENT_TYPE_LIST)
+            r = await self.client.get(
+                scopes=self.scopes,
+                url=url,
+                accept=self.CONTENT_TYPE_LIST,
+            )
             url = r.next_page
-            logger.debug("lineitems r.body: %s", r.body)
-        return result
+            items += [LineItem.model_validate(item) for item in r.body]
+        return items
 
-    async def new_lineitem(self) -> None:
-        data = {
-            "scoreMaximum": 100,
-            "label": "Chapter 1 Test",
-            "tag": "grade",
-        }
+    async def add_lineitem(self, item: LineItem) -> LineItem:
+        """Adds a new assignment for this launch request context."""
+        data = item.model_dump_json(exclude={"id"})
         r = await self.client.post(
-            self.scopes, self.lineitems_url, json.dumps(data), self.CONTENT_TYPE
+            scopes=self.scopes,
+            url=self.service_url,
+            data=data,
+            content_type=self.CONTENT_TYPE,
+            accept=self.CONTENT_TYPE,
         )
-        logger.info(r.body)
+        if r.status_code != httpx.codes.CREATED:
+            raise LtiServiceError("status", r.status_code, data)
+        return LineItem.model_validate(r.body)
 
-    async def grade(self) -> None:
-        url = "https://fresnostate.instructure.com/api/lti/courses/48069/line_items/9184/scores"
+    async def add_score(self, item: LineItem, score: int) -> None:
+        """Adds a score to an existing assignment."""
+        if item.id is None:
+            msg = f"LineItem does not have an ID attribute: {item!r}"
+            logger.warning(msg)
+            raise LtiServiceError(msg)
         data = {
-            "timestamp": "2023-09-15T21:04:36.736+00:00",
-            "scoreGiven": 92,
-            "scoreMaximum": 100,
+            "userId": self.launch_request.sub,
+            "scoreGiven": score,
+            "scoreMaximum": item.scoreMaximum,
+            "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat(),
             "activityProgress": "Completed",
             "gradingProgress": "FullyGraded",
-            "userId": "74655e36-b83c-451a-a8f3-1883ae0a46bc",
         }
         r = await self.client.post(
-            self.scopes, url, json.dumps(data), self.CONTENT_TYPE_SCORE
+            scopes=self.scopes,
+            url=httpx.URL(item.id).join("/scores"),
+            data=json.dumps(data),
+            content_type=self.CONTENT_TYPE_SCORE,
         )
-        logger.info(r)
+        if r.status_code != httpx.codes.NO_CONTENT:
+            raise LtiServiceError("status", r.status_code, data)
 
     def __repr__(self) -> str:
-        return f"AssignmentGradeService({self.lineitems_url}, scopes={self.scopes})"
+        return f"AssignmentGradeService({self.service_url}, scopes={self.scopes})"

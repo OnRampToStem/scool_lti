@@ -46,7 +46,7 @@ NO_CACHE_HEADERS = {
     "Pragma": "no-cache",
 }
 
-LTI_TOKEN_EXPIRY = 60 * 60 * 12
+LTI_TOKEN_EXPIRY = 60 * 60 * 24 * 7  # 1 week
 
 ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
 
@@ -503,11 +503,29 @@ async def names_role_service_from_launch_id(launch_id: str) -> list[schemas.Scal
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     nrps = services.NamesRoleService(launch_request)
     members = await nrps.members()
+    ctx_id = launch_request.context["id"]
+    plat_id = launch_request.platform.id
     return [
-        schemas.ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
+        schemas.ScaleUser(id=f"{m['user_id']}|{ctx_id}|{plat_id}", **m)
         for m in members
         if m.get("email")
     ]
+
+
+@router.post("/scores", status_code=status.HTTP_204_NO_CONTENT)
+async def assignment_grade_service(scale_user: ScaleUser) -> None:
+    launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
+    if not (cached_request := await db.store.cache_get(key=launch_id)):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+    launch_request = messages.LtiLaunchRequest.loads(cached_request)
+    ags_service = services.AssignmentGradeService(launch_request)
+    items = await ags_service.lineitems()
+    logger.info(items)
+    # TODO: check if lineitem exists
+    # TODO: if not, add (make sure only one worker tries to add)
+    # TODO: if it does, add the score
+    # TODO: implement me
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:
