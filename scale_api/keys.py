@@ -54,7 +54,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> joserfc.jwk.Key
         raise
     else:
         # TODO: check headers to see if there is a ttl use for `expire_in`
-        # TODO: 'cache-control': 'max-age=864000, private'
+        #   cache-control': 'max-age=864000, private
         _jwks_cache[url] = CachedKeySet(ks)
         return ks
 
@@ -100,7 +100,6 @@ async def private_key() -> joserfc.jwk.RSAKey:
     return joserfc.jwk.RSAKey.import_key(main_key.data.get_secret_value())
 
 
-# TODO: cache to speed up our ``/jwks.json`` endpoint
 async def public_keys() -> list[joserfc.jwk.RSAKey]:
     """Returns a list of public JSON Web Keys."""
     privates = await json_web_private_keys()

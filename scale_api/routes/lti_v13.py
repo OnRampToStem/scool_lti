@@ -521,10 +521,10 @@ async def assignment_grade_service(scale_user: ScaleUser) -> None:
     ags_service = services.AssignmentGradeService(launch_request)
     items = await ags_service.lineitems()
     logger.info(items)
-    # TODO: check if lineitem exists
-    # TODO: if not, add (make sure only one worker tries to add)
-    # TODO: if it does, add the score
     # TODO: implement me
+    #   check if lineitem exists
+    #   if not, add (make sure only one worker tries to add)
+    #   if it does, add the score
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
 
