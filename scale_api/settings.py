@@ -53,6 +53,11 @@ class DatabaseSettings(SharedSettings, env_prefix="SCALE_DB_"):
     seed_file: Path | None = None
 
 
+class FeatureSettings(SharedSettings, env_prefix="SCALE_FEATURE_"):
+    # legacy claim used by dotnet
+    legacy_unique_name_claim: bool = True
+
+
 class APISettings(SharedSettings, env_prefix="SCALE_"):
     """Main app settings.
 
@@ -99,6 +104,7 @@ class APISettings(SharedSettings, env_prefix="SCALE_"):
 api = APISettings()
 db = DatabaseSettings()
 log = LogSettings()
+features = FeatureSettings()
 
 old_factory = logging.getLogRecordFactory()
 

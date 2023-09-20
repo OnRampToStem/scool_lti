@@ -336,14 +336,14 @@ def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1)
     """
     payload = {
         "sub": scale_user.id,
-        # TODO: legacy claim used by dotnet
-        #   delete this after moving the front-end to use `email` claim
-        "unique_name": scale_user.email,
         "email": scale_user.email,
         "name": scale_user.name,
         "roles": scale_user.roles,
         "context": scale_user.context,
     }
+    # TODO: delete this after moving the front-end to use `email` claim
+    if settings.features.legacy_unique_name_claim:
+        payload["unique_name"] = scale_user.email
     if scale_user.picture:
         payload["picture"] = scale_user.picture
     return create_token(payload, expires_in)
