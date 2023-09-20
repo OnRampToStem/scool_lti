@@ -40,9 +40,6 @@ class Platform(Base):
     client_id: Mapped[str | None] = mapped_column(sa.String(128))
     client_secret: Mapped[str | None] = mapped_column(sa.String(128))
 
-    # TODO: should there be a `PlatformDeployment` model in case the tool is
-    #  deployed multiple times??
-
     def __repr__(self) -> str:
         return f"Platform(id={self.id!r}, name={self.name!r})"
 
