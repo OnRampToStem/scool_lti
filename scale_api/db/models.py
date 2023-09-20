@@ -77,12 +77,7 @@ class AuthUser(Base):
         return value.lower()
 
     def __repr__(self) -> str:
-        return (
-            "AuthUser("
-            f"client_id={self.client_id!r}"
-            f", is_active={self.is_active}"
-            ")"
-        )
+        return f"AuthUser(client_id={self.client_id!r}, is_active={self.is_active})"
 
 
 class AuthJsonWeKey(Base):
@@ -139,5 +134,5 @@ class Cache(Base):
             f"ttl={self.ttl}, "
             f"ttl_type={self.ttl_type}, "
             f"expire_at={self.expire_at}, "
-            f")"
+            ")"
         )

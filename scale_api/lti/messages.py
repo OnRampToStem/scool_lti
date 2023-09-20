@@ -159,7 +159,7 @@ class LtiLaunchRequest:
         """Serializes the request to a string suitable for storing."""
         p = self.platform.model_dump_json(exclude={"client_secret"})
         m = json.dumps(self.message)
-        return "{" f'"platform":{p},"message":{m}' "}"  # noqa: ISC001
+        return f'{{"platform":{p},"message":{m}}}'
 
     @staticmethod
     def loads(data: str) -> "LtiLaunchRequest":
