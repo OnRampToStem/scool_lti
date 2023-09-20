@@ -210,18 +210,9 @@ async def launch_form(
             request.headers.getlist("cookie"),
         )
     else:
-        logger.info("[%s]: state matched in Cookie", state)
         response.delete_cookie(state_cookie_key)
 
     claims = await decode_lti_id_token(id_token, platform)
-    logger.info("[%s]: IDToken claims: %r", state, claims)
-    # Some basic jwt claims validation options
-    id_token_opts: dict[str, joserfc.jwt.ClaimsOption] = {
-        "iss": {"essential": True, "value": platform.issuer or ""},
-        "aud": {"essential": True, "value": platform.client_id or ""},
-        "nonce": {"essential": True},
-    }
-    joserfc.jwt.JWTClaimsRegistry(now=None, leeway=5, **id_token_opts).validate(claims)
 
     # To avoid replay attacks we verify the nonce provided was previously
     # stored, and then we remove from the cache so any future requests with
@@ -247,6 +238,7 @@ async def launch_form(
     message_launch = messages.LtiLaunchRequest(platform, claims)
     try:
         scale_user = message_launch.scale_user
+        logger.info("%r", scale_user)
     except ValueError as ve:
         logger.warning(
             "[%s]: failed to get ScaleUser from LtiLaunchRequest: %r", state, ve
@@ -280,23 +272,6 @@ async def launch_form(
     logger.info("Launch ID/Token: %s [%s]", message_launch.launch_id, token)
     response = templates.redirect_lms_auth(target_url, token)
     response.delete_cookie(state_cookie_key)
-    return response
-
-
-async def deep_link_launch(
-    request: Request, message_launch: messages.LtiLaunchRequest
-) -> Response:
-    """Deep Linking Launch Requests."""
-    # TODO: handle DeepLinking request Messages
-    client = request.client.host if request.client else "0.0.0.0"  # noqa: S104
-    logger.error(
-        "[%s]: unexpected launch type [%s]", client, message_launch.message_type
-    )
-    response = JSONResponse(
-        content={"error": f"{message_launch.message_type} launches not implemented"},
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-    )
-    response.delete_cookie(f"lti1p3-state-{message_launch.platform.id}")
     return response
 
 
@@ -565,4 +540,30 @@ async def decode_lti_id_token(
             algorithms=["RS256", "RS512"],
         )
 
-    return jwt_token.claims
+    claims = jwt_token.claims
+    logger.debug("IDToken claims: %r", claims)
+    # Some basic jwt claims validation options
+    id_token_opts: dict[str, joserfc.jwt.ClaimsOption] = {
+        "iss": {"essential": True, "value": platform.issuer or ""},
+        "aud": {"essential": True, "value": platform.client_id or ""},
+        "nonce": {"essential": True},
+    }
+    joserfc.jwt.JWTClaimsRegistry(now=None, leeway=5, **id_token_opts).validate(claims)
+    return claims
+
+
+async def deep_link_launch(
+    request: Request, message_launch: messages.LtiLaunchRequest
+) -> Response:
+    """Deep Linking Launch Requests."""
+    # TODO: handle DeepLinking request Messages
+    client = request.client.host if request.client else "0.0.0.0"  # noqa: S104
+    logger.error(
+        "[%s]: unexpected launch type [%s]", client, message_launch.message_type
+    )
+    response = JSONResponse(
+        content={"error": f"{message_launch.message_type} launches not implemented"},
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+    )
+    response.delete_cookie(f"lti1p3-state-{message_launch.platform.id}")
+    return response
