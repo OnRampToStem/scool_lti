@@ -3,7 +3,7 @@ OAuth/OIDC Well Known routes
 """
 from typing import Any
 
-import aiocache
+from async_lru import alru_cache
 from fastapi import APIRouter, Request
 
 from .. import keys, settings
@@ -36,7 +36,7 @@ async def oauth_server_metadata(request: Request) -> dict[str, Any]:
     }
 
 
-@aiocache.cached(ttl=86400)
+@alru_cache(ttl=86400)
 async def _load_jwks() -> dict[str, Any]:
     ks = await keys.public_key_set()
     ks_dict = ks.as_dict()
