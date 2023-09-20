@@ -3,6 +3,7 @@ OAuth/OIDC Well Known routes
 """
 from typing import Any
 
+import aiocache
 from fastapi import APIRouter, Request
 
 from .. import keys, settings
@@ -13,14 +14,7 @@ router = APIRouter()
 @router.get("/jwks.json")
 async def jwks() -> dict[str, Any]:
     """JSON Web Key Set endpoint."""
-    ks = await keys.public_key_set()
-    ks_dict = ks.as_dict()
-    for entry in ks_dict["keys"]:
-        if "use" not in entry:
-            entry["use"] = "sig"
-        if "alg" not in entry:
-            entry["alg"] = "RS256"
-    return ks_dict  # type: ignore[return-value]
+    return await _load_jwks()
 
 
 @router.get("/oauth-authorization-server")
@@ -40,3 +34,15 @@ async def oauth_server_metadata(request: Request) -> dict[str, Any]:
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
         ],
     }
+
+
+@aiocache.cached(ttl=86400)
+async def _load_jwks() -> dict[str, Any]:
+    ks = await keys.public_key_set()
+    ks_dict = ks.as_dict()
+    for entry in ks_dict["keys"]:
+        if "use" not in entry:
+            entry["use"] = "sig"
+        if "alg" not in entry:
+            entry["alg"] = "RS256"
+    return ks_dict  # type: ignore[return-value]
