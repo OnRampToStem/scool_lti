@@ -463,8 +463,11 @@ async def names_role_service_from_launch_id(launch_id: str) -> list[schemas.Scal
     ]
 
 
-@router.post("/scores", status_code=status.HTTP_200_OK)
-async def assignment_grade_service(scale_user: ScaleUser) -> list[services.LineItem]:
+@router.post("/scores")
+async def assignment_grade_service(
+    scale_user: ScaleUser, score: services.Score
+) -> list[services.LineItem]:
+    logger.debug("assignment_grade_service: %r - %r", scale_user, score)
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     if not (cached_request := await db.store.cache_get(key=launch_id)):
         msg = f"Launch Request [{launch_id}] not found in cache"
@@ -472,17 +475,11 @@ async def assignment_grade_service(scale_user: ScaleUser) -> list[services.LineI
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
     launch_request = messages.LtiLaunchRequest.loads(cached_request)
     ags_service = services.AssignmentGradeService(launch_request)
-    items = await ags_service.lineitems()
-    logger.info(items)
     # TODO: implement me
     #   check if lineitem exists
     #   if not, add (make sure only one worker tries to add)
     #   if it does, add the score
-    if not items:
-        item = services.LineItem(scoreMaximum=100, label="SCALE:Chapter 1")
-        new_item = await ags_service.add_lineitem(item)
-        return [new_item]
-    return items
+    return await ags_service.lineitems()
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:

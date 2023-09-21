@@ -32,6 +32,15 @@ class LineItem(pydantic.BaseModel):
     tag: str = "grade"  # TODO: should this tag indicate Scale somehow?
 
 
+class Score(pydantic.BaseModel):
+    label: str
+    scoreGiven: int  # noqa: N815
+    scoreMaximum: int  # noqa: N815
+    timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
+    activityProgress: str = "Completed"  # noqa: N815
+    gradingProgress: str = "FullyGraded"  # noqa: N815
+
+
 class TokenCacheItem(NamedTuple):
     token: str
     expires_at: float
