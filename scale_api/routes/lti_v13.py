@@ -11,11 +11,11 @@ see https://www.imsglobal.org/spec/lti/v1p3
 """
 import logging
 import urllib.parse
-import uuid
 from typing import Annotated, Any
 
 import joserfc.errors
 import joserfc.jwt
+import shortuuid
 from fastapi import (
     APIRouter,
     Depends,
@@ -177,13 +177,15 @@ async def launch_form(
     after the OIDC login initiation is performed.
     """
     logger.info(
-        "[%s]: LTI Launch: platform [%r]: IDToken=[%s]", state, platform_id, id_token
+        "LTI Launch: state [%s], platform [%s], IDToken=[%s]",
+        state,
+        platform_id,
+        id_token,
     )
 
     if id_token is None:
         logger.error(
-            "[%s]: missing IDToken: error code=[%s], description=[%s]",
-            state,
+            "missing IDToken: error code=[%s], description=[%s]",
             error,
             error_description,
         )
@@ -195,7 +197,6 @@ async def launch_form(
         return JSONResponse(content=content, status_code=status.HTTP_403_FORBIDDEN)
 
     platform = await platform_or_404(platform_id)
-    logger.info("[%s]: %r", state, platform)
 
     # Match up the state provided in the OIDC login initiation with the
     # state store in a cookie to ensure this request is associated with
@@ -204,10 +205,9 @@ async def launch_form(
     state_cookie_val = request.cookies.get(state_cookie_key)
     if state_cookie_val != state:
         logger.error(
-            "[%s]: state does not match Cookie [%s]\n%r",
+            "state [%s] does not match Cookie [%s]",
             state,
             state_cookie_val,
-            request.headers.getlist("cookie"),
         )
     else:
         response.delete_cookie(state_cookie_key)
@@ -220,11 +220,7 @@ async def launch_form(
     nonce = claims.get("nonce")
     cached_nonce_plat = await db.store.cache_pop(key=f"lti1p3-nonce-{nonce}")
     if not cached_nonce_plat or cached_nonce_plat != platform_id:
-        logger.error(
-            "[%s]: nonce not found or platform not matched: %s",
-            state,
-            cached_nonce_plat,
-        )
+        logger.error("nonce not found or platform not matched: %s", cached_nonce_plat)
         content = {
             "error": "invalid_nonce",
             "error_description": "nonce not found or platform not matched",
@@ -240,9 +236,7 @@ async def launch_form(
         scale_user = message_launch.scale_user
         logger.info("%r", scale_user)
     except ValueError as ve:
-        logger.warning(
-            "[%s]: failed to get ScaleUser from LtiLaunchRequest: %r", state, ve
-        )
+        logger.warning("failed to get ScaleUser from LtiLaunchRequest: %r", ve)
         content = {
             "error": "invalid_launch",
             "error_description": str(ve),
@@ -263,7 +257,7 @@ async def launch_form(
 
     base_url = str(request.url_for("index_api"))
     target_url = urllib.parse.urljoin(base_url, settings.api.frontend_launch_path)
-    logger.info("[%s]: redirecting via POST to v2: %s", state, target_url)
+    logger.info("redirecting via POST to v2: %s", target_url)
     token = security.create_scale_user_token(scale_user, expires_in=LTI_TOKEN_EXPIRY)
     logger.info("Launch ID/Token: %s [%s]", message_launch.launch_id, token)
     response = templates.redirect_lms_auth(target_url, token)
@@ -320,21 +314,12 @@ async def login_initiations_form(
     # used as a unique transaction key to associate the launch with the
     # user-agent (browser) and in log messages to associate the client in
     # log messages here and in the launch endpoint.
-    state = uuid.uuid4().hex
-
-    client_host = request.client.host if request.client else "0.0.0.0"  # noqa: S104
-    logger.info(
-        "[%s]: LTI Login Init: client=[%s], user-agent=[%s]",
-        state,
-        client_host,
-        request.headers.get("user-agent"),
-    )
+    state = settings.ctx_request.get().request_id
 
     platform = await platform_or_404(platform_id)
     logger.info(
-        "[%s]: iss=%s, login_hint=%s, target_link_uri=%s, "
+        "LTI Login Init: iss=%s, login_hint=%s, target_link_uri=%s, "
         "lti_message_hint=%s, lti_deployment_id=%s, client_id=%s",
-        state,
         iss,
         login_hint,
         target_link_uri,
@@ -345,8 +330,7 @@ async def login_initiations_form(
 
     if platform.issuer != iss:
         logger.error(
-            "[%s]: request issuer [%s] does not match Platform [%s]",
-            state,
+            "request issuer [%s] does not match Platform [%s]",
             iss,
             platform.issuer,
         )
@@ -359,8 +343,7 @@ async def login_initiations_form(
 
     if client_id and client_id != platform.client_id:
         logger.error(
-            "[%s]: request client_id [%s] does not match Platform [%s]",
-            state,
+            "request client_id [%s] does not match Platform [%s]",
             client_id,
             platform.client_id,
         )
@@ -374,8 +357,7 @@ async def login_initiations_form(
     expect_target_uri = request.url_for("launch_form", platform_id=platform_id)
     if expect_target_uri != target_link_uri:
         logger.error(
-            "[%s]: request target_link_uri [%s] does not match Platform [%s]",
-            state,
+            "request target_link_uri [%s] does not match Platform [%s]",
             target_link_uri,
             expect_target_uri,
         )
@@ -386,7 +368,7 @@ async def login_initiations_form(
         }
         return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
-    nonce = uuid.uuid4().hex  # prevent replay attacks
+    nonce = shortuuid.uuid()  # prevent replay attacks
     await db.store.cache_put(
         key=f"lti1p3-nonce-{nonce}",
         value=platform_id,
@@ -443,7 +425,7 @@ async def login_initiations_form(
         samesite="none",
     )
 
-    logger.info("[%s]: redirecting to %s", state, target_url)
+    logger.info("redirecting to %s", target_url)
     return response
 
 

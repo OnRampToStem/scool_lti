@@ -6,13 +6,13 @@ import json
 import logging
 import re
 import time
-import uuid
 from collections.abc import MutableMapping, Sequence
 from typing import Any, NamedTuple, cast
 
 import httpx
 import joserfc.jwt
 import pydantic
+import shortuuid
 
 from .. import aio, keys, schemas
 from .messages import LtiLaunchRequest
@@ -64,7 +64,7 @@ async def create_platform_token(platform: schemas.Platform) -> str:
         "aud": str(platform.auth_token_url),
         "iat": now - 5,
         "exp": now + 60,
-        "jti": str(uuid.uuid4()),
+        "jti": str(shortuuid.uuid()),
     }
     private_key = await keys.private_key()
     header = {"typ": "JWT", "alg": "RS256", "kid": private_key.thumbprint()}

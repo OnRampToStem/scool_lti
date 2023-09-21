@@ -150,7 +150,7 @@ class LtiLaunchRequest:
         See the Troubleshooting section of `docs/lti/canvas_install.md` for
         details on how to add the custom fields.
         """
-        logger.warning("Looking for custom field [%s]", field_name)
+        logger.debug("Looking for custom field [%s]", field_name)
         return self.message.get(  # type: ignore[no-any-return]
             MESSAGE_CUSTOM_KEY, {}
         ).get(field_name)
