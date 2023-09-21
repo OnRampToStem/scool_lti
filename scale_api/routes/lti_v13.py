@@ -261,11 +261,7 @@ async def launch_form(
     if message_launch.is_deep_link_launch:
         return await deep_link_launch(request, message_launch)
 
-    base_url = (
-        "http://localhost:8080"
-        if settings.api.is_local
-        else str(request.url_for("index_api"))
-    )
+    base_url = str(request.url_for("index_api"))
     target_url = urllib.parse.urljoin(base_url, settings.api.frontend_launch_path)
     logger.info("[%s]: redirecting via POST to v2: %s", state, target_url)
     token = security.create_scale_user_token(scale_user, expires_in=LTI_TOKEN_EXPIRY)
@@ -485,8 +481,8 @@ async def names_role_service_from_launch_id(launch_id: str) -> list[schemas.Scal
     ]
 
 
-@router.post("/scores", status_code=status.HTTP_204_NO_CONTENT)
-async def assignment_grade_service(scale_user: ScaleUser) -> None:
+@router.post("/scores", status_code=status.HTTP_200_OK)
+async def assignment_grade_service(scale_user: ScaleUser) -> list[services.LineItem]:
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     if not (cached_request := await db.store.cache_get(key=launch_id)):
         msg = f"Launch Request [{launch_id}] not found in cache"
@@ -500,7 +496,11 @@ async def assignment_grade_service(scale_user: ScaleUser) -> None:
     #   check if lineitem exists
     #   if not, add (make sure only one worker tries to add)
     #   if it does, add the score
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+    if not items:
+        item = services.LineItem(scoreMaximum=100, label="SCALE:Chapter 1")
+        new_item = await ags_service.add_lineitem(item)
+        return [new_item]
+    return items
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:
