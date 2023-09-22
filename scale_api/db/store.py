@@ -97,6 +97,39 @@ async def cache_put(
     return key
 
 
+async def cache_add(
+    key: str,
+    value: str,
+    *,
+    ttl: int = CACHE_TTL_DEFAULT,
+    ttl_type: str = CACHE_TTL_TYPE_FIXED,
+    append_guid: bool = False,
+) -> str | None:
+    """Adds an entry in the cache.
+
+    Returns the key if the entry was added, else None if the entry already
+    exists.
+    """
+    await _cache_purge_expired()
+    key = _cache_guid(key) if append_guid else key
+    expires_at = _cache_calc_expires(ttl)
+    entry = Cache(
+        key=key,
+        value=value,
+        ttl=ttl,
+        ttl_type=ttl_type,
+        expire_at=expires_at,
+    )
+    async with async_session() as session:
+        try:
+            session.add(entry)
+            await session.commit()
+        except IntegrityError:
+            return None
+        else:
+            return key
+
+
 async def cache_get(key: str, default: str | None = None) -> str | None:
     """Returns an entry from the cache else ``default`` if no entry exists."""
     async with async_session.begin() as session:

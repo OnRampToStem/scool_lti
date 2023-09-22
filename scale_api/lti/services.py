@@ -2,17 +2,15 @@
 LTI Advantage Services
 """
 import datetime
-import json
 import logging
 import re
 import time
-from collections.abc import MutableMapping, Sequence
-from typing import Any, NamedTuple, cast
+from collections.abc import Sequence
+from typing import Annotated, Any, Literal, NamedTuple, TypeAlias, cast
 
-import httpx
 import joserfc.jwt
-import pydantic
 import shortuuid
+from pydantic import BaseModel, Field
 
 from .. import aio, keys, schemas
 from .messages import LtiLaunchRequest
@@ -20,25 +18,58 @@ from .messages import LtiLaunchRequest
 logger = logging.getLogger(__name__)
 
 NEXT_PAGE_REGEX = re.compile(
-    r"""^Link:.*<([^>]*)>; ?rel=["']next["']""",
+    r"""<([^>]*)>; ?rel=["']next["']""",
     re.IGNORECASE | re.MULTILINE,
 )
 
+ActivityProgress: TypeAlias = Literal[
+    "Initialized", "Started", "InProgress", "Submitted", "Completed"
+]
+GradingProgress: TypeAlias = Literal[
+    "FullyGraded", "Pending", "PendingManual", "Failed", "NotReady"
+]
 
-class LineItem(pydantic.BaseModel):
+
+class LineItem(BaseModel):
+    """Assignment and Grade Services Line Item.
+
+    see https://www.imsglobal.org/spec/lti-ags/v2p0#updating-a-line-item
+    """
+
     id: str | None = None
-    scoreMaximum: int  # noqa: N815
+    score_max: Annotated[int, Field(alias="scoreMaximum", gt=0)]
     label: str
-    tag: str = "grade"  # TODO: should this tag indicate Scale somehow?
+    resource_id: Annotated[str | None, Field(alias="resourceId")] = None
+    tag: str | None = None
+    start_time: Annotated[datetime.datetime | None, Field(alias="startDateTime")] = None
+    end_time: Annotated[datetime.datetime | None, Field(alias="endDateTime")] = None
+    grades_released: Annotated[bool, Field(alias="gradesReleased")] = True
 
 
-class Score(pydantic.BaseModel):
-    label: str
-    scoreGiven: int  # noqa: N815
-    scoreMaximum: int  # noqa: N815
+class Score(BaseModel):
+    """Assignment and Grade Services Score.
+
+    see https://www.imsglobal.org/spec/lti-ags/v2p0#score-service-media-type-and-schema
+    """
+
     timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
-    activityProgress: str = "Completed"  # noqa: N815
-    gradingProgress: str = "FullyGraded"  # noqa: N815
+    score_given: Annotated[int, Field(alias="scoreGiven", ge=0)]
+    score_max: Annotated[int, Field(alias="scoreMaximum", gt=0)]
+    comment: str | None = None
+    activity_progress: Annotated[
+        ActivityProgress, Field(alias="activityProgress")
+    ] = "Completed"
+    grading_progress: Annotated[
+        GradingProgress, Field(alias="gradingProgress")
+    ] = "FullyGraded"
+    user_id: Annotated[str, Field(alias="userId")]
+
+
+class ScaleGrade(BaseModel):
+    timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
+    chapter: str
+    score: Annotated[int, Field(ge=0)]
+    score_max: Annotated[int, Field(alias="scoreMax", gt=0)]
 
 
 class TokenCacheItem(NamedTuple):
@@ -46,10 +77,14 @@ class TokenCacheItem(NamedTuple):
     expires_at: float
 
 
-class ServiceResponse(NamedTuple):
-    status_code: int
-    headers: MutableMapping[str, str]
-    body: dict[str, Any]
+class MembersResult(NamedTuple):
+    context: dict[str, Any]
+    members: list[dict[str, Any]]
+    next_page: str | None
+
+
+class LineItemsResult(NamedTuple):
+    items: list[LineItem]
     next_page: str | None
 
 
@@ -84,25 +119,32 @@ async def create_platform_token(platform: schemas.Platform) -> str:
     )
 
 
+def next_page_link(headers: dict[str, Any]) -> str | None:
+    if (val := headers.get("Link")) and (m := NEXT_PAGE_REGEX.search(val)):
+        return m[1]
+    return None
+
+
 class LtiServicesClient:
     """Client for making calls to LTI Advantage Services."""
 
-    def __init__(self, platform: schemas.Platform) -> None:
-        self.platform = platform
-        self.token_cache: dict[str, TokenCacheItem] = {}
+    def __init__(self, launch_request: LtiLaunchRequest) -> None:
+        self.launch_request = launch_request
+        self._token_cache: dict[str, TokenCacheItem] = {}
 
     async def _access_token(self, scopes: Sequence[str]) -> str:
         """Returns an OAuth access_token."""
         cache_key = " ".join(sorted(scopes))
-        cache_item = self.token_cache.get(cache_key)
+        cache_item = self._token_cache.get(cache_key)
         if cache_item and time.time() < (cache_item.expires_at - 10.0):
             return cache_item.token
 
-        if self.platform.auth_token_url is None:
+        platform = self.launch_request.platform
+        if platform.auth_token_url is None:
             raise ValueError("PLATFORM_NO_TOKEN_URL")
 
-        auth_url = str(self.platform.auth_token_url)
-        jwt = await create_platform_token(self.platform)
+        auth_url = str(platform.auth_token_url)
+        jwt = await create_platform_token(platform)
         auth_data = {
             "grant_type": "client_credentials",
             "client_assertion_type": (
@@ -118,7 +160,7 @@ class LtiServicesClient:
         access_token = grant_response["access_token"]
         expires_in = grant_response["expires_in"]
 
-        self.token_cache[cache_key] = TokenCacheItem(
+        self._token_cache[cache_key] = TokenCacheItem(
             token=access_token,
             expires_at=time.time() + expires_in,
         )
@@ -128,48 +170,8 @@ class LtiServicesClient:
         token = await self._access_token(scopes)
         return {"Authorization": "Bearer " + token}
 
-    async def get(
-        self,
-        scopes: Sequence[str],
-        url: str | httpx.URL,
-        accept: str = "application/json",
-    ) -> ServiceResponse:
-        headers = await self.authorize_header(scopes)
-        headers["Accept"] = accept
-        r = await aio.http_client.get(url, headers=headers)
-        data = r.raise_for_status().json()
-        m = NEXT_PAGE_REGEX.match(r.headers.get("Link", ""))
-        next_page = m[1] if m else None
-        return ServiceResponse(r.status_code, r.headers, data, next_page)
 
-    async def post(
-        self,
-        scopes: Sequence[str],
-        url: str | httpx.URL,
-        data: str,
-        content_type: str = "application/json",
-        accept: str = "application/json",
-    ) -> ServiceResponse:
-        headers = await self.authorize_header(scopes)
-        headers["Accept"] = accept
-        headers["Content-Type"] = content_type
-        r = await aio.http_client.post(url, headers=headers, content=data)
-        link_header = r.headers.get("Link")
-        if link_header:
-            logger.info("Looking for next page link:\n%r", link_header)
-            m = NEXT_PAGE_REGEX.search(link_header)
-            next_page = m[1] if m else None
-        else:
-            next_page = None
-        return ServiceResponse(
-            status_code=r.status_code,
-            headers=r.headers,
-            body=r.raise_for_status().json(),
-            next_page=next_page,
-        )
-
-
-class NamesRoleService:
+class NamesRoleService(LtiServicesClient):
     """LTI Advantage Names and Role Provisioning Service client.
 
     see https://www.imsglobal.org/spec/lti-nrps/v2p0
@@ -178,103 +180,104 @@ class NamesRoleService:
     SCOPES = [
         "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly"
     ]
-    CONTENT_TYPE = "application/vnd.ims.lti-nrps.v2.membershipcontainer+json"
 
-    def __init__(self, launch_request: LtiLaunchRequest) -> None:
-        self.launch_request = launch_request
-        self.client = LtiServicesClient(launch_request.platform)
-        if launch_request.names_role_service is None:
+    @property
+    def service_url(self) -> str:
+        if self.launch_request.names_role_service is None:
             msg = "Launch Request does not contain the NRPS Service"
             logger.warning(msg)
             raise LtiServiceError(msg)
-        self.service_url = launch_request.names_role_service["context_memberships_url"]
+        return cast(
+            str, self.launch_request.names_role_service["context_memberships_url"]
+        )
 
-    async def members(self) -> list[dict[str, Any]]:
-        url = self.service_url
-        result = []
-        while url:
-            r = await self.client.get(self.SCOPES, url, accept=self.CONTENT_TYPE)
-            url = r.next_page
-            result += r.body["members"]
-        return result
+    async def members(self, next_page_url: str | None = None) -> MembersResult:
+        headers = await self.authorize_header(self.SCOPES)
+        headers["Accept"] = "application/vnd.ims.lti-nrps.v2.membershipcontainer+json"
+        url = next_page_url if next_page_url is not None else self.service_url
+        r = await aio.http_client.get(url=url, headers=headers)
+        data = r.raise_for_status().json()
+        return MembersResult(
+            context=data["context"],
+            members=data["members"],
+            next_page=next_page_link(r.headers),  # type: ignore[arg-type]
+        )
 
 
-class AssignmentGradeService:
+class AssignmentGradeService(LtiServicesClient):
     """LTI Advantage Assignment and Grade Service client.
 
     see https://www.imsglobal.org/spec/lti-ags/v2p0
     """
 
-    SCOPES = [
-        "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
-        "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly",
-        "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly",
-        "https://purl.imsglobal.org/spec/lti-ags/scope/score",
-    ]
     CONTENT_TYPE = "application/vnd.ims.lis.v2.lineitem+json"
     CONTENT_TYPE_LIST = "application/vnd.ims.lis.v2.lineitemcontainer+json"
     CONTENT_TYPE_SCORE = "application/vnd.ims.lis.v1.score+json"
 
-    def __init__(self, launch_request: LtiLaunchRequest) -> None:
-        self.launch_request = launch_request
-        self.client = LtiServicesClient(launch_request.platform)
-        if launch_request.assignment_grade_service is None:
+    @property
+    def service_url(self) -> str:
+        if self.launch_request.assignment_grade_service is None:
             msg = "Launch Request does not contain the AGS Service"
             logger.warning(msg)
             raise LtiServiceError(msg)
-        self.service_url = launch_request.assignment_grade_service["lineitems"]
-        self.scopes = launch_request.assignment_grade_service["scope"]
+        if service_url := self.launch_request.assignment_grade_service.get("lineitems"):
+            return cast(str, service_url)
+        msg = "Launch Request does not contain the lineitems URL"
+        logger.warning(msg)
+        raise LtiServiceError(msg)
 
-    async def lineitems(self) -> list[LineItem]:
+    @property
+    def scopes(self) -> Sequence[str]:
+        return self.launch_request.assignment_grade_service["scope"]  # type: ignore
+
+    async def lineitems(self, next_page_url: str | None = None) -> LineItemsResult:
         """Returns the list of assignments for this launch request context."""
-        url = self.service_url
-        items = []
-        while url:
-            r = await self.client.get(
-                scopes=self.scopes,
-                url=url,
-                accept=self.CONTENT_TYPE_LIST,
-            )
-            url = r.next_page
-            items += [LineItem.model_validate(item) for item in r.body]
-        return items
+        url = next_page_url if next_page_url is not None else self.service_url
+        headers = await self.authorize_header(self.scopes)
+        headers["Accept"] = self.CONTENT_TYPE_LIST
+        r = await aio.http_client.get(url=url, headers=headers)
+        items = [LineItem.model_validate(item) for item in r.raise_for_status().json()]
+        return LineItemsResult(
+            items=items,
+            next_page=next_page_link(r.headers),  # type: ignore[arg-type]
+        )
+
+    async def lineitem(self, label: str) -> LineItem | None:
+        next_page = None
+        while True:
+            result = await self.lineitems(next_page_url=next_page)
+            for item in result.items:
+                if item.label == label:
+                    return item
+            if next_page := result.next_page:
+                continue
+            return None
 
     async def add_lineitem(self, item: LineItem) -> LineItem:
         """Adds a new assignment for this launch request context."""
-        data = item.model_dump_json(exclude={"id"})
-        r = await self.client.post(
-            scopes=self.scopes,
-            url=self.service_url,
-            data=data,
-            content_type=self.CONTENT_TYPE,
-            accept=self.CONTENT_TYPE,
-        )
-        if r.status_code != httpx.codes.CREATED:
-            raise LtiServiceError("status", r.status_code, data)
-        return LineItem.model_validate(r.body)
+        data = item.model_dump(exclude={"id"}, by_alias=True, exclude_unset=True)
+        headers = await self.authorize_header(self.scopes)
+        headers["Accept"] = self.CONTENT_TYPE
+        headers["Content-Type"] = self.CONTENT_TYPE
+        r = await aio.http_client.post(url=self.service_url, headers=headers, data=data)
+        return LineItem.model_validate(r.raise_for_status().json())
 
-    async def add_score(self, item: LineItem, score: int) -> None:
+    async def add_score(self, item: LineItem, score: Score) -> None:
         """Adds a score to an existing assignment."""
         if item.id is None:
             msg = f"LineItem does not have an ID attribute: {item!r}"
             logger.warning(msg)
             raise LtiServiceError(msg)
-        data = {
-            "userId": self.launch_request.sub,
-            "scoreGiven": score,
-            "scoreMaximum": item.scoreMaximum,
-            "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat(),
-            "activityProgress": "Completed",
-            "gradingProgress": "FullyGraded",
-        }
-        r = await self.client.post(
-            scopes=self.scopes,
-            url=httpx.URL(item.id).join("/scores"),
-            data=json.dumps(data),
-            content_type=self.CONTENT_TYPE_SCORE,
-        )
-        if r.status_code != httpx.codes.NO_CONTENT:
-            raise LtiServiceError("status", r.status_code, data)
+        score_url = f"{item.id.rstrip('/')}/scores"
+        data = score.model_dump(by_alias=True, exclude_none=True)
+        headers = await self.authorize_header(self.scopes)
+        headers["Accept"] = self.CONTENT_TYPE_SCORE
+        headers["Content-Type"] = self.CONTENT_TYPE_SCORE
+        try:
+            await aio.http_client.post(url=score_url, headers=headers, data=data)
+        except Exception:
+            logger.exception("call to [%s] with [%s] failed", score_url, data)
+            raise
 
     def __repr__(self) -> str:
         return f"AssignmentGradeService({self.service_url}, scopes={self.scopes})"

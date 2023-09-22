@@ -9,6 +9,7 @@ that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
 """
+import hashlib
 import logging
 import urllib.parse
 from typing import Annotated, Any
@@ -430,20 +431,17 @@ async def login_initiations_form(
 
 
 @router.get("/members", response_model_exclude_unset=True)
-async def names_role_service(scale_user: ScaleUser) -> list[schemas.ScaleUser]:
+async def nrps_members(
+    scale_user: ScaleUser, next_token: str | None = None
+) -> dict[str, Any]:
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
     if scale_user.platform_id == "scale_api":
         logger.warning("names_role_service(%r): no LMS context", scale_user)
-        return []
+        return {"next_token": None, "members": [scale_user]}
 
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
-    return await names_role_service_from_launch_id(launch_id)
-
-
-@router.get("/members/{launch_id}", response_model_exclude_unset=True)
-async def names_role_service_from_launch_id(launch_id: str) -> list[schemas.ScaleUser]:
     cached_launch = await db.store.cache_get(key=launch_id)
     if cached_launch is None:
         raise HTTPException(
@@ -454,20 +452,24 @@ async def names_role_service_from_launch_id(launch_id: str) -> list[schemas.Scal
     if not launch_request.is_instructor:
         logger.error("lti.members unauthorized request: %s", launch_request.scale_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-    nrps = services.NamesRoleService(launch_request)
-    members = await nrps.members()
-    return [
-        schemas.ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
-        for m in members
-        if m.get("email")
-    ]
+    nrps_client = services.NamesRoleService(launch_request)
+    result = await nrps_client.members(next_page_url=next_token)
+    return {
+        "next_token": result.next_page,
+        "context": result.context,
+        "members": [
+            schemas.ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
+            for m in result.members
+            if m.get("email")
+        ],
+    }
 
 
 @router.post("/scores")
-async def assignment_grade_service(
-    scale_user: ScaleUser, score: services.Score
-) -> list[services.LineItem]:
-    logger.debug("assignment_grade_service: %r - %r", scale_user, score)
+async def ags_grades(
+    scale_user: ScaleUser, grade: services.ScaleGrade
+) -> services.LineItem:
+    logger.debug("assignment_grade_service: %r - %r", scale_user, grade)
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     if not (cached_request := await db.store.cache_get(key=launch_id)):
         msg = f"Launch Request [{launch_id}] not found in cache"
@@ -475,11 +477,39 @@ async def assignment_grade_service(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
     launch_request = messages.LtiLaunchRequest.loads(cached_request)
     ags_service = services.AssignmentGradeService(launch_request)
-    # TODO: implement me
-    #   check if lineitem exists
-    #   if not, add (make sure only one worker tries to add)
-    #   if it does, add the score
-    return await ags_service.lineitems()
+    score = services.Score.model_validate(
+        {
+            "timestamp": grade.timestamp,
+            "scoreGiven": grade.score,
+            "scoreMaximum": grade.score_max,
+            "userId": launch_request.sub,
+        }
+    )
+
+    if item := await ags_service.lineitem(grade.chapter):
+        await ags_service.add_score(item, score)
+        return item
+
+    # must ensure lineitem is only created once
+    item = services.LineItem.model_validate(
+        {"scoreMaximum": grade.score_max, "label": grade.chapter}
+    )
+    hasher = hashlib.sha1(grade.chapter.lower().encode(encoding="utf-8"))  # noqa: S324
+    li_key = (
+        "lti-lineitem-"
+        f"{launch_request.platform.id}-{launch_request.context['id']}-"
+        f"{hasher.hexdigest()}"
+    )
+    rv = await db.store.cache_add(
+        key=li_key, value=item.model_dump_json(), ttl=LTI_TOKEN_EXPIRY
+    )
+    if rv is None:
+        # client posting the grade should retry the request
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
+
+    new_item = await ags_service.add_lineitem(item)
+    await ags_service.add_score(new_item, score)
+    return new_item
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:
