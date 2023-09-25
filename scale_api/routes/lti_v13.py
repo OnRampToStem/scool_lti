@@ -9,6 +9,7 @@ that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
 """
+import asyncio
 import hashlib
 import logging
 import urllib.parse
@@ -486,30 +487,38 @@ async def ags_grades(
         }
     )
 
-    if item := await ags_service.lineitem(grade.chapter):
-        await ags_service.add_score(item, score)
-        return item
+    # in case of multiple submissions for the same assignment (lineitem),
+    # need to allow for retrying this request
+    for i in range(3):
+        if item := await ags_service.lineitem(grade.chapter):
+            await ags_service.add_score(item, score)
+            return item
 
-    # must ensure lineitem is only created once
-    item = services.LineItem.model_validate(
-        {"scoreMaximum": grade.score_max, "label": grade.chapter}
-    )
-    hasher = hashlib.sha1(grade.chapter.lower().encode(encoding="utf-8"))  # noqa: S324
-    li_key = (
-        "lti-lineitem-"
-        f"{launch_request.platform.id}-{launch_request.context['id']}-"
-        f"{hasher.hexdigest()}"
-    )
-    rv = await db.store.cache_add(
-        key=li_key, value=item.model_dump_json(), ttl=LTI_TOKEN_EXPIRY
-    )
-    if rv is None:
-        # client posting the grade should retry the request
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
+        # must ensure lineitem is only created once
+        item = services.LineItem.model_validate(
+            {"scoreMaximum": grade.score_max, "label": grade.chapter}
+        )
+        hasher = hashlib.sha1(  # noqa: S324
+            grade.chapter.lower().encode(encoding="utf-8")
+        )
+        li_key = (
+            "lti-lineitem-"
+            f"{launch_request.platform.id}-{launch_request.context['id']}-"
+            f"{hasher.hexdigest()}"
+        )
+        rv = await db.store.cache_add(
+            key=li_key, value=item.model_dump_json(), ttl=LTI_TOKEN_EXPIRY
+        )
+        if rv is None:
+            logger.warning("another process is adding %r", item)
+            await asyncio.sleep((0.5 + i) * 2.0)
+            continue
 
-    new_item = await ags_service.add_lineitem(item)
-    await ags_service.add_score(new_item, score)
-    return new_item
+        new_item = await ags_service.add_lineitem(item)
+        await ags_service.add_score(new_item, score)
+        return new_item
+
+    raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
 
 async def platform_or_404(platform_id: str) -> schemas.Platform:
