@@ -255,11 +255,15 @@ class AssignmentGradeService(LtiServicesClient):
 
     async def add_lineitem(self, item: LineItem) -> LineItem:
         """Adds a new assignment for this launch request context."""
-        data = item.model_dump(exclude={"id"}, by_alias=True, exclude_unset=True)
         headers = await self.authorize_header(self.scopes)
         headers["Accept"] = self.CONTENT_TYPE
         headers["Content-Type"] = self.CONTENT_TYPE
-        r = await aio.http_client.post(url=self.service_url, headers=headers, data=data)
+        content = item.model_dump_json(
+            exclude={"id"}, by_alias=True, exclude_unset=True
+        )
+        r = await aio.http_client.post(
+            url=self.service_url, headers=headers, content=content
+        )
         return LineItem.model_validate(r.raise_for_status().json())
 
     async def add_score(self, item: LineItem, score: Score) -> None:
@@ -269,15 +273,19 @@ class AssignmentGradeService(LtiServicesClient):
             logger.warning(msg)
             raise LtiServiceError(msg)
         score_url = f"{item.id.rstrip('/')}/scores"
-        data = score.model_dump(by_alias=True, exclude_none=True)
         headers = await self.authorize_header(self.scopes)
         headers["Accept"] = self.CONTENT_TYPE_SCORE
         headers["Content-Type"] = self.CONTENT_TYPE_SCORE
+        content = score.model_dump_json(by_alias=True, exclude_none=True)
         try:
-            await aio.http_client.post(url=score_url, headers=headers, data=data)
+            rv = await aio.http_client.post(
+                url=score_url, headers=headers, content=content
+            )
         except Exception:
-            logger.exception("call to [%s] with [%s] failed", score_url, data)
+            logger.exception("call to [%s] with [%s] failed", score_url, content)
             raise
+        else:
+            logger.debug("add_score status=%s - %s", rv.status_code, rv.text)
 
     def __repr__(self) -> str:
         return f"AssignmentGradeService({self.service_url}, scopes={self.scopes})"
