@@ -2,4 +2,4 @@
 SCALE API (OR2STEM)
 """
 
-__version__ = "23.9.25"
+__version__ = "23.9.27"
