@@ -12,8 +12,9 @@ target-version = "py311"
 select = [
     "A",  # builtins
     "ARG",  # unused args
+    "ASYNC",  # async
     "B",  # flake8-bugbear
-    "C40",  # comprehensions
+    "C4",  # comprehensions
     "DTZ", # datetimez
     "E",  # pycodestyle (errors)
     "ERA",  # eradicate commented out code
@@ -22,6 +23,7 @@ select = [
     "I",   # isort
     "ISC",  # implicit string concat
     "N",  # pep8 naming
+    "PERF",  # perflint
     "PIE",  # misc lints
     "PL",  # Pylint
     "PTH",  # pathlib
@@ -39,9 +41,6 @@ ignore = [
     "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
 ]
 extend-exclude = [".*", "docker", "docs", "etc", "temp"]
-
-[tool.ruff.flake8-bugbear]
-extend-immutable-calls = ["fastapi.Form"]
 
 [tool.ruff.flake8-builtins]
 builtins-ignorelist = ["id"]
