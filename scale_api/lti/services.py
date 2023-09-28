@@ -66,10 +66,12 @@ class Score(BaseModel):
 
 
 class ScaleGrade(BaseModel):
-    timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
+    studentid: str
+    courseid: str
     chapter: str
     score: Annotated[int, Field(ge=0)]
-    score_max: Annotated[int, Field(alias="scoreMax", gt=0)]
+    scoremax: Annotated[int, Field(gt=0)]
+    timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
 
 
 class TokenCacheItem(NamedTuple):

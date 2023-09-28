@@ -22,6 +22,7 @@ from fastapi import (
     APIRouter,
     Depends,
     Form,
+    Header,
     HTTPException,
     Request,
     Response,
@@ -468,22 +469,57 @@ async def nrps_members(
 
 @router.post("/scores")
 async def ags_grades(
-    scale_user: ScaleUser, grade: services.ScaleGrade
+    scale_user: ScaleUser,
+    grade: services.ScaleGrade,
+    x_api_key: Annotated[str, Header()],
 ) -> services.LineItem:
+    if x_api_key != settings.api.frontend_api_key:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
     logger.debug("assignment_grade_service: %r - %r", scale_user, grade)
     launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
     if not (cached_request := await db.store.cache_get(key=launch_id)):
         msg = f"Launch Request [{launch_id}] not found in cache"
         logger.warning(msg)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
+
     launch_request = messages.LtiLaunchRequest.loads(cached_request)
     ags_service = services.AssignmentGradeService(launch_request)
+    user_id, sep, plat_id = grade.studentid.partition("@")
+
+    if not sep:
+        details = {
+            "code": "invalid_studentid",
+            "message": f"{grade.studentid} is not in the correct format",
+        }
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
+
+    if plat_id != launch_request.platform.id:
+        details = {
+            "code": "invalid_platform",
+            "message": (
+                f"{plat_id} for user does not match platform of the Launch Request: "
+                f"{launch_request.platform.id}"
+            ),
+        }
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
+
+    if grade.courseid != launch_request.context["id"]:
+        details = {
+            "code": "invalid_courseid",
+            "message": (
+                f"{grade.courseid} does not match context from Launch Request: "
+                f"{launch_request.context['id']}"
+            ),
+        }
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
+
     score = services.Score.model_validate(
         {
             "timestamp": grade.timestamp,
             "scoreGiven": grade.score,
-            "scoreMaximum": grade.score_max,
-            "userId": launch_request.sub,
+            "scoreMaximum": grade.scoremax,
+            "userId": user_id,
         }
     )
 
@@ -496,7 +532,7 @@ async def ags_grades(
 
         # must ensure lineitem is only created once
         item = services.LineItem.model_validate(
-            {"scoreMaximum": grade.score_max, "label": grade.chapter}
+            {"scoreMaximum": grade.scoremax, "label": grade.chapter}
         )
         hasher = hashlib.sha1(  # noqa: S324
             grade.chapter.lower().encode(encoding="utf-8")

@@ -76,6 +76,7 @@ class APISettings(SharedSettings, env_prefix="SCALE_"):
     oauth_access_token_expiry: int = 3600
     use_ssl_for_app_run_local: bool = True
     frontend_launch_path: str = "/dyna/payload.php"
+    frontend_api_key: str = f"TEST-{secrets.token_urlsafe(16)}"
 
     @field_validator("env")
     def _verify_environment(cls, v: str) -> str:
@@ -123,3 +124,9 @@ logging.basicConfig(
 logging.getLogger("").setLevel(log.level_root)
 logging.getLogger("uvicorn").setLevel(log.level_uvicorn)
 logging.getLogger("scale_api").setLevel(log.level_app)
+
+if api.is_local:
+    logging.getLogger("scale_api").error("Frontend API Key: %s", api.frontend_api_key)
+elif api.frontend_api_key.startswith("TEST-"):
+    msg = "SCALE_FRONTEND_API_KEY must be set"
+    raise RuntimeError(msg)
