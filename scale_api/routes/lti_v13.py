@@ -35,10 +35,10 @@ from .. import (
     keys,
     schemas,
     security,
+    services,
     settings,
     templates,
 )
-from ..lti import services
 
 logger = logging.getLogger(__name__)
 

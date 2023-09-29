@@ -1,6 +1,6 @@
 import unittest
 
-from scale_api.lti import services
+from scale_api import services
 
 
 class LtiServicesLinkHeaderTestCase(unittest.TestCase):

@@ -12,7 +12,7 @@ import joserfc.jwt
 import shortuuid
 from pydantic import BaseModel, Field
 
-from .. import aio, keys, schemas
+from . import aio, keys, schemas
 
 logger = logging.getLogger(__name__)
 
