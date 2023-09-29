@@ -1,11 +1,12 @@
 """
 LTI Advantage Services
 """
+import contextlib
 import datetime
 import logging
 import re
 import time
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
 from typing import Annotated, Any, Literal, NamedTuple, TypeAlias, cast
 
 import httpx
@@ -44,7 +45,7 @@ class LineItem(BaseModel):
     """
 
     id: str | None = None
-    score_max: Annotated[int, Field(alias="scoreMaximum", gt=0)]
+    score_max: Annotated[int | float, Field(alias="scoreMaximum", gt=0)]
     label: str
     resource_id: Annotated[str | None, Field(alias="resourceId")] = None
     tag: str | None = None
@@ -60,8 +61,8 @@ class Score(BaseModel):
     """
 
     timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
-    score_given: Annotated[int, Field(alias="scoreGiven", ge=0)]
-    score_max: Annotated[int, Field(alias="scoreMaximum", gt=0)]
+    score_given: Annotated[int | float, Field(alias="scoreGiven", ge=0)]
+    score_max: Annotated[int | float, Field(alias="scoreMaximum", gt=0)]
     comment: str | None = None
     activity_progress: Annotated[
         ActivityProgress, Field(alias="activityProgress")
@@ -76,8 +77,8 @@ class ScaleGrade(BaseModel):
     studentid: str
     courseid: str
     chapter: str
-    score: Annotated[int, Field(ge=0)]
-    scoremax: Annotated[int, Field(gt=0)]
+    score: Annotated[int | float, Field(ge=0)]
+    scoremax: Annotated[int | float, Field(gt=0)]
     timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
 
 
@@ -98,7 +99,10 @@ class LineItemsResult(NamedTuple):
 
 
 class LtiServiceError(Exception):
-    pass
+    def __init__(self, message: str | None = None, status_code: int = 500) -> None:
+        self.message = message
+        self.status_code = status_code
+        super().__init__(f"{status_code}: {message}")
 
 
 async def create_platform_token(platform: schemas.Platform) -> str:
@@ -134,6 +138,20 @@ def next_page_link(headers: dict[str, Any]) -> str | None:
     return None
 
 
+@contextlib.asynccontextmanager
+async def lti_http_client() -> AsyncIterator[httpx.AsyncClient]:
+    try:
+        yield http_client
+    except httpx.HTTPStatusError as exc:
+        try:
+            message = exc.response.json()
+        except Exception:
+            message = exc.response.text
+        raise LtiServiceError(message, exc.response.status_code) from None
+    except httpx.HTTPError as exc:
+        raise LtiServiceError(str(exc)) from None
+
+
 class LtiServicesClient:
     """Client for making calls to LTI Advantage Services."""
 
@@ -164,8 +182,11 @@ class LtiServicesClient:
         }
         headers = {"Accept": "application/json"}
         logger.info("Retrieving access token from: %s", auth_url)
-        r = await http_client.post(auth_url, headers=headers, data=auth_data)
-        grant_response = r.raise_for_status().json()
+        async with lti_http_client() as client:
+            r = await client.post(auth_url, headers=headers, data=auth_data)
+            r.raise_for_status()
+
+        grant_response = r.json()
         access_token = grant_response["access_token"]
         expires_in = grant_response["expires_in"]
 
@@ -204,8 +225,10 @@ class NamesRoleService(LtiServicesClient):
         headers = await self.authorize_header(self.SCOPES)
         headers["Accept"] = "application/vnd.ims.lti-nrps.v2.membershipcontainer+json"
         url = next_page_url if next_page_url is not None else self.service_url
-        r = await http_client.get(url=url, headers=headers)
-        data = r.raise_for_status().json()
+        async with lti_http_client() as client:
+            r = await client.get(url=url, headers=headers)
+            r.raise_for_status()
+        data = r.json()
         return MembersResult(
             context=data["context"],
             members=data["members"],
@@ -244,8 +267,11 @@ class AssignmentGradeService(LtiServicesClient):
         url = next_page_url if next_page_url is not None else self.service_url
         headers = await self.authorize_header(self.scopes)
         headers["Accept"] = self.CONTENT_TYPE_LIST
-        r = await http_client.get(url=url, headers=headers)
-        items = [LineItem.model_validate(item) for item in r.raise_for_status().json()]
+        async with lti_http_client() as client:
+            r = await client.get(url=url, headers=headers)
+            r.raise_for_status()
+
+        items = [LineItem.model_validate(item) for item in r.json()]
         return LineItemsResult(
             items=items,
             next_page=next_page_link(r.headers),  # type: ignore[arg-type]
@@ -270,12 +296,15 @@ class AssignmentGradeService(LtiServicesClient):
         content = item.model_dump_json(
             exclude={"id"}, by_alias=True, exclude_unset=True
         )
-        r = await http_client.post(
-            url=self.service_url, headers=headers, content=content
-        )
-        return LineItem.model_validate(r.raise_for_status().json())
+        async with lti_http_client() as client:
+            r = await client.post(
+                url=self.service_url, headers=headers, content=content
+            )
+            r.raise_for_status()
 
-    async def add_score(self, item: LineItem, score: Score) -> None:
+        return LineItem.model_validate(r.json())
+
+    async def add_score(self, item: LineItem, score: Score) -> dict[str, Any]:
         """Adds a score to an existing assignment."""
         if item.id is None:
             msg = f"LineItem does not have an ID attribute: {item!r}"
@@ -286,13 +315,11 @@ class AssignmentGradeService(LtiServicesClient):
         headers["Accept"] = self.CONTENT_TYPE_SCORE
         headers["Content-Type"] = self.CONTENT_TYPE_SCORE
         content = score.model_dump_json(by_alias=True, exclude_none=True)
-        try:
-            rv = await http_client.post(url=score_url, headers=headers, content=content)
-        except Exception:
-            logger.exception("call to [%s] with [%s] failed", score_url, content)
-            raise
-        else:
-            logger.debug("add_score status=%s - %s", rv.status_code, rv.text)
+        async with lti_http_client() as client:
+            rv = await client.post(url=score_url, headers=headers, content=content)
+            rv.raise_for_status()
+
+        return rv.json()  # type: ignore[no-any-return]
 
     def __repr__(self) -> str:
         return f"AssignmentGradeService({self.service_url}, scopes={self.scopes})"

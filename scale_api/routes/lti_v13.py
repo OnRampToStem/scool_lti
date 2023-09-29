@@ -467,12 +467,12 @@ async def nrps_members(
     }
 
 
-@router.post("/scores")
+@router.post("/scores", status_code=status.HTTP_201_CREATED)
 async def ags_grades(
     scale_user: ScaleUser,
     grade: services.ScaleGrade,
     x_api_key: Annotated[str, Header()],
-) -> services.LineItem:
+) -> None:
     if x_api_key != settings.api.frontend_api_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
@@ -527,8 +527,13 @@ async def ags_grades(
     # need to allow for retrying this request
     for i in range(3):
         if item := await ags_service.lineitem(grade.chapter):
-            await ags_service.add_score(item, score)
-            return item
+            try:
+                await ags_service.add_score(item, score)
+            except services.LtiServiceError as exc:
+                raise HTTPException(
+                    status_code=exc.status_code, detail=exc.message
+                ) from None
+            return
 
         # must ensure lineitem is only created once
         item = services.LineItem.model_validate(
@@ -542,17 +547,23 @@ async def ags_grades(
             f"{launch_request.platform.id}-{launch_request.context['id']}-"
             f"{hasher.hexdigest()}"
         )
-        rv = await db.store.cache_add(
+        cache_key = await db.store.cache_add(
             key=li_key, value=item.model_dump_json(), ttl=LTI_TOKEN_EXPIRY
         )
-        if rv is None:
+        if cache_key is None:
             logger.warning("another process is adding %r", item)
             await asyncio.sleep((0.5 + i) * 2.0)
             continue
 
         new_item = await ags_service.add_lineitem(item)
-        await ags_service.add_score(new_item, score)
-        return new_item
+        try:
+            await ags_service.add_score(new_item, score)
+        except services.LtiServiceError as exc:
+            raise HTTPException(
+                status_code=exc.status_code, detail=exc.message
+            ) from None
+
+        return
 
     raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
