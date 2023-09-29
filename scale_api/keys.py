@@ -7,7 +7,7 @@ import time
 
 import joserfc.jwk
 
-from . import aio, db, schemas
+from . import db, schemas, services
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ async def get_jwks_from_url(url: str, use_cache: bool = True) -> joserfc.jwk.Key
             logger.info("Cached JWKS not found for %s", url)
 
     logger.info("Fetching JWKS from %s", url)
-    r = await aio.http_client.get(url, timeout=5.0)
+    r = await services.http_client.get(url, timeout=5.0)
     logger.debug("JWKS headers: %r", r.headers)
     jwks_json = r.raise_for_status().json()
     try:

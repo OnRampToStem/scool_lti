@@ -8,11 +8,12 @@ import time
 from collections.abc import Sequence
 from typing import Annotated, Any, Literal, NamedTuple, TypeAlias, cast
 
+import httpx
 import joserfc.jwt
 import shortuuid
 from pydantic import BaseModel, Field
 
-from . import aio, keys, schemas
+from . import keys, schemas, settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,13 @@ ActivityProgress: TypeAlias = Literal[
 GradingProgress: TypeAlias = Literal[
     "FullyGraded", "Pending", "PendingManual", "Failed", "NotReady"
 ]
+
+
+def create_http_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(verify=settings.api.is_production)
+
+
+http_client = create_http_client()
 
 
 class LineItem(BaseModel):
@@ -156,7 +164,7 @@ class LtiServicesClient:
         }
         headers = {"Accept": "application/json"}
         logger.info("Retrieving access token from: %s", auth_url)
-        r = await aio.http_client.post(auth_url, headers=headers, data=auth_data)
+        r = await http_client.post(auth_url, headers=headers, data=auth_data)
         grant_response = r.raise_for_status().json()
         access_token = grant_response["access_token"]
         expires_in = grant_response["expires_in"]
@@ -196,7 +204,7 @@ class NamesRoleService(LtiServicesClient):
         headers = await self.authorize_header(self.SCOPES)
         headers["Accept"] = "application/vnd.ims.lti-nrps.v2.membershipcontainer+json"
         url = next_page_url if next_page_url is not None else self.service_url
-        r = await aio.http_client.get(url=url, headers=headers)
+        r = await http_client.get(url=url, headers=headers)
         data = r.raise_for_status().json()
         return MembersResult(
             context=data["context"],
@@ -236,7 +244,7 @@ class AssignmentGradeService(LtiServicesClient):
         url = next_page_url if next_page_url is not None else self.service_url
         headers = await self.authorize_header(self.scopes)
         headers["Accept"] = self.CONTENT_TYPE_LIST
-        r = await aio.http_client.get(url=url, headers=headers)
+        r = await http_client.get(url=url, headers=headers)
         items = [LineItem.model_validate(item) for item in r.raise_for_status().json()]
         return LineItemsResult(
             items=items,
@@ -262,7 +270,7 @@ class AssignmentGradeService(LtiServicesClient):
         content = item.model_dump_json(
             exclude={"id"}, by_alias=True, exclude_unset=True
         )
-        r = await aio.http_client.post(
+        r = await http_client.post(
             url=self.service_url, headers=headers, content=content
         )
         return LineItem.model_validate(r.raise_for_status().json())
@@ -279,9 +287,7 @@ class AssignmentGradeService(LtiServicesClient):
         headers["Content-Type"] = self.CONTENT_TYPE_SCORE
         content = score.model_dump_json(by_alias=True, exclude_none=True)
         try:
-            rv = await aio.http_client.post(
-                url=score_url, headers=headers, content=content
-            )
+            rv = await http_client.post(url=score_url, headers=headers, content=content)
         except Exception:
             logger.exception("call to [%s] with [%s] failed", score_url, content)
             raise

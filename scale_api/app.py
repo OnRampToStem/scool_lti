@@ -13,7 +13,7 @@ from typing import Any
 import fastapi
 import shortuuid
 
-from . import __version__, aio, db, routes, settings
+from . import __version__, db, routes, services, settings
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +25,17 @@ logger.info("Is Production: %s", settings.api.is_production)
 @contextlib.asynccontextmanager
 async def lifespan(_: fastapi.FastAPI) -> Any:
     logger.info("Running in loop [%r]", asyncio.get_running_loop())
+    await services.http_client.aclose()
+    services.http_client = services.create_http_client()
     try:
         yield {
-            "http_client": aio.http_client,
+            "http_client": services.http_client,
         }
     finally:
         logger.info("closing db engine connections")
         await db.engine.dispose()
         logger.info("closing httpx client")
-        await aio.http_client.aclose()
+        await services.http_client.aclose()
 
 
 app = fastapi.FastAPI(
