@@ -179,12 +179,8 @@ async def launch_form(
     ``redirect_uri`` configured and will return the user to this endpoint
     after the OIDC login initiation is performed.
     """
-    logger.info(
-        "LTI Launch: state [%s], platform [%s], IDToken=[%s]",
-        state,
-        platform_id,
-        id_token,
-    )
+    logger.info("LTI Launch: state [%s], platform [%s]", state, platform_id)
+    logger.debug("IDToken=[%s]", id_token)
 
     if id_token is None:
         logger.error(
@@ -237,7 +233,7 @@ async def launch_form(
     message_launch = schemas.LtiLaunchRequest(platform, claims)
     try:
         scale_user = message_launch.scale_user
-        logger.info("%r", scale_user)
+        logger.info("launch for %r", scale_user)
     except ValueError as ve:
         logger.warning("failed to get ScaleUser from LtiLaunchRequest: %r", ve)
         content = {
@@ -262,7 +258,8 @@ async def launch_form(
     target_url = urllib.parse.urljoin(base_url, settings.api.frontend_launch_path)
     logger.info("redirecting via POST to v2: %s", target_url)
     token = security.create_scale_user_token(scale_user, expires_in=LTI_TOKEN_EXPIRY)
-    logger.info("Launch ID/Token: %s [%s]", message_launch.launch_id, token)
+    logger.info("Launch ID %s", message_launch.launch_id)
+    logger.info("Launch Token [%s]", token)
     response = templates.redirect_lms_auth(target_url, token)
     response.delete_cookie(state_cookie_key)
     return response
