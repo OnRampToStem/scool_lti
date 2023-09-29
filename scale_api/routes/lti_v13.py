@@ -637,12 +637,14 @@ async def get_or_create_lineitem(
 async def handle_failed_add_score(
     launch_request: LtiLaunchRequest, grade: ScaleGrade, score: Score, item: LineItem
 ) -> None:
-    content = f"""{{
-        "launch_request": {launch_request.dumps()},
-        "grade": {grade.model_dump_json()},
-        "item": {item.model_dump_json()}
-        "score": {score.model_dump_json()},
-    }}"""
+    content = (
+        "{"
+        f'"launch_request":{launch_request.dumps()},'
+        f'"grade":{grade.model_dump_json()},'
+        f'"item":{item.model_dump_json()},'
+        f'"score":{score.model_dump_json()}'
+        "}"
+    )
     hasher = hashlib.sha1(item.label.lower().encode(encoding="utf-8"))  # noqa: S324
     key = (
         "lti-error-score-"
