@@ -1,6 +1,6 @@
 import unittest
 
-from scale_api.lti.messages import LtiLaunchRequest
+from scale_api.schemas import LtiLaunchRequest
 from tests import load_text_file
 
 

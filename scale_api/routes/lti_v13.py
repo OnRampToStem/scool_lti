@@ -38,7 +38,7 @@ from .. import (
     settings,
     templates,
 )
-from ..lti import messages, services
+from ..lti import services
 
 logger = logging.getLogger(__name__)
 
@@ -234,7 +234,7 @@ async def launch_form(
     # At this point the IDToken (Launch Request) is valid, and we can
     # build a ``ScaleUser`` from it. We also store it for use later
     # in order to make calls to the LTI Advantage Services.
-    message_launch = messages.LtiLaunchRequest(platform, claims)
+    message_launch = schemas.LtiLaunchRequest(platform, claims)
     try:
         scale_user = message_launch.scale_user
         logger.info("%r", scale_user)
@@ -442,7 +442,7 @@ async def nrps_members(
         logger.warning("names_role_service(%r): no LMS context", scale_user)
         return {"next_token": None, "members": [scale_user]}
 
-    launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
+    launch_id = schemas.LtiLaunchRequest.launch_id_for(scale_user)
     logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
     cached_launch = await db.store.cache_get(key=launch_id)
     if cached_launch is None:
@@ -450,7 +450,7 @@ async def nrps_members(
             status_code=status.HTTP_409_CONFLICT,
             detail="LTI Launch Message not found",
         )
-    launch_request = messages.LtiLaunchRequest.loads(cached_launch)
+    launch_request = schemas.LtiLaunchRequest.loads(cached_launch)
     if not launch_request.is_instructor:
         logger.error("lti.members unauthorized request: %s", launch_request.scale_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
@@ -477,13 +477,13 @@ async def ags_grades(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     logger.debug("assignment_grade_service: %r - %r", scale_user, grade)
-    launch_id = messages.LtiLaunchRequest.launch_id_for(scale_user)
+    launch_id = schemas.LtiLaunchRequest.launch_id_for(scale_user)
     if not (cached_request := await db.store.cache_get(key=launch_id)):
         msg = f"Launch Request [{launch_id}] not found in cache"
         logger.warning(msg)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
 
-    launch_request = messages.LtiLaunchRequest.loads(cached_request)
+    launch_request = schemas.LtiLaunchRequest.loads(cached_request)
     ags_service = services.AssignmentGradeService(launch_request)
     user_id, sep, plat_id = grade.studentid.partition("@")
 
@@ -607,7 +607,7 @@ async def decode_lti_id_token(
 
 
 async def deep_link_launch(
-    request: Request, message_launch: messages.LtiLaunchRequest
+    request: Request, message_launch: schemas.LtiLaunchRequest
 ) -> Response:
     """Deep Linking Launch Requests."""
     # TODO: handle DeepLinking request Messages

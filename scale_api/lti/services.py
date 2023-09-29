@@ -13,7 +13,6 @@ import shortuuid
 from pydantic import BaseModel, Field
 
 from .. import aio, keys, schemas
-from .messages import LtiLaunchRequest
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +129,7 @@ def next_page_link(headers: dict[str, Any]) -> str | None:
 class LtiServicesClient:
     """Client for making calls to LTI Advantage Services."""
 
-    def __init__(self, launch_request: LtiLaunchRequest) -> None:
+    def __init__(self, launch_request: schemas.LtiLaunchRequest) -> None:
         self.launch_request = launch_request
         self._token_cache: dict[str, TokenCacheItem] = {}
 
