@@ -508,6 +508,10 @@ async def ags_grades(
             try:
                 await service.add_score(item, score)
             except LtiServiceError as exc:
+                try:
+                    await handle_failed_add_score(launch_request, grade, score, item)
+                except Exception:
+                    logger.exception("handle_failed_add_score failed")
                 raise HTTPException(
                     status_code=exc.status_code, detail=exc.message
                 ) from None
@@ -628,3 +632,23 @@ async def get_or_create_lineitem(
         return None
 
     return await service.add_lineitem(item)
+
+
+async def handle_failed_add_score(
+    launch_request: LtiLaunchRequest, grade: ScaleGrade, score: Score, item: LineItem
+) -> None:
+    content = f"""{{
+        "launch_request": {launch_request.dumps()},
+        "grade": {grade.model_dump_json()},
+        "item": {item.model_dump_json()}
+        "score": {score.model_dump_json()},
+    }}"""
+    hasher = hashlib.sha1(item.label.lower().encode(encoding="utf-8"))  # noqa: S324
+    key = (
+        "lti-error-score-"
+        f"{launch_request.platform.id}-"
+        f"{launch_request.context['id']}-"
+        f"{grade.lms_user_id}-"
+        f"{hasher.hexdigest()}"
+    )
+    await db.store.cache_put(key, content, ttl=AGS_CACHE_EXPIRY)
