@@ -128,5 +128,4 @@ logging.getLogger("scale_api").setLevel(log.level_app)
 if api.is_local:
     logging.getLogger("scale_api").error("Frontend API Key: %s", api.frontend_api_key)
 elif api.frontend_api_key.startswith("TEST-"):
-    msg = "SCALE_FRONTEND_API_KEY must be set"
-    raise RuntimeError(msg)
+    raise RuntimeError("SCALE_FRONTEND_API_KEY must be set")  # noqa: TRY003
