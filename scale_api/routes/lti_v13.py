@@ -579,7 +579,7 @@ async def decode_lti_id_token(
         )
     # Since the IDToken is being provided by the user-agent and not from
     # a direct call from our application, we MUST validate the sig.
-    key_set = await keys.get_jwks_from_url(str(platform.jwks_url))
+    key_set = await keys.jwks_from_url(str(platform.jwks_url))
     try:
         jwt_token = joserfc.jwt.decode(
             value=id_token,
@@ -587,7 +587,7 @@ async def decode_lti_id_token(
             algorithms=["RS256", "RS512"],
         )
     except joserfc.errors.InvalidEncryptedKeyError:
-        key_set = await keys.get_jwks_from_url(str(platform.jwks_url), use_cache=False)
+        key_set = await keys.jwks_from_url(str(platform.jwks_url), use_cache=False)
         jwt_token = joserfc.jwt.decode(
             value=id_token,
             key=key_set,

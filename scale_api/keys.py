@@ -32,7 +32,7 @@ class CachedKeySet:
 _jwks_cache: dict[str, CachedKeySet] = {}
 
 
-async def get_jwks_from_url(url: str, use_cache: bool = True) -> joserfc.jwk.KeySet:
+async def jwks_from_url(url: str, use_cache: bool = True) -> joserfc.jwk.KeySet:
     """Returns a JWKS from the given URL."""
     if use_cache:
         if cks := _jwks_cache.get(url):
