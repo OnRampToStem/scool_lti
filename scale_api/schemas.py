@@ -423,6 +423,20 @@ class ScaleGrade(BaseModel):
     scoremax: Annotated[int | float, Field(gt=0)]
     timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
 
+    @property
+    def lms_user_id(self) -> str:
+        return self.studentid.split("@")[0]
+
+    @property
+    def platform_id(self) -> str:
+        return self.studentid.split("@")[1]
+
+    @field_validator("studentid")
+    def _check_studentid(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("invalid_format")
+        return v
+
 
 class TokenCacheItem(NamedTuple):
     token: str

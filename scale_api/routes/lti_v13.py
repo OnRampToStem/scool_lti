@@ -58,6 +58,7 @@ NO_CACHE_HEADERS = {
 }
 
 LTI_TOKEN_EXPIRY = 60 * 60 * 24 * 7  # 1 week
+AGS_CACHE_EXPIRY = 60 * 60 * 24 * 60  # 60 days
 
 User = Annotated[ScaleUser, Depends(security.req_scale_user)]
 
@@ -485,86 +486,32 @@ async def ags_grades(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
 
     launch_request = LtiLaunchRequest.loads(cached_request)
-    ags_service = services.AssignmentGradeService(launch_request)
-    user_id, sep, plat_id = grade.studentid.partition("@")
-
-    if not sep:
-        details = {
-            "code": "invalid_studentid",
-            "message": f"{grade.studentid} is not in the correct format",
-        }
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
-
-    if plat_id != launch_request.platform.id:
-        details = {
-            "code": "invalid_platform",
-            "message": (
-                f"{plat_id} for user does not match platform of the Launch Request: "
-                f"{launch_request.platform.id}"
-            ),
-        }
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
-
-    if grade.courseid != launch_request.context["id"]:
-        details = {
-            "code": "invalid_courseid",
-            "message": (
-                f"{grade.courseid} does not match context from Launch Request: "
-                f"{launch_request.context['id']}"
-            ),
-        }
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
+    validate_grade(grade, launch_request)
 
     score = Score.model_validate(
         {
             "timestamp": grade.timestamp,
             "scoreGiven": grade.score,
             "scoreMaximum": grade.scoremax,
-            "userId": user_id,
+            "userId": grade.lms_user_id,
         }
     )
+
+    service = services.AssignmentGradeService(launch_request)
 
     # in case of multiple submissions for the same assignment (lineitem),
     # need to allow for retrying this request
     for i in range(3):
-        if item := await ags_service.lineitem(grade.chapter):
+        if i != 0:
+            await asyncio.sleep((0.5 + i) * 2.0)
+        if item := await get_or_create_lineitem(service, grade, launch_request):
             try:
-                await ags_service.add_score(item, score)
+                await service.add_score(item, score)
             except LtiServiceError as exc:
                 raise HTTPException(
                     status_code=exc.status_code, detail=exc.message
                 ) from None
             return
-
-        # must ensure lineitem is only created once
-        item = LineItem.model_validate(
-            {"scoreMaximum": grade.scoremax, "label": grade.chapter}
-        )
-        hasher = hashlib.sha1(  # noqa: S324
-            grade.chapter.lower().encode(encoding="utf-8")
-        )
-        li_key = (
-            "lti-lineitem-"
-            f"{launch_request.platform.id}-{launch_request.context['id']}-"
-            f"{hasher.hexdigest()}"
-        )
-        cache_key = await db.store.cache_add(
-            key=li_key, value=item.model_dump_json(), ttl=LTI_TOKEN_EXPIRY
-        )
-        if cache_key is None:
-            logger.warning("another process is adding %r", item)
-            await asyncio.sleep((0.5 + i) * 2.0)
-            continue
-
-        new_item = await ags_service.add_lineitem(item)
-        try:
-            await ags_service.add_score(new_item, score)
-        except LtiServiceError as exc:
-            raise HTTPException(
-                status_code=exc.status_code, detail=exc.message
-            ) from None
-
-        return
 
     raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
@@ -630,3 +577,54 @@ async def deep_link_launch(
     )
     response.delete_cookie(f"lti1p3-state-{message_launch.platform.id}")
     return response
+
+
+def validate_grade(grade: ScaleGrade, launch_request: LtiLaunchRequest) -> None:
+    if grade.platform_id != launch_request.platform.id:
+        details = {
+            "code": "invalid_platform",
+            "message": (
+                f"{grade.platform_id} for user does not match"
+                f" platform of the Launch Request: {launch_request.platform.id}"
+            ),
+        }
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
+
+    if grade.courseid != launch_request.context["id"]:
+        details = {
+            "code": "invalid_courseid",
+            "message": (
+                f"{grade.courseid} does not match context from Launch Request: "
+                f"{launch_request.context['id']}"
+            ),
+        }
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
+
+
+async def get_or_create_lineitem(
+    service: services.AssignmentGradeService,
+    grade: ScaleGrade,
+    launch_request: LtiLaunchRequest,
+) -> LineItem | None:
+    if item := await service.lineitem(grade.chapter):
+        return item
+
+    # must ensure lineitem is only created once, use the cache table as a
+    # multiprocess lock
+    item = LineItem.model_validate(
+        {"scoreMaximum": grade.scoremax, "label": grade.chapter}
+    )
+    hasher = hashlib.sha1(grade.chapter.lower().encode(encoding="utf-8"))  # noqa: S324
+    li_key = (
+        "lti-lineitem-"
+        f"{launch_request.platform.id}-{launch_request.context['id']}-"
+        f"{hasher.hexdigest()}"
+    )
+    cache_key = await db.store.cache_add(
+        key=li_key, value=item.model_dump_json(), ttl=AGS_CACHE_EXPIRY
+    )
+    if cache_key is None:
+        logger.warning("another process is adding %r", item)
+        return None
+
+    return await service.add_lineitem(item)
