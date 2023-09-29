@@ -33,11 +33,19 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from .. import (
     db,
     keys,
-    schemas,
     security,
     services,
     settings,
     templates,
+)
+from ..schemas import (
+    LineItem,
+    LtiLaunchRequest,
+    LtiServiceError,
+    Platform,
+    ScaleGrade,
+    ScaleUser,
+    Score,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,7 +59,7 @@ NO_CACHE_HEADERS = {
 
 LTI_TOKEN_EXPIRY = 60 * 60 * 24 * 7  # 1 week
 
-ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
+User = Annotated[ScaleUser, Depends(security.req_scale_user)]
 
 
 @router.get("/{platform_id}/config")
@@ -230,7 +238,7 @@ async def launch_form(
     # At this point the IDToken (Launch Request) is valid, and we can
     # build a ``ScaleUser`` from it. We also store it for use later
     # in order to make calls to the LTI Advantage Services.
-    message_launch = schemas.LtiLaunchRequest(platform, claims)
+    message_launch = LtiLaunchRequest(platform, claims)
     try:
         scale_user = message_launch.scale_user
         logger.info("launch for %r", scale_user)
@@ -430,24 +438,22 @@ async def login_initiations_form(
 
 
 @router.get("/members", response_model_exclude_unset=True)
-async def nrps_members(
-    scale_user: ScaleUser, next_token: str | None = None
-) -> dict[str, Any]:
+async def nrps_members(user: User, next_token: str | None = None) -> dict[str, Any]:
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
-    if scale_user.platform_id == "scale_api":
-        logger.warning("names_role_service(%r): no LMS context", scale_user)
-        return {"next_token": None, "members": [scale_user]}
+    if user.platform_id == "scale_api":
+        logger.warning("names_role_service(%r): no LMS context", user)
+        return {"next_token": None, "members": [user]}
 
-    launch_id = schemas.LtiLaunchRequest.launch_id_for(scale_user)
-    logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, scale_user)
+    launch_id = LtiLaunchRequest.launch_id_for(user)
+    logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, user)
     cached_launch = await db.store.cache_get(key=launch_id)
     if cached_launch is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="LTI Launch Message not found",
         )
-    launch_request = schemas.LtiLaunchRequest.loads(cached_launch)
+    launch_request = LtiLaunchRequest.loads(cached_launch)
     if not launch_request.is_instructor:
         logger.error("lti.members unauthorized request: %s", launch_request.scale_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
@@ -457,7 +463,7 @@ async def nrps_members(
         "next_token": result.next_page,
         "context": result.context,
         "members": [
-            schemas.ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
+            ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
             for m in result.members
             if m.get("email")
         ],
@@ -466,21 +472,19 @@ async def nrps_members(
 
 @router.post("/scores", status_code=status.HTTP_201_CREATED)
 async def ags_grades(
-    scale_user: ScaleUser,
-    grade: services.ScaleGrade,
-    x_api_key: Annotated[str, Header()],
+    user: User, grade: ScaleGrade, x_api_key: Annotated[str, Header()]
 ) -> None:
     if x_api_key != settings.api.frontend_api_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
-    logger.debug("assignment_grade_service: %r - %r", scale_user, grade)
-    launch_id = schemas.LtiLaunchRequest.launch_id_for(scale_user)
+    logger.debug("assignment_grade_service: %r - %r", user, grade)
+    launch_id = LtiLaunchRequest.launch_id_for(user)
     if not (cached_request := await db.store.cache_get(key=launch_id)):
         msg = f"Launch Request [{launch_id}] not found in cache"
         logger.warning(msg)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
 
-    launch_request = schemas.LtiLaunchRequest.loads(cached_request)
+    launch_request = LtiLaunchRequest.loads(cached_request)
     ags_service = services.AssignmentGradeService(launch_request)
     user_id, sep, plat_id = grade.studentid.partition("@")
 
@@ -511,7 +515,7 @@ async def ags_grades(
         }
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
 
-    score = services.Score.model_validate(
+    score = Score.model_validate(
         {
             "timestamp": grade.timestamp,
             "scoreGiven": grade.score,
@@ -526,14 +530,14 @@ async def ags_grades(
         if item := await ags_service.lineitem(grade.chapter):
             try:
                 await ags_service.add_score(item, score)
-            except services.LtiServiceError as exc:
+            except LtiServiceError as exc:
                 raise HTTPException(
                     status_code=exc.status_code, detail=exc.message
                 ) from None
             return
 
         # must ensure lineitem is only created once
-        item = services.LineItem.model_validate(
+        item = LineItem.model_validate(
             {"scoreMaximum": grade.scoremax, "label": grade.chapter}
         )
         hasher = hashlib.sha1(  # noqa: S324
@@ -555,7 +559,7 @@ async def ags_grades(
         new_item = await ags_service.add_lineitem(item)
         try:
             await ags_service.add_score(new_item, score)
-        except services.LtiServiceError as exc:
+        except LtiServiceError as exc:
             raise HTTPException(
                 status_code=exc.status_code, detail=exc.message
             ) from None
@@ -565,7 +569,7 @@ async def ags_grades(
     raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
 
-async def platform_or_404(platform_id: str) -> schemas.Platform:
+async def platform_or_404(platform_id: str) -> Platform:
     """Returns a ``Platform``, else HTTP 404 if one is not found for the id."""
     try:
         return await db.store.platform(platform_id=platform_id)
@@ -576,10 +580,7 @@ async def platform_or_404(platform_id: str) -> schemas.Platform:
         ) from None
 
 
-async def decode_lti_id_token(
-    id_token: str,
-    platform: schemas.Platform,
-) -> joserfc.jwt.Claims:
+async def decode_lti_id_token(id_token: str, platform: Platform) -> joserfc.jwt.Claims:
     if platform.jwks_url is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -615,7 +616,7 @@ async def decode_lti_id_token(
 
 
 async def deep_link_launch(
-    request: Request, message_launch: schemas.LtiLaunchRequest
+    request: Request, message_launch: LtiLaunchRequest
 ) -> Response:
     """Deep Linking Launch Requests."""
     # TODO: handle DeepLinking request Messages

@@ -5,12 +5,13 @@ import datetime
 import json
 import logging
 from collections.abc import Mapping
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Literal, NamedTuple, Self, TypeAlias
 
 from pydantic import (
     AfterValidator,
     BaseModel,
     EmailStr,
+    Field,
     HttpUrl,
     SecretStr,
     field_validator,
@@ -30,6 +31,14 @@ def _normalize_lti_role(v: str) -> str:
 
 
 LTIRole = Annotated[str, AfterValidator(_normalize_lti_role)]
+
+ActivityProgress: TypeAlias = Literal[
+    "Initialized", "Started", "InProgress", "Submitted", "Completed"
+]
+
+GradingProgress: TypeAlias = Literal[
+    "FullyGraded", "Pending", "PendingManual", "Failed", "NotReady"
+]
 
 
 class DBBaseModel(BaseModel):
@@ -212,6 +221,13 @@ class AuthJsonWebKey(DBBaseModel):
         return self.valid_to is None or self.valid_to > now
 
 
+class LtiServiceError(Exception):
+    def __init__(self, message: str | None = None, status_code: int = 500) -> None:
+        self.message = message
+        self.status_code = status_code
+        super().__init__(f"{status_code}: {message}")
+
+
 class LtiLaunchRequest:
     """LTI Launch Request.
 
@@ -362,3 +378,63 @@ class LtiLaunchRequest:
 
     def __str__(self) -> str:
         return f"LtiLaunchRequest({self.platform.id}, {self.message_type})"
+
+
+class LineItem(BaseModel):
+    """Assignment and Grade Services Line Item.
+
+    see https://www.imsglobal.org/spec/lti-ags/v2p0#updating-a-line-item
+    """
+
+    id: str | None = None
+    score_max: Annotated[int | float, Field(alias="scoreMaximum", gt=0)]
+    label: str
+    resource_id: Annotated[str | None, Field(alias="resourceId")] = None
+    tag: str | None = None
+    start_time: Annotated[datetime.datetime | None, Field(alias="startDateTime")] = None
+    end_time: Annotated[datetime.datetime | None, Field(alias="endDateTime")] = None
+    grades_released: Annotated[bool, Field(alias="gradesReleased")] = True
+
+
+class Score(BaseModel):
+    """Assignment and Grade Services Score.
+
+    see https://www.imsglobal.org/spec/lti-ags/v2p0#score-service-media-type-and-schema
+    """
+
+    timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
+    score_given: Annotated[int | float, Field(alias="scoreGiven", ge=0)]
+    score_max: Annotated[int | float, Field(alias="scoreMaximum", gt=0)]
+    comment: str | None = None
+    activity_progress: Annotated[
+        ActivityProgress, Field(alias="activityProgress")
+    ] = "Completed"
+    grading_progress: Annotated[
+        GradingProgress, Field(alias="gradingProgress")
+    ] = "FullyGraded"
+    user_id: Annotated[str, Field(alias="userId")]
+
+
+class ScaleGrade(BaseModel):
+    studentid: str
+    courseid: str
+    chapter: str
+    score: Annotated[int | float, Field(ge=0)]
+    scoremax: Annotated[int | float, Field(gt=0)]
+    timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
+
+
+class TokenCacheItem(NamedTuple):
+    token: str
+    expires_at: float
+
+
+class MembersResult(NamedTuple):
+    context: dict[str, Any]
+    members: list[dict[str, Any]]
+    next_page: str | None
+
+
+class LineItemsResult(NamedTuple):
+    items: list[LineItem]
+    next_page: str | None

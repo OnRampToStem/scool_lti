@@ -2,19 +2,27 @@
 LTI Advantage Services
 """
 import contextlib
-import datetime
 import logging
 import re
 import time
 from collections.abc import AsyncIterator, Sequence
-from typing import Annotated, Any, Literal, NamedTuple, TypeAlias, cast
+from typing import Any, cast
 
 import httpx
 import joserfc.jwt
 import shortuuid
-from pydantic import BaseModel, Field
 
-from . import keys, schemas, settings
+from . import keys, settings
+from .schemas import (
+    LineItem,
+    LineItemsResult,
+    LtiLaunchRequest,
+    LtiServiceError,
+    MembersResult,
+    Platform,
+    Score,
+    TokenCacheItem,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +30,6 @@ NEXT_PAGE_REGEX = re.compile(
     r"""<([^>]*)>; ?rel=["']next["']""",
     re.IGNORECASE | re.MULTILINE,
 )
-
-ActivityProgress: TypeAlias = Literal[
-    "Initialized", "Started", "InProgress", "Submitted", "Completed"
-]
-GradingProgress: TypeAlias = Literal[
-    "FullyGraded", "Pending", "PendingManual", "Failed", "NotReady"
-]
 
 
 def create_http_client() -> httpx.AsyncClient:
@@ -38,74 +39,7 @@ def create_http_client() -> httpx.AsyncClient:
 http_client = create_http_client()
 
 
-class LineItem(BaseModel):
-    """Assignment and Grade Services Line Item.
-
-    see https://www.imsglobal.org/spec/lti-ags/v2p0#updating-a-line-item
-    """
-
-    id: str | None = None
-    score_max: Annotated[int | float, Field(alias="scoreMaximum", gt=0)]
-    label: str
-    resource_id: Annotated[str | None, Field(alias="resourceId")] = None
-    tag: str | None = None
-    start_time: Annotated[datetime.datetime | None, Field(alias="startDateTime")] = None
-    end_time: Annotated[datetime.datetime | None, Field(alias="endDateTime")] = None
-    grades_released: Annotated[bool, Field(alias="gradesReleased")] = True
-
-
-class Score(BaseModel):
-    """Assignment and Grade Services Score.
-
-    see https://www.imsglobal.org/spec/lti-ags/v2p0#score-service-media-type-and-schema
-    """
-
-    timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
-    score_given: Annotated[int | float, Field(alias="scoreGiven", ge=0)]
-    score_max: Annotated[int | float, Field(alias="scoreMaximum", gt=0)]
-    comment: str | None = None
-    activity_progress: Annotated[
-        ActivityProgress, Field(alias="activityProgress")
-    ] = "Completed"
-    grading_progress: Annotated[
-        GradingProgress, Field(alias="gradingProgress")
-    ] = "FullyGraded"
-    user_id: Annotated[str, Field(alias="userId")]
-
-
-class ScaleGrade(BaseModel):
-    studentid: str
-    courseid: str
-    chapter: str
-    score: Annotated[int | float, Field(ge=0)]
-    scoremax: Annotated[int | float, Field(gt=0)]
-    timestamp: datetime.datetime = datetime.datetime.now(tz=datetime.UTC)
-
-
-class TokenCacheItem(NamedTuple):
-    token: str
-    expires_at: float
-
-
-class MembersResult(NamedTuple):
-    context: dict[str, Any]
-    members: list[dict[str, Any]]
-    next_page: str | None
-
-
-class LineItemsResult(NamedTuple):
-    items: list[LineItem]
-    next_page: str | None
-
-
-class LtiServiceError(Exception):
-    def __init__(self, message: str | None = None, status_code: int = 500) -> None:
-        self.message = message
-        self.status_code = status_code
-        super().__init__(f"{status_code}: {message}")
-
-
-async def create_platform_token(platform: schemas.Platform) -> str:
+async def create_platform_token(platform: Platform) -> str:
     """Returns a JWT used to call LTI Advantage Services.
 
     LTI Advantage Services such as the Names and Role Provisioning,
@@ -155,7 +89,7 @@ async def lti_http_client() -> AsyncIterator[httpx.AsyncClient]:
 class LtiServicesClient:
     """Client for making calls to LTI Advantage Services."""
 
-    def __init__(self, launch_request: schemas.LtiLaunchRequest) -> None:
+    def __init__(self, launch_request: LtiLaunchRequest) -> None:
         self.launch_request = launch_request
         self._token_cache: dict[str, TokenCacheItem] = {}
 
