@@ -460,13 +460,15 @@ async def nrps_members(user: User, next_token: str | None = None) -> dict[str, A
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     nrps_client = services.NamesRoleService(launch_request)
     result = await nrps_client.members(next_page_url=next_token)
+    for m in result.members:
+        if not m.get("email"):
+            m["email"] = ""
     return {
         "next_token": result.next_page,
         "context": result.context,
         "members": [
             ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
             for m in result.members
-            if m.get("email")
         ],
     }
 

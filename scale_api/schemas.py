@@ -10,7 +10,6 @@ from typing import Annotated, Any, Literal, NamedTuple, Self, TypeAlias
 from pydantic import (
     AfterValidator,
     BaseModel,
-    EmailStr,
     Field,
     HttpUrl,
     SecretStr,
@@ -116,7 +115,7 @@ class ScaleUser(BaseModel):
     """
 
     id: str | None = None
-    email: EmailStr
+    email: str
     name: str | None = None
     picture: str | None = None
 
