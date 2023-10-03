@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/python:3.11.5-slim
+FROM public.ecr.aws/docker/library/python:3.11.6-slim
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
