@@ -15,3 +15,4 @@ mkdocs.yml
 scale_initdb.json
 scratch.py
 .*cache
+**/http-client.private.env.json
