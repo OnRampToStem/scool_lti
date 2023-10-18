@@ -4,6 +4,7 @@ Authentication routes
 Provides endpoints for authentication for ``AuthUser`` requests
 and token services for ``ScaleUser`` requests.
 """
+
 import logging
 import urllib.parse
 from typing import Annotated

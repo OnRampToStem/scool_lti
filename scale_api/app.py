@@ -3,6 +3,7 @@ FastAPI main entry point
 
 This modules configures our FastAPI application.
 """
+
 import asyncio
 import contextlib
 import logging

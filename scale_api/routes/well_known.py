@@ -1,6 +1,7 @@
 """
 OAuth/OIDC Well Known routes
 """
+
 from typing import Any
 
 from async_lru import alru_cache

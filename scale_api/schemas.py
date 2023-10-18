@@ -1,6 +1,7 @@
 """
 SCALE Application schemas
 """
+
 import datetime
 import json
 import logging
@@ -31,11 +32,11 @@ def _normalize_lti_role(v: str) -> str:
 
 LTIRole = Annotated[str, AfterValidator(_normalize_lti_role)]
 
-ActivityProgress: TypeAlias = Literal[
+ActivityProgress: TypeAlias = Literal[  # noqa: UP040
     "Initialized", "Started", "InProgress", "Submitted", "Completed"
 ]
 
-GradingProgress: TypeAlias = Literal[
+GradingProgress: TypeAlias = Literal[  # noqa: UP040
     "FullyGraded", "Pending", "PendingManual", "Failed", "NotReady"
 ]
 
@@ -283,9 +284,7 @@ class LtiLaunchRequest:
     @property
     def message_type(self) -> str:
         """Returns the message type, could be either a resource or deep link type."""
-        return self.message[  # type: ignore[no-any-return]
-            "https://purl.imsglobal.org/spec/lti/claim/message_type"
-        ]
+        return self.message["https://purl.imsglobal.org/spec/lti/claim/message_type"]  # type: ignore[no-any-return]
 
     @property
     def is_resource_link_launch(self) -> bool:

@@ -1,6 +1,7 @@
 """
 Templating library for HTML Responses
 """
+
 from fastapi import Response
 
 

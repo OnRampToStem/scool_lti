@@ -15,6 +15,7 @@ A ``ScaleUser`` is a user that launched this application from a Learning
 Management System (LMS) such as Canvas and have been authenticated via
 Learning Tools Interoperability (LTI).
 """
+
 import logging
 import time
 from dataclasses import dataclass

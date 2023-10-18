@@ -9,6 +9,7 @@ that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
 """
+
 import asyncio
 import hashlib
 import logging

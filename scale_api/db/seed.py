@@ -3,6 +3,7 @@ SCALE database seeder
 
 Used to seed a newly created SCALE database with data.
 """
+
 import asyncio
 import json
 import logging
