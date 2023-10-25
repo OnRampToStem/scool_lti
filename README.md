@@ -1,6 +1,10 @@
 # OR2STEM API
 
-API for the OR2STEM project.
+The main use of this API is to provide integration to Learning Management
+Systems (LMS) using Learning Tools Interoperability (LTI) v1.3. This includes
+handling course module launch requests in order to determine the user's role
+(Instructor or Learner), retrieving all users in the course and posting scores
+to the grade book.
 
 ## Configuration
 
@@ -10,7 +14,7 @@ in the project root with the settings that are needed.
 
 ## Running with Python
 
-Requires Python 3.11.
+Requires Python 3.11 or higher.
 
 ### Virtualenv Setup
 
