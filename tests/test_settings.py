@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from scale_api.settings import APISettings
+from scool.settings import APISettings
 
 
 class SettingsTestCase(unittest.TestCase):
@@ -12,13 +12,13 @@ class SettingsTestCase(unittest.TestCase):
         self.assertFalse(s.is_production)
 
     def test_env_prod(self):
-        with patch.dict(os.environ, {"SCALE_DB_URL": "oracle://mem"}):
+        with patch.dict(os.environ, {"SCOOL_DB_URL": "oracle://mem"}):
             s = APISettings(env="prod")
             self.assertFalse(s.is_local)
             self.assertTrue(s.is_production)
 
     def test_sqlite_local_only(self):
-        with patch.dict(os.environ, {"SCALE_DB_URL": "sqlite://mem"}):
+        with patch.dict(os.environ, {"SCOOL_DB_URL": "sqlite://mem"}):
             APISettings(env="local")
             with self.assertRaises(ValueError):
                 APISettings(env="prod")

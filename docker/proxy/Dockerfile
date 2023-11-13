@@ -8,7 +8,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
         -keyout /etc/ssl/private/server.key \
         -out /etc/ssl/certs/server.pem \
         -days 365 \
-        -subj "/C=US/ST=California/L=Fresno/O=Fresno State/OU=TS/CN=scale.fresnostate.edu"
+        -subj "/C=US/ST=California/L=Fresno/O=Fresno State/OU=TS/CN=scool.fresnostate.edu"
 
 COPY ./httpd.conf /usr/local/apache2/conf/httpd.conf
 

@@ -1,6 +1,6 @@
 import unittest
 
-from scale_api import services
+from scool import services
 
 
 class LtiServicesLinkHeaderTestCase(unittest.TestCase):

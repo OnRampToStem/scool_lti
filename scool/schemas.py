@@ -1,5 +1,5 @@
 """
-SCALE Application schemas
+SCOOL Application schemas
 """
 
 import datetime
@@ -48,7 +48,7 @@ class DBBaseModel(BaseModel):
 class Platform(DBBaseModel):
     """Learning Management System (LMS) Platform.
 
-    A standalone schema class for ``scale_api.db.Platform``.
+    A standalone schema class for ``scool_api.db.Platform``.
     """
 
     id: str
@@ -64,7 +64,7 @@ class Platform(DBBaseModel):
 class AuthUser(DBBaseModel):
     """Authorized User.
 
-    A standalone schema class for ``scale_api.db.AuthUser``.
+    A standalone schema class for ``scool.db.AuthUser``.
     """
 
     id: str
@@ -93,14 +93,14 @@ class AuthUser(DBBaseModel):
         return False
 
     @classmethod
-    def from_scale_user(cls, scale_user: "ScaleUser") -> Self:
-        """Converts an ``ScaleUser`` to a ``AuthUser``."""
+    def from_scool_user(cls, scool_user: "ScoolUser") -> Self:
+        """Converts an ``ScoolUser`` to a ``AuthUser``."""
         return cls(
-            id=scale_user.id or scale_user.email,
-            client_id=scale_user.email,
+            id=scool_user.id or scool_user.email,
+            client_id=scool_user.email,
             client_secret_hash="none",  # noqa: S106
-            scopes=["role:" + r for r in scale_user.roles],
-            context=scale_user.context,
+            scopes=["role:" + r for r in scool_user.roles],
+            context=scool_user.context,
         )
 
     def session_dict(self) -> dict[str, Any]:
@@ -108,8 +108,8 @@ class AuthUser(DBBaseModel):
         return self.model_dump(exclude_defaults=True)
 
 
-class ScaleUser(BaseModel):
-    """SCALE User.
+class ScoolUser(BaseModel):
+    """SCOOL User.
 
     This represents a user authenticated via LTI from an LMS such as
     Canvas.
@@ -152,12 +152,12 @@ class ScaleUser(BaseModel):
             user_id, sep, plat_id = self.id.rpartition("@")
             if sep:
                 return plat_id
-        return "scale_api"
+        return "scool"
 
     @property
     def context_id(self) -> str:
         """Returns the LMS Context (Course) ID for this user."""
-        return self.context["id"] if self.context else "scale_api"
+        return self.context["id"] if self.context else "scool"
 
     @property
     def is_instructor(self) -> bool:
@@ -177,7 +177,7 @@ class ScaleUser(BaseModel):
 
     @classmethod
     def from_auth_user(cls, auth_user: AuthUser) -> Self:
-        """Converts an ``AuthUser`` to a ``ScaleUser``."""
+        """Converts an ``AuthUser`` to a ``ScoolUser``."""
         if auth_user.scopes:
             roles = [
                 r.split(":", 1)[1] for r in auth_user.scopes if r.startswith("role:")
@@ -197,7 +197,7 @@ class ScaleUser(BaseModel):
 class AuthJsonWebKey(DBBaseModel):
     """JSON Web Key.
 
-    A standalone schema class for ``scale_api.db.AuthJsonWebKey``.
+    A standalone schema class for ``scool_api.db.AuthJsonWebKey``.
     """
 
     kid: str
@@ -250,16 +250,16 @@ class LtiLaunchRequest:
     @property
     def launch_id(self) -> str:
         """Returns an id for this request that is associated with a given user."""
-        return self.launch_id_for(self.scale_user)
+        return self.launch_id_for(self.scool_user)
 
     @staticmethod
-    def launch_id_for(scale_user: ScaleUser) -> str:
+    def launch_id_for(scool_user: ScoolUser) -> str:
         """Returns an id for a given user.
 
         This method is meant to be used to retrieve a cached
         ``LtiLaunchRequest`` for the given user.
         """
-        return f"lti-launch-request-{scale_user.id}@{scale_user.context_id}"
+        return f"lti-launch-request-{scool_user.id}@{scool_user.context_id}"
 
     @property
     def roles(self) -> list[str]:
@@ -325,8 +325,8 @@ class LtiLaunchRequest:
         )
 
     @property
-    def scale_user(self) -> ScaleUser:
-        """Returns a ``ScaleUser`` based on data from the request."""
+    def scool_user(self) -> ScoolUser:
+        """Returns a ``ScoolUser`` based on data from the request."""
         lms_userid = self.message["sub"] + "@" + self.platform.id
         lms_email = self.message.get("email") or self._custom_field("email")
         lms_name = self.message.get("name") or self._custom_field("name")
@@ -341,7 +341,7 @@ class LtiLaunchRequest:
             else:
                 raise ValueError("MISSING_REQUIRED_ATTRIBUTE", "email")
 
-        return ScaleUser(
+        return ScoolUser(
             id=lms_userid,
             email=lms_email,
             name=lms_name,
@@ -413,7 +413,7 @@ class Score(BaseModel):
     user_id: Annotated[str, Field(alias="userId")]
 
 
-class ScaleGrade(BaseModel):
+class ScoolGrade(BaseModel):
     studentid: str
     courseid: str
     chapter: str

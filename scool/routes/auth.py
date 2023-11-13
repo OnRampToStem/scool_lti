@@ -2,7 +2,7 @@
 Authentication routes
 
 Provides endpoints for authentication for ``AuthUser`` requests
-and token services for ``ScaleUser`` requests.
+and token services for ``ScoolUser`` requests.
 """
 
 import logging
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-ScaleUser = Annotated[schemas.ScaleUser, Depends(security.req_scale_user)]
+ScoolUser = Annotated[schemas.ScoolUser, Depends(security.req_scool_user)]
 
 # We also support HTTP Basic auth as a fallback for Bearer tokens
 HTTPBasicParser = HTTPBasic(auto_error=False)
@@ -46,23 +46,23 @@ class OAuth20Response(BaseModel):
 
 
 @router.get("/", include_in_schema=False)
-async def index_api(request: Request, scale_user: ScaleUser) -> Response:
-    scale_user.name = "Demo User"
-    scale_user.context = {
-        "id": "demo-or2stem-edu",
-        "title": "SCALE Demo Course",
+async def index_api(request: Request, scool_user: ScoolUser) -> Response:
+    scool_user.name = "Demo User"
+    scool_user.context = {
+        "id": "demo-scool-edu",
+        "title": "SCOOL Demo Course",
     }
     target_url = urllib.parse.urljoin(
         str(request.url_for("index_api")),
         settings.api.frontend_launch_path,
     )
-    token = security.create_scale_user_token(scale_user, expires_in=60 * 60 * 12)
+    token = security.create_scool_user_token(scool_user, expires_in=60 * 60 * 12)
     return templates.redirect_lms_auth(target_url, token)
 
 
 @router.get("/userinfo")
-async def user_info(scale_user: ScaleUser) -> schemas.ScaleUser:
-    return scale_user
+async def user_info(scool_user: ScoolUser) -> schemas.ScoolUser:
+    return scool_user
 
 
 @router.post("/oauth/token")

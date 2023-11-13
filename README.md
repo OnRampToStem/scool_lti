@@ -1,6 +1,6 @@
-# OR2STEM API
+# Student Centered Open Online Learning (SCOOL)
 
-The main use of this API is to provide integration to Learning Management
+The main use of this project is to provide integration to Learning Management
 Systems (LMS) using Learning Tools Interoperability (LTI) v1.3. This includes
 handling course module launch requests in order to determine the user's role
 (Instructor or Learner), retrieving all users in the course and posting scores
@@ -9,7 +9,7 @@ to the grade book.
 ## Configuration
 
 Environment variables are used for configuration settings. For local
-development review the `scale_api.settings` module and create a `.env` file
+development review the `scool.settings` module and create a `.env` file
 in the project root with the settings that are needed.
 
 ## Running with Python
@@ -47,7 +47,7 @@ pip install -r requirements-dev.txt
 To run the project
 
 ```shell
-python -m scale_api
+python -m scool
 ```
 
 This will start up the server using self-signed certificates on port 443 and
@@ -81,8 +81,8 @@ OpenAPI schema documentation is available at:
 ## Database
 
 Sqlite is used for local development when running the app directly from
-Python. When running locally, the `scale_api.db.seed` module is run at startup.
-Use the OS Environment variable `SCALE_DB_SEED_FILE` to set the full path to
+Python. When running locally, the `scool.db.seed` module is run at startup.
+Use the OS Environment variable `SCOOL_DB_SEED_FILE` to set the full path to
 the file to use to seed the database. See the example seed file format below.
 
 ### Database Setup
@@ -91,7 +91,7 @@ The commands below require the use of `psql`, to run from docker use:
 
 ```shell
 docker-compose up -d db
-docker-compose exec db psql -U postgres -h stem-scale-db.priv.fresnostate.edu swa
+docker-compose exec db psql -U postgres -h scool-db.priv.fresnostate.edu swa
 ```
 
 The following commands must be run on a new Postgres server in order to create
@@ -103,17 +103,17 @@ create database swa;
 
 \c swa
 
-create user scale_api with password '<insert password here>';
+create user scool with password '<insert password here>';
 
 -- For the following `create schema` command to work in RDS when connected as
 -- the superuser, you will have to grant the new role (user) to them, for
 -- example:
 --
---     GRANT scale_api TO postgres;
+--     GRANT scool TO postgres;
 --
-create schema if not exists authorization scale_api;
+create schema if not exists authorization scool;
 
-grant select on all tables in schema public to scale_api;
+grant select on all tables in schema public to scool;
 ```
 
 #### Example Seed File
@@ -133,7 +133,7 @@ grant select on all tables in schema public to scale_api;
     ],
     "auth_users": [
         {
-            "client_id": "scaleadmin@mail.fresnostate.edu",
+            "client_id": "scooladmin@mail.fresnostate.edu",
             "client_secret": "sekret",
             "scopes": "role:superuser"
         }

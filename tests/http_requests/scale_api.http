@@ -52,7 +52,7 @@ X-API-Key: {{frontend_api_key}}
 {
     "studentid": "348ef7e9-58b3-48f8-af32-e467200f23b8@87e927ab1abb46d6868760f7a081c178",
     "courseid": "c9d7d100bb177c0e54f578e7ac538cd9f7a3e4ad",
-    "chapter": "SCALE:Chapter 1",
+    "chapter": "SCOOL:Chapter 1",
     "score": 95,
     "scoremax": 100
 }

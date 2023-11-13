@@ -47,24 +47,24 @@ class LogSettings(SharedSettings, env_prefix="LOG_"):
     level_uvicorn: str = "INFO"
 
 
-class DatabaseSettings(SharedSettings, env_prefix="SCALE_DB_"):
+class DatabaseSettings(SharedSettings, env_prefix="SCOOL_DB_"):
     url: str = (
-        f"sqlite+aiosqlite:///{BASE_PATH}/scale_db.sqlite?check_same_thread=False"
+        f"sqlite+aiosqlite:///{BASE_PATH}/scool_db.sqlite?check_same_thread=False"
     )
     debug: bool = False
     seed_file: Path | None = None
 
 
-class FeatureSettings(SharedSettings, env_prefix="SCALE_FEATURE_"):
+class FeatureSettings(SharedSettings, env_prefix="SCOOL_FEATURE_"):
     # legacy claim used by dotnet
     legacy_unique_name_claim: bool = True
 
 
-class APISettings(SharedSettings, env_prefix="SCALE_"):
+class APISettings(SharedSettings, env_prefix="SCOOL_"):
     """Main app settings.
 
     The attributes are populated from OS environment variables that are
-    prefixed by ``SCALE_``.
+    prefixed by ``SCOOL_``.
     """
 
     env: str = "local"
@@ -73,7 +73,7 @@ class APISettings(SharedSettings, env_prefix="SCALE_"):
     port: int = 8000
     secret_key: str = secrets.token_urlsafe(32)
     jwt_algorithm: str = "HS256"
-    jwt_issuer: str = "https://scale.fresnostate.edu"
+    jwt_issuer: str = "https://scool.fresnostate.edu"
     oauth_access_token_expiry: int = 3600
     use_ssl_for_app_run_local: bool = True
     frontend_launch_path: str = "/dyna/payload.php"
@@ -124,9 +124,9 @@ logging.basicConfig(
 )
 logging.getLogger("").setLevel(log.level_root)
 logging.getLogger("uvicorn").setLevel(log.level_uvicorn)
-logging.getLogger("scale_api").setLevel(log.level_app)
+logging.getLogger("scool").setLevel(log.level_app)
 
 if api.is_local:
-    logging.getLogger("scale_api").error("Frontend API Key: %s", api.frontend_api_key)
+    logging.getLogger("scool").error("Frontend API Key: %s", api.frontend_api_key)
 elif api.frontend_api_key.startswith("TEST-"):
-    raise RuntimeError("SCALE_FRONTEND_API_KEY must be set")  # noqa: TRY003
+    raise RuntimeError("SCOOL_FRONTEND_API_KEY must be set")  # noqa: TRY003

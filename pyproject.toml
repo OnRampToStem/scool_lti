@@ -3,7 +3,7 @@ target-version = ["py312"]
 
 [tool.mypy]
 python_version = "3.12"
-packages = "scale_api"
+packages = "scool"
 strict = true
 warn_unreachable = true
 

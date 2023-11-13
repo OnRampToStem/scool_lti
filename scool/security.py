@@ -4,14 +4,14 @@ Authentication and authorization
 There are two main types of "users" that are handled by this module.
 
     AuthUser
-    ScaleUser
+    ScoolUser
 
 An ``AuthUser`` is a user/client defined in this application's database
 and is a user/client that can access the API for development or administration
 of the application. This type of user is authenticated from a username and
 password stored locally or via Single Sign-On (SSO).
 
-A ``ScaleUser`` is a user that launched this application from a Learning
+A ``ScoolUser`` is a user that launched this application from a Learning
 Management System (LMS) such as Canvas and have been authenticated via
 Learning Tools Interoperability (LTI).
 """
@@ -57,7 +57,7 @@ class AuthorizeError(Exception):
 
 class AuthUsers(NamedTuple):
     auth_user: schemas.AuthUser
-    scale_user: schemas.ScaleUser
+    scool_user: schemas.ScoolUser
 
 
 @dataclass
@@ -166,7 +166,7 @@ async def authorize(
 ) -> AuthUsers:
     """Main security dependency for routes requiring authentication.
 
-    All routes defined in ``scale_api.routes`` that require authentication
+    All routes defined in ``scool_api.routes`` that require authentication
     and authorization depend on this function. This function first looks
     for auth info in the form of a Bearer token in the ``Authorization``
     HTTP Header. It falls back to looking for Basic Auth creds.
@@ -175,10 +175,10 @@ async def authorize(
     values will be set on the request:
 
         request.state.auth_user
-        request.state.scale_user
+        request.state.scool_user
 
-    If no ``scale_user`` is found the ``auth_user`` will be converted to a
-    ``scale_user`` so both state values will always be set for any routes
+    If no ``scool_user`` is found the ``auth_user`` will be converted to a
+    ``scool_user`` so both state values will always be set for any routes
     that use this as a dependency.
     """
     state = request.client.host if request.client else "0.0.0.0"  # noqa: S104
@@ -210,17 +210,17 @@ async def authorize(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     request.state.auth_user = auth_user
-    scale_user = schemas.ScaleUser.from_auth_user(auth_user)
-    request.state.scale_user = scale_user
+    scool_user = schemas.ScoolUser.from_auth_user(auth_user)
+    request.state.scool_user = scool_user
 
-    return AuthUsers(auth_user, scale_user)
+    return AuthUsers(auth_user, scool_user)
 
 
-async def req_scale_user(
+async def req_scool_user(
     auth_users: Annotated[AuthUsers, Depends(authorize)]
-) -> schemas.ScaleUser:
-    """Dependency that routes can use that depend on a ``scale_user``."""
-    return auth_users.scale_user
+) -> schemas.ScoolUser:
+    """Dependency that routes can use that depend on a ``scool_user``."""
+    return auth_users.scool_user
 
 
 async def auth_user_from(
@@ -244,7 +244,7 @@ def auth_user_from_token(token: str) -> schemas.AuthUser:
     """Returns an ``AuthUser`` from the provided JWT.
 
     This functions handles tokens that were generated for either an
-    ``AuthUser`` or a ``ScaleUser``. For a ``ScaleUser``, the roles
+    ``AuthUser`` or a ``ScoolUser``. For a ``ScoolUser``, the roles
     are set as scopes (i.e., role:Learner). This way endpoints can
     specify role scopes in addition to resource:action based scopes.
     """
@@ -329,24 +329,24 @@ def create_auth_user_token(auth_user: schemas.AuthUser, expires_in: int = -1) ->
     return create_token(payload, expires_in)
 
 
-def create_scale_user_token(scale_user: schemas.ScaleUser, expires_in: int = -1) -> str:
-    """Returns an access token (JWT) for a ``ScaleUser``.
+def create_scool_user_token(scool_user: schemas.ScoolUser, expires_in: int = -1) -> str:
+    """Returns an access token (JWT) for a ``ScoolUser``.
 
     This token is also used by the front-end web app to gather role and
     course info for the user.
     """
     payload = {
-        "sub": scale_user.id,
-        "email": scale_user.email,
-        "name": scale_user.name,
-        "roles": scale_user.roles,
-        "context": scale_user.context,
+        "sub": scool_user.id,
+        "email": scool_user.email,
+        "name": scool_user.name,
+        "roles": scool_user.roles,
+        "context": scool_user.context,
     }
     # TODO: delete this after moving the front-end to use `email` claim
     if settings.features.legacy_unique_name_claim:
-        payload["unique_name"] = scale_user.email
-    if scale_user.picture:
-        payload["picture"] = scale_user.picture
+        payload["unique_name"] = scool_user.email
+    if scool_user.picture:
+        payload["picture"] = scool_user.picture
     return create_token(payload, expires_in)
 
 

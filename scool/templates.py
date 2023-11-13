@@ -9,7 +9,7 @@ def redirect_lms_auth(target_url: str, token: str) -> Response:
     body = f"""\
     <!doctype html>
     <html lang="en">
-    <head><title>SCALE LMS Launch</title></head>
+    <head><title>SCOOL Launch</title></head>
     <body onload="document.launch.submit()">
         <form style="display: none;" name="launch" method="post" action="{target_url}">
             <input type="hidden" name="token" value="{token}">

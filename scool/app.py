@@ -40,7 +40,7 @@ async def lifespan(_: fastapi.FastAPI) -> Any:
 
 
 app = fastapi.FastAPI(
-    title="OR2STEM API",
+    title="SCOOL LTI",
     version=__version__,
     lifespan=lifespan,
     docs_url=f"{settings.api.path_prefix}/docs",

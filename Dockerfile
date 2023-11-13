@@ -21,6 +21,6 @@ COPY . .
 
 USER app
 
-CMD ["/app/.venv/bin/python", "-m", "scale_api", "prod"]
+CMD ["/app/.venv/bin/python", "-m", "scool", "prod"]
 
 EXPOSE 8000

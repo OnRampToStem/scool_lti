@@ -48,7 +48,7 @@ class AuthUser(Base):
     """Authorized User.
 
     This represents a local user/client account that can be authorized
-    for endpoints. This is distinct from a ``ScaleUser`` which is authorized
+    for endpoints. This is distinct from a ``ScoolUser`` which is authorized
     using LTI.
     """
 

@@ -7,13 +7,13 @@ Python FastAPI application. The Apache site serves as a reverse proxy.
 
 ## Website SFTP Access
 
-The web directory (`/var/www/scale.fresnostate.edu`) served by Apache can be
+The web directory (`/var/www/scool.fresnostate.edu`) served by Apache can be
 accessed from the on-campus network or the campus VPN using SFTP.
 
 ### /etc/ssh/sshd_config
 
 The following changes were made to the `sshd_config` to enable SFTP
-for the `scale` user in a *chrooted* environment and to allow password
+for the `scool` user in a *chrooted* environment and to allow password
 authentication. The SFTP subsystem is also changed to `internal-sftp`, which
 is an in-process server and does not require running a separate process.
 
@@ -21,8 +21,8 @@ is an in-process server and does not require running a separate process.
 #Subsystem sftp /usr/libexec/openssh/sftp-server
 Subsystem sftp internal-sftp
 
-Match User scale
-        ChrootDirectory /var/www/scale.fresnostate.edu
+Match User scool
+        ChrootDirectory /var/www/scool.fresnostate.edu
         PasswordAuthentication yes
         ForceCommand internal-sftp
         X11Forwarding no
@@ -37,10 +37,10 @@ of the path.
 
 ## PHP
 
-The Dynamic Questions module (`/var/www/scale.fresnostate.edu/html/dyna`) uses
+The Dynamic Questions module (`/var/www/scool.fresnostate.edu/html/dyna`) uses
 Laravel 9 and requires PHP 8.0+ and the following extensions to be installed.
 It also requires the PostgreSQL driver for PHP in order to connect to the
-Scale database as the `scale_dyna` user.
+SCOOL database as the `scool_dyna` user.
 
 ```bash
 sudo amazon-linux-extras enable php8.0

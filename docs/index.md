@@ -1,8 +1,8 @@
-# On-Ramp to STEM
+# Student Centered Open Online Learning (SCOOL)
 
 ## Overview
 
-See the [On-Ramp to STEM Project Site][project_site] for the overall project
+See the [SCOOL Project Site][project_site] for the overall project
 details. This API is one component of the overall project that helps to provide
 the "adaptive learning technology" by providing certain technical integrations
 that are required for the learning tool being developed.

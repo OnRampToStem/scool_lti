@@ -12,17 +12,17 @@ services:
 
   api:
     build: .
-    image: scale_api
+    image: scool
     depends_on:
       - db
       - proxy
     environment:
-      SCALE_ENV: local
-      SCALE_DB_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}?ssl=disable
+      SCOOL_ENV: local
+      SCOOL_DB_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}?ssl=disable
     env_file:
       - .env
     networks:
-      - scale_net
+      - scool_net
     ports:
       - "8000:8000"
     logging: *json-logging
@@ -30,9 +30,9 @@ services:
   proxy:
     build:
       context: ./docker/proxy
-    image: scale_proxy
+    image: scool_proxy
     networks:
-      - scale_net
+      - scool_net
     ports:
       - "443:443"
     logging: *json-logging
@@ -46,7 +46,7 @@ services:
         source: db_data
         target: /var/lib/postgresql/data
     networks:
-      - scale_net
+      - scool_net
     ports:
       - "5432:5432"
     logging: *json-logging
@@ -57,4 +57,4 @@ volumes:
 
 
 networks:
-  scale_net:
+  scool_net:

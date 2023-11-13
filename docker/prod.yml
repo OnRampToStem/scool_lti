@@ -2,15 +2,15 @@ version: "3.8"
 
 services:
 
-  scale_api:
+  scool:
     build: ../
-    image: scale_api
+    image: scool
     environment:
-      SCALE_ENV: prod
+      SCOOL_ENV: prod
     env_file:
       - ../.env.prod
     networks:
-      - scale_net
+      - scool_net
     extra_hosts:
       - "canvas.docker:10.20.200.165"
     ports:
@@ -24,4 +24,4 @@ services:
 
 
 networks:
-  scale_net:
+  scool_net:

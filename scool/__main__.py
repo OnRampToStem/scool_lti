@@ -20,7 +20,7 @@ from pathlib import Path
 
 import uvicorn
 
-from scale_api import settings
+from scool import settings
 
 MAIN_PACKAGE = Path(__file__).parent.name
 

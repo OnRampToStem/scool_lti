@@ -5,7 +5,7 @@
 temp
 **/__pycache__/
 *.sqlite
-scale_initdb.json
+scool_initdb.json
 **/http-client.private.env.json
 scratch.py
 .*cache

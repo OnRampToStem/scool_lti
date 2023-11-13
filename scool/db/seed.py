@@ -1,7 +1,7 @@
 """
-SCALE database seeder
+SCOOL database seeder
 
-Used to seed a newly created SCALE database with data.
+Used to seed a newly created SCOOL database with data.
 """
 
 import asyncio
@@ -87,7 +87,7 @@ async def async_main() -> None:
     if seed_file:
         await run(seed_file)
     else:
-        logger.warning("No seed file provided, use SCALE_API_DB_SEED_FILE to set")
+        logger.warning("No seed file provided, use SCOOL_API_DB_SEED_FILE to set")
 
 
 if __name__ == "__main__":

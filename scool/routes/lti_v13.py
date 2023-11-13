@@ -4,7 +4,7 @@ LTI 1.3 Endpoint
 This route handles the OIDC Login Initiation request from the Platform
 and the Launch Request.
 
-The Launch Request route is responsible for generating a ``ScaleUser``
+The Launch Request route is responsible for generating a ``ScoolUser``
 that is used throughout the application.
 
 see https://www.imsglobal.org/spec/lti/v1p3
@@ -44,8 +44,8 @@ from ..schemas import (
     LtiLaunchRequest,
     LtiServiceError,
     Platform,
-    ScaleGrade,
-    ScaleUser,
+    ScoolGrade,
+    ScoolUser,
     Score,
 )
 
@@ -61,7 +61,7 @@ NO_CACHE_HEADERS = {
 LTI_TOKEN_EXPIRY = 60 * 60 * 24 * 7  # 1 week
 AGS_CACHE_EXPIRY = 60 * 60 * 24 * 60  # 60 days
 
-User = Annotated[ScaleUser, Depends(security.req_scale_user)]
+User = Annotated[ScoolUser, Depends(security.req_scool_user)]
 
 
 @router.get("/{platform_id}/config")
@@ -76,10 +76,10 @@ async def lti_config(request: Request, platform_id: str) -> dict[str, Any]:
     tool_url = request.url_for(lti_config.__qualname__, platform_id=platform.id)
     tool_domain = urllib.parse.urlparse(str(tool_url)).hostname
     provider_domain = urllib.parse.urlparse(platform.issuer).hostname
-    tool_id = "OR2STEM"
-    tool_title = "On-Ramp to STEM"
+    tool_id = "SCOOL"
+    tool_title = "Student Centered Open Online Learning"
     tool_description = (
-        "On-Ramp to STEM is an open-source adaptive learning technology that "
+        "SCOOL is an open-source adaptive learning technology that "
         "utilizes culturally responsive teaching pedagogy with a focus on "
         "algebra and pre-calculus because they represent important, "
         "foundational courses of the STEM pathway."
@@ -238,14 +238,14 @@ async def launch_form(
         return JSONResponse(content=content, status_code=status.HTTP_400_BAD_REQUEST)
 
     # At this point the IDToken (Launch Request) is valid, and we can
-    # build a ``ScaleUser`` from it. We also store it for use later
+    # build a ``ScoolUser`` from it. We also store it for use later
     # in order to make calls to the LTI Advantage Services.
     message_launch = LtiLaunchRequest(platform, claims)
     try:
-        scale_user = message_launch.scale_user
-        logger.info("launch for %r", scale_user)
+        scool_user = message_launch.scool_user
+        logger.info("launch for %r", scool_user)
     except ValueError as ve:
-        logger.warning("failed to get ScaleUser from LtiLaunchRequest: %r", ve)
+        logger.warning("failed to get ScoolUser from LtiLaunchRequest: %r", ve)
         content = {
             "error": "invalid_launch",
             "error_description": str(ve),
@@ -267,7 +267,7 @@ async def launch_form(
     base_url = str(request.url_for("index_api"))
     target_url = urllib.parse.urljoin(base_url, settings.api.frontend_launch_path)
     logger.info("redirecting via POST to v2: %s", target_url)
-    token = security.create_scale_user_token(scale_user, expires_in=LTI_TOKEN_EXPIRY)
+    token = security.create_scool_user_token(scool_user, expires_in=LTI_TOKEN_EXPIRY)
     logger.info("Launch ID %s", message_launch.launch_id)
     logger.info("Launch Token [%s]", token)
     response = templates.redirect_lms_auth(target_url, token)
@@ -443,12 +443,12 @@ async def login_initiations_form(
 async def nrps_members(user: User, next_token: str | None = None) -> dict[str, Any]:
     # If launched from the console or from an impersonation token we won't
     # have an LTI service to call, so we take a different path.
-    if user.platform_id == "scale_api":
+    if user.platform_id == "scool":
         logger.warning("names_role_service(%r): no LMS context", user)
         return {"next_token": None, "members": [user]}
 
     launch_id = LtiLaunchRequest.launch_id_for(user)
-    logger.info("Loading launch message [%s] for ScaleUser: %s", launch_id, user)
+    logger.info("Loading launch message [%s] for ScoolUser: %s", launch_id, user)
     cached_launch = await db.store.cache_get(key=launch_id)
     if cached_launch is None:
         raise HTTPException(
@@ -457,7 +457,7 @@ async def nrps_members(user: User, next_token: str | None = None) -> dict[str, A
         )
     launch_request = LtiLaunchRequest.loads(cached_launch)
     if not launch_request.is_instructor:
-        logger.error("lti.members unauthorized request: %s", launch_request.scale_user)
+        logger.error("lti.members unauthorized request: %s", launch_request.scool_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     nrps_client = services.NamesRoleService(launch_request)
     result = await nrps_client.members(next_page_url=next_token)
@@ -468,7 +468,7 @@ async def nrps_members(user: User, next_token: str | None = None) -> dict[str, A
         "next_token": result.next_page,
         "context": result.context,
         "members": [
-            ScaleUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
+            ScoolUser(id=m["user_id"] + "@" + launch_request.platform.id, **m)
             for m in result.members
         ],
     }
@@ -476,7 +476,7 @@ async def nrps_members(user: User, next_token: str | None = None) -> dict[str, A
 
 @router.post("/scores", status_code=status.HTTP_201_CREATED)
 async def ags_grades(
-    user: User, grade: ScaleGrade, x_api_key: Annotated[str, Header()]
+    user: User, grade: ScoolGrade, x_api_key: Annotated[str, Header()]
 ) -> None:
     if x_api_key != settings.api.frontend_api_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
@@ -586,7 +586,7 @@ async def deep_link_launch(
     return response
 
 
-def validate_grade(grade: ScaleGrade, launch_request: LtiLaunchRequest) -> None:
+def validate_grade(grade: ScoolGrade, launch_request: LtiLaunchRequest) -> None:
     if grade.platform_id != launch_request.platform.id:
         details = {
             "code": "invalid_platform",
@@ -610,7 +610,7 @@ def validate_grade(grade: ScaleGrade, launch_request: LtiLaunchRequest) -> None:
 
 async def get_or_create_lineitem(
     service: services.AssignmentGradeService,
-    grade: ScaleGrade,
+    grade: ScoolGrade,
     launch_request: LtiLaunchRequest,
 ) -> LineItem | None:
     if item := await service.lineitem(grade.chapter):
@@ -638,7 +638,7 @@ async def get_or_create_lineitem(
 
 
 async def handle_failed_add_score(
-    launch_request: LtiLaunchRequest, grade: ScaleGrade, score: Score, item: LineItem
+    launch_request: LtiLaunchRequest, grade: ScoolGrade, score: Score, item: LineItem
 ) -> None:
     content = (
         "{"

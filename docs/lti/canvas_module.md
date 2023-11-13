@@ -1,7 +1,7 @@
 # Canvas LTI Module Link
 
 This guide covers the steps required in order to add a Canvas Module Link for
-the OR2STEM SCALE application.
+the SCOOL application.
 
 ## Module Add
 
@@ -12,7 +12,7 @@ Click the plus sign icon `[+]` to add the module link.
 ## Module Link Selection
 
 Select **External Tool** as the add type. Scroll through the list of tools and
-select **On-Ramp to STEM**.
+select **SCOOL**.
 
 The **URL** and **Page Name** will be populated automatically. Change the
 **Page Name** as appropriate.
@@ -23,7 +23,7 @@ For best viewing results, be sure to enable the **Load in a new tab** checkbox.
 
 ## Module Item Publish
 
-After adding the link for the OR2STEM tool the item must be published in order
+After adding the link for the SCOOL tool the item must be published in order
 for students to use it. Click the **Publish** [1] icon.
 
 ![Module Item Publish](../img/canvas/module_item_publish.png)

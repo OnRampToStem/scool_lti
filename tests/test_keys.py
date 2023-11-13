@@ -2,10 +2,7 @@ import datetime
 import unittest
 from unittest.mock import patch
 
-from scale_api import (
-    keys,
-    schemas,
-)
+from scool import keys, schemas
 
 
 class KeysTestCase(unittest.IsolatedAsyncioTestCase):
@@ -26,7 +23,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         )
 
     @patch("joserfc.jwk.RSAKey.import_key")
-    @patch("scale_api.keys.private_keys")
+    @patch("scool.keys.private_keys")
     async def test_private_key_returns_newest_from_if_no_to(
         self,
         private_keys_mock,
@@ -39,7 +36,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         import_key_mock.assert_called_with(self.test_key_2.data.get_secret_value())
 
     @patch("joserfc.jwk.RSAKey.import_key")
-    @patch("scale_api.keys.private_keys")
+    @patch("scool.keys.private_keys")
     async def test_private_key_returns_valid_to_none_if_other_has_valid_to(
         self,
         private_keys_mock,
@@ -52,7 +49,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         import_key_mock.assert_called_with(self.test_key_1.data.get_secret_value())
 
     @patch("joserfc.jwk.RSAKey.import_key")
-    @patch("scale_api.keys.private_keys")
+    @patch("scool.keys.private_keys")
     async def test_private_key_returns_further_valid_to(
         self,
         private_keys_mock,
@@ -63,7 +60,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         await keys.private_key()
         import_key_mock.assert_called_with(self.test_key_2.data.get_secret_value())
 
-    @patch("scale_api.keys.private_keys")
+    @patch("scool.keys.private_keys")
     async def test_private_key_raises_if_no_keys_found(
         self,
         private_keys_mock,
@@ -72,7 +69,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(RuntimeError):
             await keys.private_key()
 
-    @patch("scale_api.db.store.json_web_keys")
+    @patch("scool.db.store.json_web_keys")
     async def test_private_keys_returns_only_valid_keys(
         self,
         db_mock,

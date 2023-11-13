@@ -4,10 +4,7 @@ from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from fastapi.security import HTTPBasicCredentials
 
-from scale_api import (
-    schemas,
-    security,
-)
+from scool import schemas, security
 
 
 class ScopePermissionTestCase(unittest.TestCase):
@@ -117,14 +114,14 @@ class AuthorizeTestCase(unittest.IsolatedAsyncioTestCase):
             await security.authorize(request, scopes, "", basic)
         self.assertTrue(http_exc.exception.status_code, 401)
 
-    @patch("scale_api.schemas.ScaleUser")
-    @patch("scale_api.security.can_access")
-    @patch("scale_api.security.auth_user_from_token")
+    @patch("scool.schemas.ScoolUser")
+    @patch("scool.security.can_access")
+    @patch("scool.security.auth_user_from_token")
     async def test_authorize_from_bearer_token(
         self,
         token_mock,
         can_access_mock,
-        scale_user_mock,
+        scool_user_mock,
     ):
         token_mock.return_value = "test_user"
         request = Mock()
@@ -134,4 +131,4 @@ class AuthorizeTestCase(unittest.IsolatedAsyncioTestCase):
         await security.authorize(request, scopes, "test_token", basic)
         token_mock.assert_called_with("test_token")
         can_access_mock.assert_called_with("test_user", [])
-        scale_user_mock.from_auth_user.assert_called_with("test_user")
+        scool_user_mock.from_auth_user.assert_called_with("test_user")

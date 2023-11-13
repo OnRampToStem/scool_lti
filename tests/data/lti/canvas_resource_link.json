@@ -46,7 +46,7 @@
         "name": "John M Wagenleitner",
         "given_name": "WAGENLEITNER",
         "family_name": "JOHN",
-        "https://purl.imsglobal.org/spec/lti/claim/target_link_uri": "https://scale.fresnostate.edu/api/lti/v1.3/7f2308ab9092411aafe7f47279b47dfa/launches",
+        "https://purl.imsglobal.org/spec/lti/claim/target_link_uri": "https://scool.fresnostate.edu/api/lti/v1.3/7f2308ab9092411aafe7f47279b47dfa/launches",
         "https://purl.imsglobal.org/spec/lti/claim/context": {
             "id": "cfd70b5da3ce9018402b66c1d4ecfdc6b9d6eeef",
             "label": "Devl-MATH6-Pilot",

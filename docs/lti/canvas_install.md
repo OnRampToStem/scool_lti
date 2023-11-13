@@ -1,6 +1,6 @@
 # Canvas LTI Setup
 
-This document steps through the process of enabling the **On-Ramp To STEM**
+This document steps through the process of enabling the **SCOOL**
 Tool in Canvas using LTI v1.3.
 
 In order to complete the Tool setup, the Canvas Administrator must complete these
@@ -74,7 +74,7 @@ After submitting the Client ID, confirm installation of the App by clicking the
 
 ### Confirm Installed App
 
-After installation confirm that **On-Ramp to STEM** appears on the
+After installation confirm that **SCOOL** appears on the
 **External Apps** page.
 
 ![Confirm Installed App](../img/canvas/course_settings_apps_installed.png)
@@ -116,7 +116,7 @@ Below is an example of an API call to enable the setting for a specific course:
 ```bash
 curl -X PUT \
   -H "Authorization: Bearer <token>" \
-  -F 'name=OR2STEM' \
+  -F 'name=SCOOL' \
   -F 'privacy_level=public' \
   'https://<canvas>/api/v1/courses/<course_id>/external_tools/<tool_id>'
 ```

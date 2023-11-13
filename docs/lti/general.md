@@ -50,7 +50,7 @@ resource link launch request.
         ]
     },
     "https://purl.imsglobal.org/spec/lti/claim/tool_platform": {
-        "name": "STEM SCALE Test Platform",
+        "name": "SCOOL Test Platform",
         "contact_email": "",
         "description": "",
         "url": "",
@@ -80,7 +80,7 @@ resource link launch request.
         "caliper_federated_session_id": "urn:uuid:484bf553eef95ae491cb"
     },
     "iss": "https://lti-ri.imsglobal.org",
-    "aud": "stem_scale_7984546158",
+    "aud": "scool_7984546158",
     "iat": 1621898881,
     "exp": 1621899181,
     "sub": "91492b4cb0eb6601b381",

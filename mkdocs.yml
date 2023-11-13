@@ -1,9 +1,9 @@
-site_name: OR2STEM API
+site_name: Student Centered Open Online Learning (SCOOL)
 
-site_url: https://scale.fresnostate.edu/api/docs
+site_url: https://scool.fresnostate.edu/api/docs
 
 site_description: >
-  OR2STEM API
+  Student Centered Open Online Learning (SCOOL)
 
 site_dir: temp/docs
 

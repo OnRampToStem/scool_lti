@@ -1,6 +1,6 @@
 # Canvas Integration
 
-This guide steps through the process of using the On-Ramp To STEM
+This guide steps through the process of using the SCOOL
 Tool as an External App in a Canvas course.
 
 This guide assumes that the Tool has already been installed for use
@@ -8,7 +8,7 @@ by the course. For details on that process, see
 
 ## Administrator Setup
 
-Steps through the process of enabling the On-Ramp To STEM Tool in Canvas
+Steps through the process of enabling the SCOOL Tool in Canvas
 using LTI v1.3. To perform these steps usually requires Canvas administrative
 privileges.
 

@@ -5,8 +5,8 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from scale_api import settings
-from scale_api.db import models
+from scool import settings
+from scool.db import models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -48,13 +48,13 @@ def run_migrations_offline():
 
 
 def include_object(object, name, type_, reflected, compare_to):  # noqa: A002,ARG001
-    scale_tabs = (
+    scool_tabs = (
         "auth_jwks",
         "auth_users",
         "cache_objects",
         "platforms",
     )
-    if type_ == "table" and name not in scale_tabs:
+    if type_ == "table" and name not in scool_tabs:
         print("Skipping object with None schema", name)  # noqa: T201
         return False
     return True
