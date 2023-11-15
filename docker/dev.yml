@@ -1,7 +1,4 @@
-version: "3.8"
-
 services:
-
   scool_dev:
     build: ../
     image: scool_dev
