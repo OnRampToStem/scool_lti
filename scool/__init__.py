@@ -2,4 +2,4 @@
 Student Centered Open Online Learning (SCOOL)
 """
 
-__version__ = "23.11.16"
+__version__ = "23.11.28"
