@@ -5,5 +5,5 @@ black==23.11.0
 mkdocs==1.5.3
 mkdocs-material==9.4.14
 mypy~=1.7.1
-ruff~=0.1.6
+ruff~=0.1.7
 types-passlib
