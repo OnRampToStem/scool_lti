@@ -217,7 +217,7 @@ async def authorize(
 
 
 async def req_scool_user(
-    auth_users: Annotated[AuthUsers, Depends(authorize)]
+    auth_users: Annotated[AuthUsers, Depends(authorize)],
 ) -> schemas.ScoolUser:
     """Dependency that routes can use that depend on a ``scool_user``."""
     return auth_users.scool_user
