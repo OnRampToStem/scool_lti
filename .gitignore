@@ -1,11 +1,8 @@
-.env*
-.idea
-.svn
-.venv*
-temp
-**/__pycache__/
+.env
 *.sqlite
 scool_initdb.json
 **/http-client.private.env.json
-scratch.py
-.*cache
+
+.*/
+**/__pycache__/
+temp/
