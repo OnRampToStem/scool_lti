@@ -48,6 +48,3 @@ ignore-names = ["setUp", "tokenUrl"]
 
 [tool.ruff.pylint]
 max-args = 8
-
-[tool.ruff.format]
-line-ending = "auto"
