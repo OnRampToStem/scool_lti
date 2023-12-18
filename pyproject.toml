@@ -35,6 +35,7 @@ select = [
     "W",  # pycodestyle (warnings)
 ]
 ignore = [
+    "ISC001",  # ruff format warning
     "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
 ]
 extend-exclude = [".*", "docker", "docs", "etc", "temp"]

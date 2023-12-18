@@ -619,7 +619,10 @@ async def get_or_create_lineitem(
     # must ensure lineitem is only created once, use the cache table as a
     # multiprocess lock
     item = LineItem.model_validate(
-        {"scoreMaximum": grade.scoremax, "label": grade.chapter}
+        {
+            "scoreMaximum": grade.scoremax,
+            "label": grade.chapter,
+        }
     )
     hasher = hashlib.sha1(grade.chapter.lower().encode(encoding="utf-8"))  # noqa: S324
     li_key = (
