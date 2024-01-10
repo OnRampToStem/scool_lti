@@ -404,12 +404,12 @@ class Score(BaseModel):
     score_given: Annotated[int | float, Field(alias="scoreGiven", ge=0)]
     score_max: Annotated[int | float, Field(alias="scoreMaximum", gt=0)]
     comment: str | None = None
-    activity_progress: Annotated[
-        ActivityProgress, Field(alias="activityProgress")
-    ] = "Completed"
-    grading_progress: Annotated[
-        GradingProgress, Field(alias="gradingProgress")
-    ] = "FullyGraded"
+    activity_progress: Annotated[ActivityProgress, Field(alias="activityProgress")] = (
+        "Completed"
+    )
+    grading_progress: Annotated[GradingProgress, Field(alias="gradingProgress")] = (
+        "FullyGraded"
+    )
     user_id: Annotated[str, Field(alias="userId")]
 
 

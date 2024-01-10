@@ -491,14 +491,12 @@ async def ags_grades(
     launch_request = LtiLaunchRequest.loads(cached_request)
     validate_grade(grade, launch_request)
 
-    score = Score.model_validate(
-        {
-            "timestamp": grade.timestamp,
-            "scoreGiven": grade.score,
-            "scoreMaximum": grade.scoremax,
-            "userId": grade.lms_user_id,
-        }
-    )
+    score = Score.model_validate({
+        "timestamp": grade.timestamp,
+        "scoreGiven": grade.score,
+        "scoreMaximum": grade.scoremax,
+        "userId": grade.lms_user_id,
+    })
 
     service = services.AssignmentGradeService(launch_request)
 
@@ -618,12 +616,10 @@ async def get_or_create_lineitem(
 
     # must ensure lineitem is only created once, use the cache table as a
     # multiprocess lock
-    item = LineItem.model_validate(
-        {
-            "scoreMaximum": grade.scoremax,
-            "label": grade.chapter,
-        }
-    )
+    item = LineItem.model_validate({
+        "scoreMaximum": grade.scoremax,
+        "label": grade.chapter,
+    })
     hasher = hashlib.sha1(grade.chapter.lower().encode(encoding="utf-8"))  # noqa: S324
     li_key = (
         "lti-lineitem-"
