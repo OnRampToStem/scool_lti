@@ -1,7 +1,7 @@
 alembic==1.13.1
 async-lru==2.0.4
 asyncpg==0.29.0
-fastapi==0.108.0
+fastapi==0.109.0
 httpx==0.26.0
 joserfc==0.9.0
 passlib[bcrypt]==1.7.4
