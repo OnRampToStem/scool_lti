@@ -141,6 +141,8 @@ logging.basicConfig(
 logging.getLogger("").setLevel(log.level_root)
 logging.getLogger("uvicorn").setLevel(log.level_uvicorn)
 logging.getLogger("scool").setLevel(log.level_app)
+# avoid logging a Traceback from passlib failing to read the bcrypt version
+logging.getLogger("passlib.handlers.bcrypt").setLevel(logging.ERROR)
 
 if api.is_local:
     logging.getLogger("scool").error("Frontend API Key: %s", api.frontend_api_key)
