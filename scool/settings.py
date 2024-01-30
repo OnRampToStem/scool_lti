@@ -145,6 +145,6 @@ logging.getLogger(__package__).setLevel(log.level_app)
 logging.getLogger("passlib.handlers.bcrypt").setLevel(logging.ERROR)
 
 if api.is_local:
-    logging.getLogger("scool").error("Frontend API Key: %s", api.frontend_api_key)
+    logging.error("Frontend API Key: %s", api.frontend_api_key)
 elif api.frontend_api_key.startswith("TEST-"):
     raise RuntimeError("SCOOL_FRONTEND_API_KEY must be set")  # noqa: TRY003
