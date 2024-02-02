@@ -6,6 +6,12 @@ warn_unreachable = true
 
 [tool.ruff]
 target-version = "py312"
+extend-exclude = [".*", "docker", "docs", "etc", "temp"]
+
+[tool.ruff.format]
+preview = true
+
+[tool.ruff.lint]
 select = [
     "A",  # builtins
     "ARG",  # unused args
@@ -38,17 +44,13 @@ ignore = [
     "ISC001",  # ruff format warning
     "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
 ]
-extend-exclude = [".*", "docker", "docs", "etc", "temp"]
 
-[tool.ruff.flake8-builtins]
+[tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = ["id"]
 
-[tool.ruff.pep8-naming]
+[tool.ruff.lint.pep8-naming]
 classmethod-decorators = ["pydantic.field_validator"]
 ignore-names = ["setUp", "tokenUrl"]
 
-[tool.ruff.pylint]
+[tool.ruff.lint.pylint]
 max-args = 8
-
-[tool.ruff.format]
-preview = true
