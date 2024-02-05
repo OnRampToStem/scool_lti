@@ -22,7 +22,7 @@ Application-wide configuration settings that are read in from the Environment.
 
 import contextvars
 import dataclasses
-import logging.config
+import logging
 import secrets
 from pathlib import Path
 from typing import Any
@@ -125,22 +125,22 @@ db = DatabaseSettings()
 log = LogSettings()
 features = FeatureSettings()
 
-old_factory = logging.getLogRecordFactory()
+_old_log_factory = logging.getLogRecordFactory()
 
 
-def log_record_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
-    record = old_factory(*args, **kwargs)
+def _new_log_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
+    record = _old_log_factory(*args, **kwargs)
     record.request_id = ctx_request.get().request_id
     return record
 
 
-logging.setLogRecordFactory(log_record_factory)
+logging.setLogRecordFactory(_new_log_factory)
 logging.basicConfig(
-    format="%(asctime)s[%(levelname)s][%(request_id)s]%(name)s: %(message)s"
+    format="%(asctime)s[%(levelname)s][%(request_id)s]%(name)s: %(message)s",
+    level=log.level_root,
 )
-logging.getLogger().setLevel(log.level_root)
-logging.getLogger("uvicorn").setLevel(log.level_uvicorn)
 logging.getLogger(__package__).setLevel(log.level_app)
+logging.getLogger("uvicorn").setLevel(log.level_uvicorn)
 # avoid logging a Traceback from passlib failing to read the bcrypt version
 logging.getLogger("passlib.handlers.bcrypt").setLevel(logging.ERROR)
 
