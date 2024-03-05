@@ -616,7 +616,7 @@ def validate_grade(grade: ScoolGrade, launch_request: LtiLaunchRequest) -> None:
             "code": "invalid_courseid",
             "message": (
                 f"{grade.courseid} does not match context from Launch Request: "
-                f"{launch_request.context['id']}"
+                f"{launch_request.context["id"]}"
             ),
         }
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=details)
@@ -639,7 +639,7 @@ async def get_or_create_lineitem(
     hasher = hashlib.sha1(grade.chapter.lower().encode(encoding="utf-8"))  # noqa: S324
     li_key = (
         "lti-lineitem-"
-        f"{launch_request.platform.id}-{launch_request.context['id']}-"
+        f"{launch_request.platform.id}-{launch_request.context["id"]}-"
         f"{hasher.hexdigest()}"
     )
     cache_key = await db.store.cache_add(
@@ -667,7 +667,7 @@ async def handle_failed_add_score(
     key = (
         "lti-error-score-"
         f"{launch_request.platform.id}-"
-        f"{launch_request.context['id']}-"
+        f"{launch_request.context["id"]}-"
         f"{grade.lms_user_id}-"
         f"{hasher.hexdigest()}"
     )

@@ -99,7 +99,7 @@ class APISettings(SharedSettings, env_prefix="SCOOL_"):
     def _verify_environment(cls, v: str) -> str:
         """Raises a ``ValueError`` if the provided environment is not valid."""
         if v not in VALID_ENVIRONMENTS:
-            msg = f"Invalid env [{v}], must be one of: {' '.join(VALID_ENVIRONMENTS)}"
+            msg = f"Invalid env [{v}], must be one of: {" ".join(VALID_ENVIRONMENTS)}"
             raise ValueError(msg)
 
         db_url = DatabaseSettings().url
