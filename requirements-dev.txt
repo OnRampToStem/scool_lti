@@ -1,8 +1,9 @@
 -r requirements.txt
 
 aiosqlite==0.20.0
-mkdocs==1.5.3
-mkdocs-material~=9.5.7
-mypy~=1.8.0
-ruff>=0.3.0
+alembic==1.13.1
+mkdocs==1.6.0
+mkdocs-material~=9.5.25
+mypy~=1.10.0
+ruff>=0.4.6
 types-passlib
