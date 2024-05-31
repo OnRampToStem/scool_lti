@@ -27,6 +27,7 @@ import secrets
 from pathlib import Path
 from typing import Any
 
+import dotenv
 import pydantic_settings
 import shortuuid
 from pydantic import field_validator
@@ -34,6 +35,8 @@ from pydantic import field_validator
 BASE_PATH = Path(__file__).parent.parent
 
 VALID_ENVIRONMENTS = ("local", "sandbox", "dev", "prod")
+
+dotenv.load_dotenv()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,7 +57,7 @@ ctx_request: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
 
 
 class SharedSettings(pydantic_settings.BaseSettings):
-    model_config = {"env_file": BASE_PATH / ".env", "frozen": True}
+    model_config = {"frozen": True}
 
 
 class LogSettings(SharedSettings, env_prefix="LOG_"):
@@ -99,7 +102,7 @@ class APISettings(SharedSettings, env_prefix="SCOOL_"):
     def _verify_environment(cls, v: str) -> str:
         """Raises a ``ValueError`` if the provided environment is not valid."""
         if v not in VALID_ENVIRONMENTS:
-            msg = f"Invalid env [{v}], must be one of: {' '.join(VALID_ENVIRONMENTS)}"
+            msg = f"Invalid env [{v}], must be one of: {" ".join(VALID_ENVIRONMENTS)}"
             raise ValueError(msg)
 
         db_url = DatabaseSettings().url
