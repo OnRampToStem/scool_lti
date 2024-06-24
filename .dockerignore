@@ -15,7 +15,6 @@ scool_initdb.json
 .*/
 **/__pycache__/
 alembic/
-docker/
 docs/
 temp/
 tests/

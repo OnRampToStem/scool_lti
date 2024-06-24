@@ -1,60 +1,10 @@
-version: "3.8"
-
-x-json-logging:
-  &json-logging
-  driver: "json-file"
-  options:
-    max-size: "50m"
-    max-file: "10"
-
-
 services:
-
-  api:
+  scool_lti:
     build: .
-    image: scool
-    depends_on:
-      - db
-      - proxy
-    environment:
-      SCOOL_ENV: local
-      SCOOL_DB_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}?ssl=disable
+    image: scool_lti
     env_file:
       - .env
-    networks:
-      - scool_net
+    extra_hosts:
+      - "canvas.docker:10.20.200.165"
     ports:
       - "8000:8000"
-    logging: *json-logging
-
-  proxy:
-    build:
-      context: ./docker/proxy
-    image: scool_proxy
-    networks:
-      - scool_net
-    ports:
-      - "443:443"
-    logging: *json-logging
-
-  db:
-    image: postgres:12
-    env_file:
-      - .env
-    volumes:
-      - type: volume
-        source: db_data
-        target: /var/lib/postgresql/data
-    networks:
-      - scool_net
-    ports:
-      - "5432:5432"
-    logging: *json-logging
-
-
-volumes:
-  db_data:
-
-
-networks:
-  scool_net:
