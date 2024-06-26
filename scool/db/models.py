@@ -49,10 +49,10 @@ class Platform(Base):
 
     id: Mapped[str] = mapped_column(sa.String(32), primary_key=True, default=new_uuid)
     name: Mapped[str] = mapped_column(sa.String(100))
-    issuer: Mapped[str | None]
-    oidc_auth_url: Mapped[str | None]
-    auth_token_url: Mapped[str | None]
-    jwks_url: Mapped[str | None]
+    issuer: Mapped[str | None] = mapped_column(sa.Text(), nullable=True)
+    oidc_auth_url: Mapped[str | None] = mapped_column(sa.Text(), nullable=True)
+    auth_token_url: Mapped[str | None] = mapped_column(sa.Text(), nullable=True)
+    jwks_url: Mapped[str | None] = mapped_column(sa.Text(), nullable=True)
     client_id: Mapped[str | None] = mapped_column(sa.String(128))
     client_secret: Mapped[str | None] = mapped_column(sa.String(128))
 
@@ -73,7 +73,7 @@ class AuthUser(Base):
     id: Mapped[str] = mapped_column(sa.String(32), primary_key=True, default=new_uuid)
     client_id: Mapped[str] = mapped_column(sa.String(128), unique=True)
     client_secret_hash: Mapped[str] = mapped_column(sa.String(128))
-    scopes: Mapped[str | None]
+    scopes: Mapped[str | None] = mapped_column(sa.Text(), nullable=True)
     is_active: Mapped[bool] = mapped_column(sa.Boolean, default=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, default=sa.func.now()
@@ -109,7 +109,7 @@ class AuthJsonWeKey(Base):
     __tablename__ = "auth_jwks"
 
     kid: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
-    data: Mapped[str]
+    data: Mapped[str] = mapped_column(sa.Text(), nullable=False)
     valid_from: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, default=sa.func.now()
     )
@@ -142,7 +142,7 @@ class Cache(Base):
     ttl: Mapped[int] = mapped_column(sa.Integer, default=3600)
     ttl_type: Mapped[str] = mapped_column(sa.String(10), default="fixed")
     expire_at: Mapped[datetime.datetime]
-    value: Mapped[str]
+    value: Mapped[str] = mapped_column(sa.Text(), nullable=False)
 
     def __repr__(self) -> str:
         return (

@@ -83,6 +83,7 @@ async def run_async_migrations():
     )
 
     async with connectable.connect() as connection:
+        print(connection.engine.engine)  # noqa:T201
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
