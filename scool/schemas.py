@@ -179,17 +179,13 @@ class ScoolUser(BaseModel):
     def is_instructor(self) -> bool:
         """Returns True if this request contains an instructor role."""
         lower_roles = {r.lower() for r in self.roles}
-        if {"instructor", "teacher"} & lower_roles:
-            return True
-        return False
+        return bool({"instructor", "teacher"} & lower_roles)
 
     @property
     def is_student(self) -> bool:
         """Returns True if this request contains the learner role."""
         lower_roles = {r.lower() for r in self.roles}
-        if {"learner", "student"} & lower_roles:
-            return True
-        return False
+        return bool({"learner", "student"} & lower_roles)
 
     @classmethod
     def from_auth_user(cls, auth_user: AuthUser) -> Self:
@@ -316,17 +312,13 @@ class LtiLaunchRequest:
     def is_instructor(self) -> bool:
         """Returns True if this request contains an instructor role."""
         lower_roles = {r.lower() for r in self.roles}
-        if {"instructor", "teacher"} & lower_roles:
-            return True
-        return False
+        return bool({"instructor", "teacher"} & lower_roles)
 
     @property
     def is_student(self) -> bool:
         """Returns True if this request contains the learner role."""
         lower_roles = {r.lower() for r in self.roles}
-        if {"learner", "student"} & lower_roles:
-            return True
-        return False
+        return bool({"learner", "student"} & lower_roles)
 
     @property
     def names_role_service(self) -> dict[str, Any] | None:
