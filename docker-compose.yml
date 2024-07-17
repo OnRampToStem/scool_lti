@@ -5,6 +5,6 @@ services:
     env_file:
       - .env
     extra_hosts:
-      - "canvas.docker:10.20.200.165"
+      - "canvas.docker:10.20.95.27"
     ports:
       - "8000:8000"
