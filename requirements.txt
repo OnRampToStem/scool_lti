@@ -10,4 +10,4 @@ python-dotenv==1.0.1
 python-multipart==0.0.9
 shortuuid==1.0.13
 SQLAlchemy[asyncio]==2.0.32
-uvicorn[standard]==0.30.5
+uvicorn[standard]==0.30.6
