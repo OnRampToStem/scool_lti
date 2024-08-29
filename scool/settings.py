@@ -71,7 +71,6 @@ class DatabaseSettings(SharedSettings, env_prefix="SCOOL_DB_"):
         f"sqlite+aiosqlite:///{BASE_PATH}/scool_db.sqlite?check_same_thread=False"
     )
     debug: bool = False
-    seed_file: Path | None = None
 
 
 class FeatureSettings(SharedSettings, env_prefix="SCOOL_FEATURE_"):
