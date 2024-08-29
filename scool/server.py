@@ -53,18 +53,16 @@ def start() -> None:
     proxy_headers = True
     server_header = False
     forwarded_allow_ips = "*"
-    ssl_keyfile = None
-    ssl_certfile = None
+    ssl_keyfile = "/etc/ssl/key.pem"
+    ssl_certfile = "/etc/ssl/cert.pem"
 
     if len(sys.argv) < 2 or sys.argv[1] != "prod":  # noqa:PLR2004
         logger.warning("Running in dev mode")
         host = "127.0.0.1"
         reload = True
         workers = 1
-        if settings.api.use_ssl_for_app_run_local:
-            port = 443
-            ssl_keyfile = str(settings.BASE_PATH / "tests/certs/local_ssl_key.pem")
-            ssl_certfile = str(settings.BASE_PATH / "tests/certs/local_ssl_cert.pem")
+        ssl_keyfile = str(settings.BASE_PATH / "tests/certs/local_ssl_key.pem")
+        ssl_certfile = str(settings.BASE_PATH / "tests/certs/local_ssl_cert.pem")
 
     logger.info(locals())
     uvicorn.run(
