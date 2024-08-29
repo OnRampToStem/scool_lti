@@ -71,7 +71,6 @@ class DatabaseSettings(SharedSettings, env_prefix="SCOOL_DB_"):
         f"sqlite+aiosqlite:///{BASE_PATH}/scool_db.sqlite?check_same_thread=False"
     )
     debug: bool = False
-    seed_file: Path | None = None
 
 
 class FeatureSettings(SharedSettings, env_prefix="SCOOL_FEATURE_"):
@@ -89,12 +88,11 @@ class APISettings(SharedSettings, env_prefix="SCOOL_"):
     env: str = "local"
     debug_app: bool = False
     path_prefix: str = "/api"
-    port: int = 8000
+    port: int = 8443
     secret_key: str = secrets.token_urlsafe(32)
     jwt_algorithm: str = "HS256"
     jwt_issuer: str = "https://scool.fresnostate.edu"
     oauth_access_token_expiry: int = 3600
-    use_ssl_for_app_run_local: bool = True
     frontend_launch_path: str = "/dyna/payload.php"
     frontend_api_key: str = f"TEST-{secrets.token_urlsafe(16)}"
 

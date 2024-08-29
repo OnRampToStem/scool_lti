@@ -12,6 +12,12 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && apt-get upgrade -y && apt-get install -y --no-install-recommends \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
+    && openssl req -x509 -nodes -batch -newkey rsa:2048 \
+            -keyout /etc/ssl/key.pem \
+            -out /etc/ssl/cert.pem \
+            -days 395 \
+            -subj "/C=US/ST=California/L=Fresno/O=Fresno State/OU=TS/CN=scool-lti.priv.fresnostate.edu" \
+    && chmod 644 /etc/ssl/*.pem \
     && adduser -u 999 --group --system app
 
 WORKDIR /app
@@ -28,4 +34,4 @@ USER app
 
 CMD ["/app/.venv/bin/python", "-m", "scool", "prod"]
 
-EXPOSE 8000
+EXPOSE 8443

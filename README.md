@@ -80,18 +80,13 @@ OpenAPI schema documentation is available at:
 
 ## Database
 
-Sqlite is used for local development when running the app directly from
-Python. When running locally, the `scool.db.seed` module is run at startup.
-Use the OS Environment variable `SCOOL_DB_SEED_FILE` to set the full path to
-the file to use to seed the database. See the example seed file format below.
-
 ### Database Setup
 
 The commands below require the use of `psql`, to run from docker use:
 
 ```shell
 docker-compose up -d db
-docker-compose exec db psql -U postgres -h scool-db.priv.fresnostate.edu swa
+docker-compose exec db psql -U postgres -h scool-db.host.edu swa
 ```
 
 The following commands must be run on a new Postgres server in order to create
@@ -114,31 +109,6 @@ create user scool with password '<insert password here>';
 create schema if not exists authorization scool;
 
 grant select on all tables in schema public to scool;
-```
-
-#### Example Seed File
-
-```json
-{
-    "platforms": [
-        {
-            "id": "87e927ab1abb46d6868760f7a081c178",
-            "name": "Canvas LMS Docker Test Rig",
-            "issuer": "https://canvas.instructure.com",
-            "oidc_auth_url": "http://canvas.docker/api/lti/authorize_redirect",
-            "auth_token_url": "http://canvas.docker/login/oauth2/token",
-            "jwks_url": "http://canvas.docker/api/lti/security/jwks",
-            "client_id": "10000000000001"
-        }
-    ],
-    "auth_users": [
-        {
-            "client_id": "scooladmin@mail.fresnostate.edu",
-            "client_secret": "sekret",
-            "scopes": "role:superuser"
-        }
-    ]
-}
 ```
 
 ### Migrations
