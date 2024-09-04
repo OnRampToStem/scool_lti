@@ -1,5 +1,5 @@
 services:
-  scool_lti:
+  lti:
     build: .
     image: scool_lti
     env_file:
