@@ -5,6 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 ENV PIP_NO_CACHE_DIR=off
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PIP_UPGRADE=1
 ENV PIP_UPGRADE_STRATEGY=eager
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -24,9 +25,8 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-RUN python3 -m venv /app/.venv \
-    && /app/.venv/bin/python -m pip install --upgrade pip setuptools wheel \
-    && /app/.venv/bin/python -m pip install --upgrade -r requirements.txt
+RUN python3 -m venv /app/.venv --upgrade-deps \
+    && /app/.venv/bin/python -m pip install -r requirements.txt
 
 COPY . .
 
