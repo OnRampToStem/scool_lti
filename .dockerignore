@@ -3,10 +3,12 @@
 alembic.ini
 build.sh
 buildspec.yml
-docker-compose.yml
+compose.yaml
+COPYING
 Dockerfile
 mkdocs.yml
 pyproject.toml
+README.md
 requirements-dev.txt
 run_checks.sh
 scool_initdb.json
