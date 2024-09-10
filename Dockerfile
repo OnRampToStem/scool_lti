@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/python:3.12.5-slim
+FROM public.ecr.aws/docker/library/python:3.12.6-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
