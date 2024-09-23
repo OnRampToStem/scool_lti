@@ -33,16 +33,18 @@ import logging
 import os
 import sys
 
+import trustme
+import uvicorn
+
 from . import settings
 
 logger = logging.getLogger(__name__)
 
 
 def start() -> None:
-    import uvicorn
-
     if not (cpu_count := os.cpu_count()):
         cpu_count = 1
+
     app = f"{__package__}.app:app"
     host = "0.0.0.0"  # noqa:S104
     port = settings.api.port
@@ -53,29 +55,32 @@ def start() -> None:
     proxy_headers = True
     server_header = False
     forwarded_allow_ips = "*"
-    ssl_keyfile = "/etc/ssl/key.pem"
-    ssl_certfile = "/etc/ssl/cert.pem"
 
     if len(sys.argv) < 2 or sys.argv[1] != "prod":  # noqa:PLR2004
         logger.warning("Running in dev mode")
         host = "127.0.0.1"
         reload = True
         workers = 1
-        ssl_keyfile = str(settings.BASE_PATH / "tests/certs/local_ssl_key.pem")
-        ssl_certfile = str(settings.BASE_PATH / "tests/certs/local_ssl_cert.pem")
 
     logger.info(locals())
-    uvicorn.run(
-        app=app,
-        host=host,
-        port=port,
-        reload=reload,
-        workers=workers,
-        log_level=log_level,
-        access_log=access_log,
-        proxy_headers=proxy_headers,
-        server_header=server_header,
-        forwarded_allow_ips=forwarded_allow_ips,
-        ssl_keyfile=ssl_keyfile,
-        ssl_certfile=ssl_certfile,
-    )
+
+    ssl_ca = trustme.CA()
+
+    with (
+        ssl_ca.cert_pem.tempfile() as ssl_certfile,
+        ssl_ca.private_key_pem.tempfile() as ssl_keyfile,
+    ):
+        uvicorn.run(
+            app=app,
+            host=host,
+            port=port,
+            reload=reload,
+            workers=workers,
+            log_level=log_level,
+            access_log=access_log,
+            proxy_headers=proxy_headers,
+            server_header=server_header,
+            forwarded_allow_ips=forwarded_allow_ips,
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile,
+        )
