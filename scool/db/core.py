@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+import ssl
 import uuid
 
 import sqlalchemy.exc
@@ -25,13 +27,21 @@ from sqlalchemy.ext.asyncio import (
 
 from .. import settings
 
+logger = logging.getLogger("db.core")
+
 IntegrityError = sqlalchemy.exc.IntegrityError
 Session = sqlalchemy.orm.Session
+
+_ca_file = settings.BASE_PATH / "rds-us-west-2-bundle.pem"
+_ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=_ca_file)
+_ssl_ctx.check_hostname = True
+logger.info("SSL is configured using cafile [%s]", _ca_file)
 
 engine = create_async_engine(
     settings.db.url,
     echo=settings.db.debug,
     pool_recycle=3600,
+    connect_args={"ssl": _ssl_ctx},
 )
 
 async_session = async_sessionmaker(
