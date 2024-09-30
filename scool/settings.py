@@ -95,7 +95,7 @@ class APISettings(SharedSettings, env_prefix="SCOOL_"):
     oauth_access_token_expiry: int = 3600
     frontend_launch_path: str = "/dyna/payload.php"
     frontend_api_key: str = f"TEST-{secrets.token_urlsafe(16)}"
-    forwarded_allow_cidrs: str = "127.0.0.1,10.20.80.0/22,10.20.95.0/27"
+    forwarded_allow_cidrs: str = "172.16.0.0/19,10.20.80.0/22,10.20.95.0/27"
 
     @field_validator("env")
     def _verify_environment(cls, v: str) -> str:
