@@ -53,8 +53,8 @@ def start() -> None:
     log_level = settings.log.level_uvicorn.lower()
     access_log = False
     proxy_headers = True
+    forwarded_allow_ips = settings.api.forwarded_allow_cidrs
     server_header = False
-    forwarded_allow_ips = "*"
 
     if len(sys.argv) < 2 or sys.argv[1] != "prod":  # noqa:PLR2004
         logger.warning("Running in dev mode")
@@ -79,8 +79,8 @@ def start() -> None:
             log_level=log_level,
             access_log=access_log,
             proxy_headers=proxy_headers,
-            server_header=server_header,
             forwarded_allow_ips=forwarded_allow_ips,
+            server_header=server_header,
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
         )
