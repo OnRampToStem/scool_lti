@@ -15,12 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import unittest
+from typing import ClassVar
 
 from scool.schemas import AuthUser, ScoolUser
 
 
 class AuthUserTestCase(unittest.TestCase):
-    DEFAULTS = {
+    DEFAULTS: ClassVar[dict[str, str]] = {
         "id": "123",
         "client_id": "test@test.org",
         "client_secret_hash": "non",
@@ -65,7 +66,7 @@ class AuthUserTestCase(unittest.TestCase):
 
 
 class ScoolUserTestCase(unittest.TestCase):
-    DEFAULTS = {
+    DEFAULTS: ClassVar[dict[str, str]] = {
         "email": "test@test.org",
     }
 
