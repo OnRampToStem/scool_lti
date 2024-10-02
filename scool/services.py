@@ -23,7 +23,7 @@ import logging
 import re
 import time
 from collections.abc import AsyncIterator, Sequence
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import httpx
 import joserfc.jwt
@@ -161,7 +161,7 @@ class NamesRoleService(LtiServicesClient):
     see https://www.imsglobal.org/spec/lti-nrps/v2p0
     """
 
-    SCOPES = [
+    SCOPES: ClassVar[list[str]] = [
         "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly"
     ]
 
