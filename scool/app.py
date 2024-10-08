@@ -34,9 +34,9 @@ from . import __version__, db, routes, services, settings
 
 logger = logging.getLogger(__name__)
 
-logger.info("Using Environment [%s]", settings.api.env)
+logger.info("Using Environment [%s]", settings.ENV)
 
-logger.info("Is Production: %s", settings.api.is_production)
+logger.info("Is Production: %s", settings.is_production())
 
 
 @contextlib.asynccontextmanager
@@ -59,10 +59,10 @@ app = fastapi.FastAPI(
     title="SCOOL LTI",
     version=__version__,
     lifespan=lifespan,
-    docs_url=f"{settings.api.path_prefix}/docs",
+    docs_url=f"{settings.PATH_PREFIX}/docs",
     redoc_url=None,
-    openapi_url=f"{settings.api.path_prefix}/openapi.json",
-    debug=settings.api.debug_app,
+    openapi_url=f"{settings.PATH_PREFIX}/openapi.json",
+    debug=settings.DEBUG,
 )
 
 
@@ -76,7 +76,7 @@ async def logging_middleware(
     if not (request_id := request.headers.get("x-request-id")):
         request_id = shortuuid.uuid()
     client_ip = request.client.host if request.client else "0.0.0.0"  # noqa:S104
-    settings.ctx_request.set(
+    settings.CTX_REQUEST.set(
         settings.RequestContext(request_id=request_id, client_ip=client_ip)
     )
     path = request.url.path
@@ -106,4 +106,4 @@ async def logging_middleware(
         return response
 
 
-app.include_router(routes.router, prefix=settings.api.path_prefix)
+app.include_router(routes.router, prefix=settings.PATH_PREFIX)

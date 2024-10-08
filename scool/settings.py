@@ -27,16 +27,14 @@ import secrets
 from pathlib import Path
 from typing import Any
 
-import dotenv
-import pydantic_settings
 import shortuuid
-from pydantic import field_validator
+from starlette.config import Config
 
 BASE_PATH = Path(__file__).parent.parent
 
 VALID_ENVIRONMENTS = ("local", "sandbox", "dev", "prod")
 
-dotenv.load_dotenv()
+_cfg = Config(env_file=BASE_PATH / ".env")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -47,7 +45,7 @@ class RequestContext:
     client_ip: str
 
 
-ctx_request: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
+CTX_REQUEST: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
     "RequestContext",
     default=RequestContext(
         request_id=shortuuid.uuid(),
@@ -55,98 +53,80 @@ ctx_request: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
     ),
 )
 
+DEBUG = _cfg("SCOOL_DEBUG", cast=bool, default=False)
+ENV = _cfg("SCOOL_ENV", default="local")
+SECRET_KEY = _cfg("SCOOL_SECRET_KEY", default=secrets.token_urlsafe(32))
+PORT = _cfg("SCOOL_PORT", cast=int, default=8443)
+PATH_PREFIX = _cfg("SCOOL_PATH_PREFIX", default="/api")
+FORWARDED_ALLOW_CIDRS = _cfg(
+    "SCOOL_FORWARDED_ALLOW_CIDRS", default="172.16.0.0/12,10.20.80.0/22,10.20.95.0/27"
+)
 
-class SharedSettings(pydantic_settings.BaseSettings):
-    model_config = {"frozen": True}
+JWT_ALGORITHM = _cfg("SCOOL_JWT_ALGORITHM", default="HS256")
+JWT_ISSUER = _cfg("SCOOL_JWT_ISSUER", default="https://scool.fresnostate.edu")
 
+OAUTH_ACCESS_TOKEN_EXPIRY = _cfg(
+    "SCOOL_OAUTH_ACCESS_TOKEN_EXPIRY", cast=int, default=3600
+)
 
-class LogSettings(SharedSettings, env_prefix="LOG_"):
-    level_root: str = "WARNING"
-    level_app: str = "INFO"
-    level_uvicorn: str = "INFO"
+FRONTEND_LAUNCH_PATH = _cfg("SCOOL_FRONTEND_LAUNCH_PATH", default="/dyna/payload.php")
+FRONTEND_API_KEY = _cfg(
+    "SCOOL_FRONTEND_API_KEY", default=f"TEST-{secrets.token_urlsafe(16)}"
+)
 
+DB_URL = _cfg(
+    "SCOOL_DB_URL",
+    default=f"sqlite+aiosqlite:///{BASE_PATH}/scool_db.sqlite?check_same_thread=False",
+)
 
-class DatabaseSettings(SharedSettings, env_prefix="SCOOL_DB_"):
-    url: str = (
-        f"sqlite+aiosqlite:///{BASE_PATH}/scool_db.sqlite?check_same_thread=False"
-    )
-    debug: bool = False
-
-
-class FeatureSettings(SharedSettings, env_prefix="SCOOL_FEATURE_"):
-    # legacy claim used by dotnet
-    legacy_unique_name_claim: bool = True
-
-
-class APISettings(SharedSettings, env_prefix="SCOOL_"):
-    """Main app settings.
-
-    The attributes are populated from OS environment variables that are
-    prefixed by ``SCOOL_``.
-    """
-
-    env: str = "local"
-    debug_app: bool = False
-    path_prefix: str = "/api"
-    port: int = 8443
-    secret_key: str = secrets.token_urlsafe(32)
-    jwt_algorithm: str = "HS256"
-    jwt_issuer: str = "https://scool.fresnostate.edu"
-    oauth_access_token_expiry: int = 3600
-    frontend_launch_path: str = "/dyna/payload.php"
-    frontend_api_key: str = f"TEST-{secrets.token_urlsafe(16)}"
-    forwarded_allow_cidrs: str = "172.16.0.0/12,10.20.80.0/22,10.20.95.0/27"
-
-    @field_validator("env")
-    def _verify_environment(cls, v: str) -> str:
-        """Raises a ``ValueError`` if the provided environment is not valid."""
-        if v not in VALID_ENVIRONMENTS:
-            msg = f"Invalid env [{v}], must be one of: {" ".join(VALID_ENVIRONMENTS)}"
-            raise ValueError(msg)
-
-        db_url = DatabaseSettings().url
-        if db_url.startswith("sqlite") and v != "local":
-            msg = "Sqlite DB_URL should only be used in local environments"
-            raise ValueError(msg)
-
-        return v
-
-    @property
-    def is_production(self) -> bool:
-        """Returns True if the environment is set to Production mode."""
-        return self.env == "prod"
-
-    @property
-    def is_local(self) -> bool:
-        """Returns True if the environment is set to Local model."""
-        return self.env == "local"
-
-
-api = APISettings()
-db = DatabaseSettings()
-log = LogSettings()
-features = FeatureSettings()
+LOG_LEVEL_ROOT = _cfg("LOG_LEVEL_ROOT", default="INFO" if DEBUG else "WARNING")
+LOG_LEVEL_UVICORN = _cfg("LOG_LEVEL_UVICORN", default="DEBUG" if DEBUG else "INFO")
+LOG_LEVEL_APP = _cfg("LOG_LEVEL_APP", default="DEBUG" if DEBUG else "INFO")
 
 _old_log_factory = logging.getLogRecordFactory()
 
 
 def _new_log_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
     record = _old_log_factory(*args, **kwargs)
-    record.request_id = ctx_request.get().request_id
+    record.request_id = CTX_REQUEST.get().request_id
     return record
 
 
 logging.setLogRecordFactory(_new_log_factory)
 logging.basicConfig(
     format="%(asctime)s[%(levelname)s][%(request_id)s]%(name)s: %(message)s",
-    level=log.level_root,
+    level=LOG_LEVEL_ROOT,
 )
-logging.getLogger(__package__).setLevel(log.level_app)
-logging.getLogger("uvicorn").setLevel(log.level_uvicorn)
+logging.getLogger("uvicorn").setLevel(LOG_LEVEL_UVICORN)
+logging.getLogger(__package__).setLevel(LOG_LEVEL_APP)
 # avoid logging a Traceback from passlib failing to read the bcrypt version
 logging.getLogger("passlib.handlers.bcrypt").setLevel(logging.ERROR)
 
-if api.is_local:
-    logging.error("Frontend API Key: %s", api.frontend_api_key)
-elif api.frontend_api_key.startswith("TEST-"):
+
+def verify_environment(value: str) -> None:
+    """Raises a ``ValueError`` if the provided environment is not valid."""
+    if value not in VALID_ENVIRONMENTS:
+        msg = f"Invalid env [{value}], must be one of: {" ".join(VALID_ENVIRONMENTS)}"
+        raise ValueError(msg)
+
+    if DB_URL.startswith("sqlite") and value != "local":
+        msg = "Sqlite DB_URL should only be used in local environments"
+        raise ValueError(msg)
+
+
+def is_production() -> bool:
+    """Returns True if the environment is set to Production mode."""
+    return ENV == "prod"
+
+
+def is_local() -> bool:
+    """Returns True if the environment is set to Local model."""
+    return ENV == "local"
+
+
+verify_environment(ENV)
+
+if is_local():
+    logging.error("Frontend API Key: %s", FRONTEND_API_KEY)
+elif FRONTEND_API_KEY.startswith("TEST-"):
     raise RuntimeError("SCOOL_FRONTEND_API_KEY must be set")  # noqa: TRY003

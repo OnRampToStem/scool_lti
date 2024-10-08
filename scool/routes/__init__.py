@@ -39,7 +39,7 @@ app_info = {
     "app_version": app_version,
     "framework_version": fastapi_version,
     "lang_version": sys.version,
-    "environment": settings.api.env,
+    "environment": settings.ENV,
     "engine": str(db.engine.sync_engine),
 }
 

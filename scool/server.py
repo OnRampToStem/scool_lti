@@ -47,13 +47,13 @@ def start() -> None:
 
     app = f"{__package__}.app:app"
     host = "0.0.0.0"  # noqa:S104
-    port = settings.api.port
+    port = settings.PORT
     reload = False
     workers = max(2, min(cpu_count, 4))
-    log_level = settings.log.level_uvicorn.lower()
+    log_level = settings.LOG_LEVEL_UVICORN.lower()
     access_log = False
     proxy_headers = True
-    forwarded_allow_ips = settings.api.forwarded_allow_cidrs
+    forwarded_allow_ips = settings.FORWARDED_ALLOW_CIDRS
     server_header = False
 
     if len(sys.argv) < 2 or sys.argv[1] != "prod":  # noqa:PLR2004
