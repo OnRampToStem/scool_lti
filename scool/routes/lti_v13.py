@@ -281,7 +281,7 @@ async def launch_form(
         return await deep_link_launch(request, message_launch)
 
     base_url = str(request.url_for("index_api"))
-    target_url = urllib.parse.urljoin(base_url, settings.api.frontend_launch_path)
+    target_url = urllib.parse.urljoin(base_url, settings.FRONTEND_LAUNCH_PATH)
     logger.info("redirecting via POST to v2: %s", target_url)
     token = security.create_scool_user_token(scool_user, expires_in=LTI_TOKEN_EXPIRY)
     logger.info("Launch ID %s", message_launch.launch_id)
@@ -340,7 +340,7 @@ async def login_initiations_form(
     # used as a unique transaction key to associate the launch with the
     # user-agent (browser) and in log messages to associate the client in
     # log messages here and in the launch endpoint.
-    state = settings.ctx_request.get().request_id
+    state = settings.CTX_REQUEST.get().request_id
 
     platform = await platform_or_404(platform_id)
     logger.info(
@@ -494,7 +494,7 @@ async def nrps_members(user: User, next_token: str | None = None) -> dict[str, A
 async def ags_grades(
     user: User, grade: ScoolGrade, x_api_key: Annotated[str, Header()]
 ) -> None:
-    if x_api_key != settings.api.frontend_api_key:
+    if x_api_key != settings.FRONTEND_API_KEY:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     logger.debug("assignment_grade_service: %r - %r", user, grade)

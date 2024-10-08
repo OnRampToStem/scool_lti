@@ -51,7 +51,7 @@ NEXT_PAGE_REGEX = re.compile(
 
 def create_http_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(
-        verify=settings.api.is_production,
+        verify=settings.is_production(),
         timeout=45.0,
     )
 

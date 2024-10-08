@@ -38,8 +38,8 @@ _ssl_ctx.check_hostname = True
 logger.info("SSL is configured using cafile [%s]", _ca_file)
 
 engine = create_async_engine(
-    settings.db.url,
-    echo=settings.db.debug,
+    settings.DB_URL,
+    echo=settings.DEBUG,
     pool_recycle=3600,
     connect_args={"ssl": _ssl_ctx},
 )

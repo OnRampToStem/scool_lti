@@ -70,7 +70,7 @@ async def index_api(request: Request, scool_user: ScoolUser) -> Response:
     }
     target_url = urllib.parse.urljoin(
         str(request.url_for("index_api")),
-        settings.api.frontend_launch_path,
+        settings.FRONTEND_LAUNCH_PATH,
     )
     token = security.create_scool_user_token(scool_user, expires_in=60 * 60 * 12)
     return templates.redirect_lms_auth(target_url, token)
@@ -134,5 +134,5 @@ async def oauth_token(
     logger.info("Return token for AuthUser: %s", auth_user)
     return OAuth20Response(
         access_token=token,
-        expires_in=settings.api.oauth_access_token_expiry,
+        expires_in=settings.OAUTH_ACCESS_TOKEN_EXPIRY,
     )

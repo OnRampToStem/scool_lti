@@ -55,9 +55,9 @@ from . import db, schemas, settings
 
 logger = logging.getLogger(__name__)
 
-JWT_KEY = settings.api.secret_key
-JWT_ALGORITHM = settings.api.jwt_algorithm
-JWT_ISSUER = settings.api.jwt_issuer
+JWT_KEY = settings.SECRET_KEY
+JWT_ALGORITHM = settings.JWT_ALGORITHM
+JWT_ISSUER = settings.JWT_ISSUER
 JWT_AUTH_USER_TOKEN_OPTS: dict[str, joserfc.jwt.ClaimsOption] = {
     "iss": {"essential": True, "value": JWT_ISSUER},
     "aud": {"essential": True, "value": JWT_ISSUER},
@@ -164,7 +164,7 @@ class OAuth2ClientCredentials(OAuth2):
 
 
 oauth2_token = OAuth2ClientCredentials(
-    tokenUrl=f"{settings.api.path_prefix}/v1/auth/oauth/token", auto_error=False
+    tokenUrl=f"{settings.PATH_PREFIX}/v1/auth/oauth/token", auto_error=False
 )
 OAuth2Token = Annotated[str | None, Depends(oauth2_token)]
 
@@ -359,7 +359,7 @@ def create_scool_user_token(scool_user: schemas.ScoolUser, expires_in: int = -1)
         "context": scool_user.context,
     }
     # TODO: delete this after moving the front-end to use `email` claim
-    if settings.features.legacy_unique_name_claim:
+    if settings.LEGACY_UNIQUE_NAME_CLAIM:
         payload["unique_name"] = scool_user.email
     if scool_user.picture:
         payload["picture"] = scool_user.picture
@@ -374,7 +374,7 @@ def create_token(payload: dict[str, Any], expires_in: int = -1) -> str:
     not used. The Issuer and Audience for this JWT are set to this app.
     """
     if expires_in == -1:
-        expires_in = settings.api.oauth_access_token_expiry
+        expires_in = settings.OAUTH_ACCESS_TOKEN_EXPIRY
     now = int(time.time())
     issued_at = now - 5
     expires_at = now + expires_in

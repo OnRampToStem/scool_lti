@@ -38,7 +38,7 @@ async def jwks() -> dict[str, Any]:
 async def oauth_server_metadata(request: Request) -> dict[str, Any]:
     """OAuth 2.0 configuration endpoint."""
     return {
-        "issuer": settings.api.jwt_issuer,
+        "issuer": settings.JWT_ISSUER,
         "token_endpoint": str(request.url_for("oauth_token")),
         "response_types_supported": "token",
         "token_endpoint_auth_methods_supported": [
