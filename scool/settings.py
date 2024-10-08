@@ -79,11 +79,6 @@ DB_URL = _cfg(
     default=f"sqlite+aiosqlite:///{BASE_PATH}/scool_db.sqlite?check_same_thread=False",
 )
 
-# legacy claim used by dotnet
-LEGACY_UNIQUE_NAME_CLAIM = _cfg(
-    "SCOOL_FEATURE_LEGACY_UNIQUE_NAME_CLAIM", cast=bool, default=True
-)
-
 LOG_LEVEL_ROOT = _cfg("LOG_LEVEL_ROOT", default="INFO" if DEBUG else "WARNING")
 LOG_LEVEL_UVICORN = _cfg("LOG_LEVEL_UVICORN", default="DEBUG" if DEBUG else "INFO")
 LOG_LEVEL_APP = _cfg("LOG_LEVEL_APP", default="DEBUG" if DEBUG else "INFO")

@@ -358,9 +358,6 @@ def create_scool_user_token(scool_user: schemas.ScoolUser, expires_in: int = -1)
         "roles": scool_user.roles,
         "context": scool_user.context,
     }
-    # TODO: delete this after moving the front-end to use `email` claim
-    if settings.LEGACY_UNIQUE_NAME_CLAIM:
-        payload["unique_name"] = scool_user.email
     if scool_user.picture:
         payload["picture"] = scool_user.picture
     return create_token(payload, expires_in)
