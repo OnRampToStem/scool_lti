@@ -322,13 +322,13 @@ class LtiLaunchRequest:
 
     @property
     def names_role_service(self) -> dict[str, Any] | None:
-        return self.message.get(  # type: ignore[no-any-return]
+        return self.message.get(
             "https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice"
         )
 
     @property
     def assignment_grade_service(self) -> dict[str, Any] | None:
-        return self.message.get(  # type: ignore[no-any-return]
+        return self.message.get(
             "https://purl.imsglobal.org/spec/lti-ags/claim/endpoint"
         )
 
