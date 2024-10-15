@@ -8,6 +8,6 @@ pydantic==2.9.2
 python-multipart==0.0.12
 shortuuid==1.0.13
 SQLAlchemy[asyncio]==2.0.35
-starlette>=0.38.6
+starlette>=0.40.0
 trustme==1.2.0
 uvicorn[standard]==0.31.1
