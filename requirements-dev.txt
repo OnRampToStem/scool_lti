@@ -5,5 +5,5 @@ alembic~=1.13.2
 mkdocs~=1.6.0
 mkdocs-material~=9.5.27
 mypy~=1.12
-ruff>=0.6.9
+ruff>=0.7.0
 types-passlib

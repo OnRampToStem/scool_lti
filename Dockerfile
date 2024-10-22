@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/python:3.12.7-slim
+FROM public.ecr.aws/docker/library/python:3.13.0-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -18,16 +18,16 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-RUN python3.12 -m pip install --upgrade pip \
-    && python3.12 -m pip install -r requirements.txt \
-    && python3.12 -m pip list
+RUN python3.13 -m pip install --upgrade pip \
+    && python3.13 -m pip install -r requirements.txt \
+    && python3.13 -m pip list
 
 COPY . .
 
-RUN python3.12 -m compileall -f -q scool
+RUN python3.13 -m compileall -f -q scool
 
 USER app
 
-CMD ["python3.12", "-m", "scool", "prod"]
+CMD ["python3.13", "-m", "scool", "prod"]
 
 EXPOSE 8443

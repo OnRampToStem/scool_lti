@@ -14,7 +14,7 @@ in the project root with the settings that are needed.
 
 ## Running with Python
 
-Requires Python 3.11 or higher.
+Requires Python 3.13.
 
 ### Virtualenv Setup
 
