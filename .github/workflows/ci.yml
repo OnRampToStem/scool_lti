@@ -34,9 +34,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
+      - uses: astral-sh/setup-uv@v3
       - name: install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install -r requirements-dev.txt
+        run: uv sync --frozen --no-python-downloads
       - name: run checks
         run: bash run_checks.sh
