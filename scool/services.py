@@ -264,7 +264,7 @@ class AssignmentGradeService(LtiServicesClient):
             msg = f"LineItem does not have an ID attribute: {item!r}"
             logger.warning(msg)
             raise LtiServiceError(msg)
-        score_url = f"{item.id.rstrip("/")}/scores"
+        score_url = f"{item.id.rstrip('/')}/scores"
         headers = await self.authorize_header(self.scopes)
         headers["Accept"] = self.CONTENT_TYPE_SCORE
         headers["Content-Type"] = self.CONTENT_TYPE_SCORE
