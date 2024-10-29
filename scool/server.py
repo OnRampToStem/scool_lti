@@ -56,9 +56,8 @@ def start() -> None:
     forwarded_allow_ips = settings.FORWARDED_ALLOW_CIDRS
     server_header = False
 
-    if len(sys.argv) < 2 or sys.argv[1] != "prod":  # noqa:PLR2004
+    if settings.DEBUG or len(sys.argv) < 2 or sys.argv[1] != "prod":  # noqa:PLR2004
         logger.warning("Running in dev mode")
-        host = "127.0.0.1"
         reload = True
         workers = 1
 

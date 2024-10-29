@@ -106,7 +106,7 @@ logging.getLogger("passlib.handlers.bcrypt").setLevel(logging.ERROR)
 def verify_environment(value: str) -> None:
     """Raises a ``ValueError`` if the provided environment is not valid."""
     if value not in VALID_ENVIRONMENTS:
-        msg = f"Invalid env [{value}], must be one of: {" ".join(VALID_ENVIRONMENTS)}"
+        msg = f"Invalid env [{value}], must be one of: {' '.join(VALID_ENVIRONMENTS)}"
         raise ValueError(msg)
 
     if DB_URL.startswith("sqlite") and value != "local":
