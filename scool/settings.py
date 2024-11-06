@@ -54,6 +54,7 @@ CTX_REQUEST: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
 )
 
 DEBUG = _cfg("SCOOL_DEBUG", cast=bool, default=False)
+DEVMODE = _cfg("API_DEVMODE", cast=bool, default=False)
 ENV = _cfg("SCOOL_ENV", default="local")
 SECRET_KEY = _cfg("SCOOL_SECRET_KEY", default=secrets.token_urlsafe(32))
 PORT = _cfg("SCOOL_PORT", cast=int, default=8443)

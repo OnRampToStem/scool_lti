@@ -21,6 +21,6 @@ RUN /app/.venv/bin/python -m compileall -f -q scool
 
 USER app
 
-CMD ["/app/.venv/bin/python", "-m", "scool", "prod"]
+CMD ["/app/.venv/bin/python", "-m", "scool"]
 
 EXPOSE 8443

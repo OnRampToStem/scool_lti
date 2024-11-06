@@ -16,38 +16,18 @@ in the project root with the settings that are needed.
 
 Requires Python 3.13.
 
-### Virtualenv Setup
+This project uses [uv][uv] for project packaging and management.
 
-It is recommended to set up a virtualenv for the project
-
-```shell
-python -m venv .venv
-```
-
-on Windows activate the environment
+To set up the environment and install the required dependencies:
 
 ```shell
-.venv\scripts\activate
+uv sync
 ```
-
-or if on Linux
-
-```shell
-.venv/bin/activate
-```
-
-then install the project dependencies
-
-```shell
-pip install -r requirements-dev.txt
-```
-
-## Running
 
 To run the project
 
 ```shell
-python -m scool
+uv run -m scool
 ```
 
 This will start up the server using self-signed certificates on port 443 and
@@ -62,7 +42,7 @@ the server can be run using Python (see following section). When running with
 `docker-compose`, an Apache proxy and Postgres database will be used to
 closely reflect the production environment.
 
-The recommended method is to use the provided `docker-compose.yml`:
+The recommended method is to use the provided `compose.yaml`:
 
 ```shell
 docker-compose up --build
@@ -130,3 +110,5 @@ To update the database to the current revision run:
 ```shell
 alembic upgrade head
 ```
+
+[uv]: https://docs.astral.sh/uv/
