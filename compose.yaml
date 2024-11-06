@@ -1,7 +1,7 @@
 services:
   lti:
     build: .
-    image: scool_lti
+    image: scool-lti
     env_file:
       - .env
     environment:
