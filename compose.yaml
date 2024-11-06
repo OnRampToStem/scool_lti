@@ -5,7 +5,6 @@ services:
     env_file:
       - .env
     environment:
-      SCOOL_DEBUG: True
       SCOOL_PORT: 8443
     extra_hosts:
       - "canvas.docker:10.20.95.27"

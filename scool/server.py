@@ -16,22 +16,10 @@
 
 """
 ASGI Server entrypoint
-
-This module will launch the application. To run in a local development
-environment it can be run without any arguments:
-
-    python3 -m <main_package>
-
-By default, dev mode starts up on port 8443.
-
-To run in production mode, pass `prod` as the sole argument:
-
-    python -m <main_package> prod
 """
 
 import logging
 import os
-import sys
 
 import trustme
 import uvicorn
@@ -42,24 +30,18 @@ logger = logging.getLogger(__name__)
 
 
 def start() -> None:
-    if not (cpu_count := os.cpu_count()):
-        cpu_count = 1
+    logger.info("Starting server in [%s] mode", "dev" if settings.DEVMODE else "prod")
 
     app = f"{__package__}.app:app"
     host = "0.0.0.0"  # noqa:S104
     port = settings.PORT
-    reload = False
-    workers = max(2, min(cpu_count, 4))
+    reload = settings.DEVMODE
+    workers = 1 if settings.DEVMODE else calculate_workers()
     log_level = settings.LOG_LEVEL_UVICORN.lower()
     access_log = False
     proxy_headers = True
     forwarded_allow_ips = settings.FORWARDED_ALLOW_CIDRS
     server_header = False
-
-    if settings.DEBUG or len(sys.argv) < 2 or sys.argv[1] != "prod":  # noqa:PLR2004
-        logger.warning("Running in dev mode")
-        reload = True
-        workers = 1
 
     logger.info(locals())
 
@@ -83,3 +65,9 @@ def start() -> None:
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
         )
+
+
+def calculate_workers() -> int:
+    if not (cpu_count := os.cpu_count()):
+        cpu_count = 1
+    return max(2, min(cpu_count, 4))
