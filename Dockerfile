@@ -5,8 +5,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 RUN apt-get update -y && apt-get upgrade -y \
-    && rm -rf /var/lib/apt/lists/* \
-    && adduser -u 999 --group --system app
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -19,7 +18,7 @@ COPY . .
 
 RUN /app/.venv/bin/python -m compileall -f -q scool
 
-USER app
+USER nobody
 
 CMD ["/app/.venv/bin/python", "-m", "scool"]
 
