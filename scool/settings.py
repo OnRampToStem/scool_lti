@@ -47,7 +47,7 @@ class RequestContext:
 
 CTX_REQUEST: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
     "RequestContext",
-    default=RequestContext(
+    default=RequestContext(  # noqa: B039
         request_id=shortuuid.uuid(),
         client_ip="0.0.0.0",  # noqa:S104
     ),
