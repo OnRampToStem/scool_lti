@@ -3,16 +3,16 @@ name = "scool-lti"
 version = "1.0.0"
 description = "Student Centered Open Online Learning (SCOOL) LTI Integration"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = "==3.13.*"
 dependencies = [
     "async-lru>=2.0.4",
     "asyncpg>=0.30.0",
-    "fastapi>=0.115.5",
-    "httptools>=0.6.3",
+    "fastapi>=0.115.6",
+    "httptools>=0.6.4",
     "httpx>=0.28.0",
-    "joserfc>=1.0.0",
+    "joserfc>=1.0.1",
     "passlib[bcrypt]>=1.7.4",
-    "pydantic>=2.10.2",
+    "pydantic>=2.10.3",
     "python-multipart>=0.0.19",
     "shortuuid>=1.0.13",
     "SQLAlchemy[asyncio]>=2.0.36",
