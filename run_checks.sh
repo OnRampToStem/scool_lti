@@ -19,5 +19,5 @@ fi
 echo "Running $(mypy --version)"
 mypy
 
-echo "Running unit tests $(python -V)"
+echo "Running unit tests $(python -VV)"
 python -m unittest
