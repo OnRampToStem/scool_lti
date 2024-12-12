@@ -30,7 +30,7 @@ dev = [
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.5.27",
     "mypy>=1.13.0",
-    "ruff>=0.8.2",
+    "ruff>=0.8.3",
     "types-passlib",
 ]
 
@@ -58,6 +58,7 @@ select = [
     "E",  # pycodestyle (errors)
     "ERA",  # eradicate commented out code
     "F",  # Pyflakes
+    "FURB",  # refurb
     "G",  # logging format
     "I",   # isort
     "ISC",  # implicit string concat
@@ -73,6 +74,7 @@ select = [
     "S",  # flake8-bandit
     "SIM",  # simplify
     "T20",  # flake8-print
+    "TC",  # type checking
     "TRY",  # tryceratops
     "UP",  # pyupgrade
     "W",  # pycodestyle (warnings)
