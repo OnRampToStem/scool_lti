@@ -24,40 +24,40 @@ from scool import schemas, security
 
 
 class ScopePermissionTestCase(unittest.TestCase):
-    def test_invalid_scopes(self):
+    def test_invalid_scopes(self) -> None:
         with self.assertRaises(ValueError):
             security.ScopePermission.from_string("foo:bar:baz:qux")
         with self.assertRaises(ValueError):
             security.ScopePermission.from_string("")
 
-    def test_with_only_resource(self):
+    def test_with_only_resource(self) -> None:
         sp = security.ScopePermission.from_string("org")
         self.assertEqual(sp.resource, "org")
         self.assertSetEqual(sp.actions, set())
         self.assertSetEqual(sp.items, set())
 
-    def test_with_action(self):
+    def test_with_action(self) -> None:
         sp = security.ScopePermission.from_string("org:read")
         self.assertEqual(sp.resource, "org")
         self.assertSetEqual(sp.actions, {"read"})
         self.assertSetEqual(sp.items, set())
 
-    def test_with_items(self):
+    def test_with_items(self) -> None:
         sp = security.ScopePermission.from_string("org:read:123")
         self.assertEqual(sp.resource, "org")
         self.assertSetEqual(sp.actions, {"read"})
         self.assertSetEqual(sp.items, {"123"})
 
-    def test_write_implies_read(self):
+    def test_write_implies_read(self) -> None:
         sp = security.ScopePermission.from_string("org:write")
         self.assertEqual(sp.resource, "org")
         self.assertSetEqual(sp.actions, {"read", "write"})
 
-    def test_multiple_items(self):
+    def test_multiple_items(self) -> None:
         sp = security.ScopePermission.from_string("org:read:123,456,789")
         self.assertSetEqual(sp.items, {"123", "456", "789"})
 
-    def test_star_allows_all_actions(self):
+    def test_star_allows_all_actions(self) -> None:
         sp = security.ScopePermission.from_string("org:*")
         other = security.ScopePermission.from_string("org:delete")
         self.assertTrue(sp.allows(other))
@@ -65,12 +65,12 @@ class ScopePermissionTestCase(unittest.TestCase):
         other = security.ScopePermission.from_string("org:eradicate")
         self.assertTrue(sp.allows(other))
 
-    def test_write_allows_read(self):
+    def test_write_allows_read(self) -> None:
         sp = security.ScopePermission.from_string("org:write")
         other = security.ScopePermission.from_string("org:read")
         self.assertTrue(sp.allows(other))
 
-    def test_read_disallows_write(self):
+    def test_read_disallows_write(self) -> None:
         sp = security.ScopePermission.from_string("org:read")
         other = security.ScopePermission.from_string("org:write")
         self.assertFalse(sp.allows(other))
@@ -86,22 +86,22 @@ class ScopeAuthUserAccessTestCase(unittest.TestCase):
             "scopes": [],
         }
 
-    def test_superuser_access(self):
+    def test_superuser_access(self) -> None:
         self.test_user["scopes"].append("role:superuser")
         user = schemas.AuthUser(**self.test_user)
         self.assertTrue(security.can_access(user, ["org"]))
 
-    def test_inactive_user_disallowed(self):
+    def test_inactive_user_disallowed(self) -> None:
         self.test_user["is_active"] = False
         user = schemas.AuthUser(**self.test_user)
         self.assertFalse(security.can_access(user, []))
 
-    def test_no_scopes_is_allowed(self):
+    def test_no_scopes_is_allowed(self) -> None:
         user = schemas.AuthUser(**self.test_user)
         self.assertTrue(security.can_access(user, None))
         self.assertTrue(security.can_access(user, []))
 
-    def test_scopes_required(self):
+    def test_scopes_required(self) -> None:
         user = schemas.AuthUser(**self.test_user)
         self.assertFalse(security.can_access(user, ["org"]))
 
@@ -109,19 +109,19 @@ class ScopeAuthUserAccessTestCase(unittest.TestCase):
         user = schemas.AuthUser(**self.test_user)
         self.assertTrue(security.can_access(user, ["org"]))
 
-    def test_multiple_user_scopes_with_match(self):
+    def test_multiple_user_scopes_with_match(self) -> None:
         self.test_user["scopes"] = ["foo:bar", "baz:qux", "org:write"]
         user = schemas.AuthUser(**self.test_user)
         self.assertTrue(security.can_access(user, ["org:read"]))
 
-    def test_multiple_user_scopes_without_match(self):
+    def test_multiple_user_scopes_without_match(self) -> None:
         self.test_user["scopes"] = ["foo:bar", "baz:qux", "org:read"]
         user = schemas.AuthUser(**self.test_user)
         self.assertFalse(security.can_access(user, ["org:write"]))
 
 
 class AuthorizeTestCase(unittest.IsolatedAsyncioTestCase):
-    async def test_authorize_raise_if_no_valid_user(self):
+    async def test_authorize_raise_if_no_valid_user(self) -> None:
         request = Mock()
         scopes = Mock()
         scopes.scopes = []

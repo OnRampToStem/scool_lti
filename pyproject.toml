@@ -58,6 +58,7 @@ select = [
     "E",  # pycodestyle (errors)
     "ERA",  # eradicate commented out code
     "F",  # Pyflakes
+    "FAST",  # FastAPI
     "FURB",  # refurb
     "G",  # logging format
     "I",   # isort

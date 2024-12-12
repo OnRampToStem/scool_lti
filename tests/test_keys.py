@@ -44,7 +44,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         self,
         private_keys_mock,
         import_key_mock,
-    ):
+    ) -> None:
         self.test_key_1.valid_to = None
         self.test_key_2.valid_to = None
         private_keys_mock.return_value = [self.test_key_1, self.test_key_2]
@@ -57,7 +57,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         self,
         private_keys_mock,
         import_key_mock,
-    ):
+    ) -> None:
         self.test_key_1.valid_to = None
         self.assertIsNotNone(self.test_key_2.valid_to)
         private_keys_mock.return_value = [self.test_key_1, self.test_key_2]
@@ -70,7 +70,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
         self,
         private_keys_mock,
         import_key_mock,
-    ):
+    ) -> None:
         self.assertGreater(self.test_key_2.valid_to, self.test_key_1.valid_to)
         private_keys_mock.return_value = [self.test_key_1, self.test_key_2]
         await keys.private_key()
@@ -80,7 +80,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_private_key_raises_if_no_keys_found(
         self,
         private_keys_mock,
-    ):
+    ) -> None:
         private_keys_mock.return_value = []
         with self.assertRaises(RuntimeError):
             await keys.private_key()
@@ -89,7 +89,7 @@ class KeysTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_private_keys_returns_only_valid_keys(
         self,
         db_mock,
-    ):
+    ) -> None:
         now = datetime.datetime.now(tz=datetime.UTC)
         delta = datetime.timedelta(days=1)
 

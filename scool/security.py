@@ -144,7 +144,7 @@ class OAuth2ClientCredentials(OAuth2):
         scheme_name: str | None = None,
         scopes: dict[str, str] | None = None,
         auto_error: bool = False,
-    ):
+    ) -> None:
         if not scopes:
             scopes = {}
         flows = OAuthFlowsModel(
