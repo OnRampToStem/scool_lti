@@ -1,5 +1,4 @@
 .*
-*.sqlite
 alembic.ini
 build.sh
 buildspec.yml
@@ -9,8 +8,6 @@ Dockerfile
 mkdocs.yml
 README.md
 run_checks.sh
-scool_initdb.json
-**/http-client.private.env.json
 
 .*/
 **/__pycache__/
