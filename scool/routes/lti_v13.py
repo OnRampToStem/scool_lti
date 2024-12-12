@@ -194,10 +194,10 @@ async def launch_form(
     request: Request,
     response: Response,
     platform_id: str,
-    state: str = Form(...),
-    id_token: str | None = Form(None),
-    error: str | None = Form(None),
-    error_description: str | None = Form(None),
+    state: Annotated[str, Form()],
+    id_token: Annotated[str | None, Form()] = None,
+    error: Annotated[str | None, Form()] = None,
+    error_description: Annotated[str | None, Form()] = None,
 ) -> Response:
     """LTI Launch endpoint.
 
@@ -323,12 +323,12 @@ async def login_initiations_query(
 async def login_initiations_form(
     request: Request,
     platform_id: str,
-    iss: str = Form(...),
-    login_hint: str = Form(...),
-    target_link_uri: str = Form(...),
-    lti_message_hint: str = Form(...),
-    lti_deployment_id: str | None = Form(None),
-    client_id: str | None = Form(None),
+    iss: Annotated[str, Form()],
+    login_hint: Annotated[str, Form()],
+    target_link_uri: Annotated[str, Form()],
+    lti_message_hint: Annotated[str, Form()],
+    lti_deployment_id: Annotated[str | None, Form()] = None,
+    client_id: Annotated[str | None, Form()] = None,
 ) -> Response:
     """LTI OIDC Login Initiation.
 

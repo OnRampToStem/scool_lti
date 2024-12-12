@@ -165,7 +165,7 @@ class ScoolUser(BaseModel):
     def platform_id(self) -> str:
         """Returns the Platform ID for this user."""
         if self.id:
-            user_id, sep, plat_id = self.id.rpartition("@")
+            _, sep, plat_id = self.id.rpartition("@")
             if sep:
                 return plat_id
         return "scool"
@@ -290,7 +290,7 @@ class LtiLaunchRequest:
             for k, v in self.message[
                 "https://purl.imsglobal.org/spec/lti/claim/context"
             ].items()
-            if k in ("id", "title")
+            if k in {"id", "title"}
         }
 
     @property

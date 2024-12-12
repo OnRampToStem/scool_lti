@@ -121,7 +121,7 @@ class ScopePermission:
         return cls(resource, actions, items)
 
     def allows(self, other: Self) -> bool:
-        if self.resource not in ("*", other.resource):
+        if self.resource not in {"*", other.resource}:
             return False
         if other.actions:
             return self.actions == {"*"} or self.actions >= other.actions
@@ -144,7 +144,7 @@ class OAuth2ClientCredentials(OAuth2):
         scheme_name: str | None = None,
         scopes: dict[str, str] | None = None,
         auto_error: bool = False,
-    ):
+    ) -> None:
         if not scopes:
             scopes = {}
         flows = OAuthFlowsModel(

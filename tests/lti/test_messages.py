@@ -21,7 +21,7 @@ from tests import load_text_file
 
 
 class LaunchMessageTestCase(unittest.TestCase):
-    def test_resource_link_load_from_string(self):
+    def test_resource_link_load_from_string(self) -> None:
         msg_txt = load_text_file("lti/canvas_resource_link.json")
         msg = LtiLaunchRequest.loads(msg_txt)
 

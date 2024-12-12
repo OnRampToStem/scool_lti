@@ -27,13 +27,13 @@ class AuthUserTestCase(unittest.TestCase):
         "client_secret_hash": "non",
     }
 
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         u = AuthUser(**self.DEFAULTS)
         self.assertTrue(u.is_active)
         self.assertFalse(u.is_superuser)
         self.assertIsNone(u.scopes)
 
-    def test_scopes(self):
+    def test_scopes(self) -> None:
         scopes = ["role:foo", "role:bar"]
         u = AuthUser(**self.DEFAULTS, scopes=" ".join(scopes))
         self.assertListEqual(u.scopes, scopes)
@@ -41,7 +41,7 @@ class AuthUserTestCase(unittest.TestCase):
         u = AuthUser(**self.DEFAULTS, scopes=scopes)
         self.assertListEqual(u.scopes, scopes)
 
-    def test_superuser(self):
+    def test_superuser(self) -> None:
         scopes = ["role:foo"]
         u = AuthUser(**self.DEFAULTS, scopes=scopes)
         self.assertFalse(u.is_superuser)
@@ -50,7 +50,7 @@ class AuthUserTestCase(unittest.TestCase):
         u = AuthUser(**self.DEFAULTS, scopes=scopes)
         self.assertTrue(u.is_superuser)
 
-    def test_from_scool_user(self):
+    def test_from_scool_user(self) -> None:
         su = ScoolUser(
             id="123@xyz:lms",
             email="test@test.org",
@@ -70,26 +70,26 @@ class ScoolUserTestCase(unittest.TestCase):
         "email": "test@test.org",
     }
 
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         u = ScoolUser(**self.DEFAULTS)
         self.assertListEqual(u.roles, [])
         self.assertIsNone(u.context)
 
-    def test_roles_from_lti_launch(self):
+    def test_roles_from_lti_launch(self) -> None:
         u = ScoolUser(
             roles=["http://purl.imsglobal.org/vocab/lis/v2/membership#Learner"],
             **self.DEFAULTS,
         )
         self.assertListEqual(u.roles, ["Learner"])
 
-    def test_roles_from_auth_user(self):
+    def test_roles_from_auth_user(self) -> None:
         u = ScoolUser(
             roles=["Instructor", "developer"],
             **self.DEFAULTS,
         )
         self.assertListEqual(u.roles, ["Instructor", "developer"])
 
-    def test_is_a(self):
+    def test_is_a(self) -> None:
         u = ScoolUser(
             roles=["http://purl.imsglobal.org/vocab/lis/v2/membership#Learner"],
             **self.DEFAULTS,
@@ -104,37 +104,37 @@ class ScoolUserTestCase(unittest.TestCase):
         self.assertFalse(u.is_student)
         self.assertTrue(u.is_instructor)
 
-    def test_user_id(self):
+    def test_user_id(self) -> None:
         # Format of a ScoolUser.id is ``<LMS uid>@<Platform.id>``
         u = ScoolUser(id="foo@bar", **self.DEFAULTS)
         self.assertEqual(u.user_id, "foo")
 
-    def test_user_id_if_from_auth_user(self):
+    def test_user_id_if_from_auth_user(self) -> None:
         # AuthUser.id will be a uuid and have no ``@``
         u = ScoolUser(id="foo", **self.DEFAULTS)
         self.assertEqual("foo", u.user_id)
 
-    def test_platform_id(self):
+    def test_platform_id(self) -> None:
         u = ScoolUser(id="foo@bar", **self.DEFAULTS)
         self.assertEqual("bar", u.platform_id)
 
-    def test_platform_id_if_from_auth_user(self):
+    def test_platform_id_if_from_auth_user(self) -> None:
         # AuthUser's should have a fixed value
         u = ScoolUser(id="foo", **self.DEFAULTS)
         self.assertEqual("scool", u.platform_id)
 
-    def test_context_id(self):
+    def test_context_id(self) -> None:
         u = ScoolUser(
             id="foo@bar", context={"id": "123", "title": "Math6"}, **self.DEFAULTS
         )
         self.assertEqual(u.context_id, "123")
 
-    def test_context_id_if_from_auth_user(self):
+    def test_context_id_if_from_auth_user(self) -> None:
         # AuthUser's should have a fixed value
         u = ScoolUser(id="foo", **self.DEFAULTS)
         self.assertEqual(u.context_id, "scool")
 
-    def test_from_auth_user(self):
+    def test_from_auth_user(self) -> None:
         au = AuthUser(
             id="123",
             client_id="test@test.org",

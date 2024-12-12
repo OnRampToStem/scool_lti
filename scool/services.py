@@ -148,7 +148,7 @@ class LtiServicesClient:
             token=access_token,
             expires_at=time.time() + expires_in,
         )
-        return cast(str, access_token)
+        return cast("str", access_token)
 
     async def authorize_header(self, scopes: Sequence[str]) -> dict[str, str]:
         token = await self._access_token(scopes)
@@ -172,7 +172,7 @@ class NamesRoleService(LtiServicesClient):
             logger.warning(msg)
             raise LtiServiceError(msg)
         return cast(
-            str, self.launch_request.names_role_service["context_memberships_url"]
+            "str", self.launch_request.names_role_service["context_memberships_url"]
         )
 
     async def members(self, next_page_url: str | None = None) -> MembersResult:
@@ -207,7 +207,7 @@ class AssignmentGradeService(LtiServicesClient):
             logger.warning(msg)
             raise LtiServiceError(msg)
         if service_url := self.launch_request.assignment_grade_service.get("lineitems"):
-            return cast(str, service_url)
+            return cast("str", service_url)
         msg = "Launch Request does not contain the lineitems URL"
         logger.warning(msg)
         raise LtiServiceError(msg)

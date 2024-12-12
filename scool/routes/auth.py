@@ -85,9 +85,9 @@ async def user_info(scool_user: ScoolUser) -> schemas.ScoolUser:
 async def oauth_token(
     request: Request,
     grant_type: Annotated[str, Form()],
-    scope: str | None = Form(None),
-    client_id: str | None = Form(None),
-    client_secret: str | None = Form(None),
+    scope: Annotated[str | None, Form()] = None,
+    client_id: Annotated[str | None, Form()] = None,
+    client_secret: Annotated[str | None, Form()] = None,
 ) -> OAuth20Response:
     """OAuth 2.0 Token Endpoint.
 

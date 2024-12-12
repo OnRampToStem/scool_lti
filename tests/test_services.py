@@ -20,7 +20,7 @@ from scool import services
 
 
 class LtiServicesLinkHeaderTestCase(unittest.TestCase):
-    def test_link_header_without_next(self):
+    def test_link_header_without_next(self) -> None:
         headers = {
             "Link": (
                 "<https://fresnostate.instructure.com/api/lti/courses/79639/"
@@ -34,7 +34,7 @@ class LtiServicesLinkHeaderTestCase(unittest.TestCase):
         rv = services.next_page_link(headers)
         self.assertIsNone(rv)
 
-    def test_link_header_next(self):
+    def test_link_header_next(self) -> None:
         headers = {
             "Link": (
                 "<https://fresnostate.instructure.com/api/lti/courses/79639/"

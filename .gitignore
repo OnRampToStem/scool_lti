@@ -1,7 +1,4 @@
 .env
-*.sqlite
-scool_initdb.json
-**/http-client.private.env.json
 
 .*/
 **/__pycache__/
