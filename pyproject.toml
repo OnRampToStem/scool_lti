@@ -12,7 +12,7 @@ dependencies = [
     "httpx>=0.28.1",
     "joserfc>=1.0.1",
     "passlib[bcrypt]>=1.7.4",
-    "pydantic>=2.10.4",
+    "pydantic>=2.10.5",
     "python-multipart>=0.0.20",
     "shortuuid>=1.0.13",
     "SQLAlchemy[asyncio]>=2.0.36",
@@ -30,7 +30,7 @@ dev = [
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.5.27",
     "mypy>=1.14.1",
-    "ruff>=0.8.6",
+    "ruff>=0.9.0",
     "types-passlib",
 ]
 
