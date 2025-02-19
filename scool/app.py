@@ -97,7 +97,7 @@ async def logging_middleware(
     except Exception as exc:
         tick_end = time.perf_counter()
         logger.info("end: %s [%r] - %s", 500, exc, round(tick_end - tick_start, 6))
-        raise exc from None
+        raise
     else:
         tick_end = time.perf_counter()
         logger.info(
