@@ -95,7 +95,9 @@ def _new_log_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
 
 logging.setLogRecordFactory(_new_log_factory)
 logging.basicConfig(
-    format="%(asctime)s[%(levelname)s][%(request_id)s]%(name)s: %(message)s",
+    format=(
+        "%(asctime)s[%(levelname)s][%(request_id)s]%(name)s:%(funcName)s: %(message)s"
+    ),
     level=LOG_LEVEL_ROOT,
 )
 logging.getLogger("uvicorn").setLevel(LOG_LEVEL_UVICORN)
