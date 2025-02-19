@@ -23,14 +23,11 @@ This modules configures our FastAPI application.
 import asyncio
 import contextlib
 import logging
-import time
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 import fastapi
-import shortuuid
 
-from . import __version__, db, routes, services, settings
+from . import __version__, db, middleware, routes, services, settings
 
 logger = logging.getLogger(__name__)
 
@@ -51,54 +48,14 @@ async def lifespan(_: fastapi.FastAPI) -> Any:
 
 
 app = fastapi.FastAPI(
+    debug=settings.DEBUG,
     title="SCOOL LTI",
     version=__version__,
     lifespan=lifespan,
+    middleware=middleware.handlers,
     docs_url=f"{settings.PATH_PREFIX}/docs",
     redoc_url=None,
     openapi_url=f"{settings.PATH_PREFIX}/openapi.json",
-    debug=settings.DEBUG,
 )
-
-
-@app.middleware("http")
-async def logging_middleware(
-    request: fastapi.Request,
-    call_next: Callable[[fastapi.Request], Awaitable[fastapi.Response]],
-) -> fastapi.Response:
-    if request.url.path == request.app.url_path_for("health_check"):
-        return await call_next(request)
-    if not (request_id := request.headers.get("x-request-id")):
-        request_id = shortuuid.uuid()
-    client_ip = request.client.host if request.client else "0.0.0.0"  # noqa:S104
-    settings.CTX_REQUEST.set(
-        settings.RequestContext(request_id=request_id, client_ip=client_ip)
-    )
-    path = request.url.path
-    if query := request.url.query:
-        path += f"?{query}"
-    logger.info(
-        'start: %s - %s %s HTTP/%s - %s - "%s"',
-        client_ip,
-        request.method,
-        path,
-        request["http_version"],
-        request.headers.get("referer"),
-        request.headers.get("user-agent"),
-    )
-    tick_start = time.perf_counter()
-    try:
-        response = await call_next(request)
-    except Exception as exc:
-        tick_end = time.perf_counter()
-        logger.info("end: %s [%r] - %s", 500, exc, round(tick_end - tick_start, 6))
-        raise
-    else:
-        tick_end = time.perf_counter()
-        logger.info(
-            "end: %s - %s", response.status_code, round(tick_end - tick_start, 6)
-        )
-        return response
-
 
 app.include_router(routes.router, prefix=settings.PATH_PREFIX)

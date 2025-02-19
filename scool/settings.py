@@ -42,14 +42,14 @@ class RequestContext:
     """Context information to pass from routes to other services."""
 
     request_id: str
-    client_ip: str
+    client_ip: str | None
 
 
 CTX_REQUEST: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
     "RequestContext",
     default=RequestContext(  # noqa: B039
         request_id=shortuuid.uuid(),
-        client_ip="0.0.0.0",  # noqa:S104
+        client_ip=None,
     ),
 )
 
