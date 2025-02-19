@@ -34,9 +34,9 @@ from . import __version__, db, routes, services, settings
 
 logger = logging.getLogger(__name__)
 
-logger.info("Using Environment [%s]", settings.ENV)
-
-logger.info("Is Production: %s", settings.is_production())
+logger.info(
+    "Environment [%s], Is Production: %s", settings.ENV, settings.is_production()
+)
 
 
 @contextlib.asynccontextmanager
