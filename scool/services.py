@@ -48,15 +48,10 @@ NEXT_PAGE_REGEX = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-
-def create_http_client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(
-        verify=settings.is_production(),
-        timeout=45.0,
-    )
-
-
-http_client = create_http_client()
+http_client = httpx.AsyncClient(
+    verify=settings.is_production(),
+    timeout=45.0,
+)
 
 
 async def create_platform_token(platform: Platform) -> str:

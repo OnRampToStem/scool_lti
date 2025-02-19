@@ -42,17 +42,12 @@ logger.info(
 @contextlib.asynccontextmanager
 async def lifespan(_: fastapi.FastAPI) -> Any:
     logger.info("Running in loop [%r]", asyncio.get_running_loop())
-    await services.http_client.aclose()
-    services.http_client = services.create_http_client()
     try:
-        yield {
-            "http_client": services.http_client,
-        }
+        async with services.http_client:
+            yield
     finally:
         logger.info("closing db engine connections")
         await db.engine.dispose()
-        logger.info("closing httpx client")
-        await services.http_client.aclose()
 
 
 app = fastapi.FastAPI(
