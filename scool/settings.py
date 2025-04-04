@@ -130,6 +130,6 @@ def is_local() -> bool:
 verify_environment(ENV)
 
 if is_local():
-    logging.error("Frontend API Key: %s", FRONTEND_API_KEY)
+    logging.error("Frontend API Key: %s", FRONTEND_API_KEY)  # noqa: LOG015
 elif FRONTEND_API_KEY.startswith("TEST-"):
     raise RuntimeError("SCOOL_FRONTEND_API_KEY must be set")  # noqa: TRY003
