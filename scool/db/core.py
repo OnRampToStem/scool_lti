@@ -32,10 +32,10 @@ logger = logging.getLogger("db.core")
 IntegrityError = sqlalchemy.exc.IntegrityError
 Session = sqlalchemy.orm.Session
 
-_ca_file = settings.BASE_PATH / "rds-us-west-2-bundle.pem"
-_ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=_ca_file)
+_ssl_ctx = ssl.create_default_context(
+    ssl.Purpose.SERVER_AUTH, cafile=settings.BASE_PATH / "rds-us-west-2-bundle.pem"
+)
 _ssl_ctx.check_hostname = True
-logger.info("SSL is configured using cafile [%s]", _ca_file)
 
 engine = create_async_engine(
     settings.DB_URL,
