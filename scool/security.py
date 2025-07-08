@@ -38,6 +38,7 @@ from dataclasses import dataclass
 from typing import Annotated, Any, NamedTuple, Self
 
 import joserfc.errors
+import joserfc.jwk
 import joserfc.jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.openapi.models import OAuthFlowClientCredentials
@@ -55,7 +56,7 @@ from . import db, schemas, settings
 
 logger = logging.getLogger(__name__)
 
-JWT_KEY = settings.SECRET_KEY
+JWT_KEY = joserfc.jwk.OctKey.import_key(settings.SECRET_KEY)
 JWT_ALGORITHM = settings.JWT_ALGORITHM
 JWT_ISSUER = settings.JWT_ISSUER
 JWT_AUTH_USER_TOKEN_OPTS: dict[str, joserfc.jwt.ClaimsOption] = {
