@@ -8,13 +8,15 @@ repos:
       - id: check-toml
       - id: check-yaml
       - id: detect-private-key
+      - id: detect-aws-credentials
+        args: [--allow-missing-credentials]
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.12.12"
+    rev: "v0.13.0"
     hooks:
       - id: ruff-format
-      - id: ruff
+      - id: ruff-check
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
     hooks:
