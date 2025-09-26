@@ -7,10 +7,10 @@ requires-python = "==3.13.*"
 dependencies = [
     "async-lru>=2.0.5",
     "asyncpg>=0.30.0",
-    "fastapi>=0.116.2",
+    "fastapi>=0.117.1",
     "httptools>=0.6.4",
     "httpx>=0.28.1",
-    "joserfc>=1.3.3",
+    "joserfc>=1.3.4",
     "passlib[bcrypt]>=1.7.4",
     "pydantic>=2.11.9",
     "python-multipart>=0.0.20",
@@ -18,7 +18,7 @@ dependencies = [
     "SQLAlchemy[asyncio]>=2.0.43",
     "starlette>=0.48.0",
     "trustme>=1.2.1",
-    "uvicorn>=0.35.0",
+    "uvicorn>=0.37.0",
     "uvloop>=0.21.0; sys_platform == 'linux'",
 ]
 
@@ -28,8 +28,8 @@ dev = [
     "alembic>=1.16.5",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.20",
-    "mypy>=1.18.1",
-    "ruff>=0.13.0",
+    "mypy>=1.18.2",
+    "ruff>=0.13.2",
     "types-passlib",
 ]
 
