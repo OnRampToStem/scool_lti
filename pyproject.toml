@@ -30,6 +30,7 @@ dev = [
     "mkdocs-material>=9.6.22",
     "mypy>=1.18.2",
     "ruff>=0.14.0",
+    "ty>=0.0.1a22",
     "types-passlib",
 ]
 
@@ -89,3 +90,6 @@ ignore-names = ["setUp", "tokenUrl"]
 
 [tool.ruff.lint.pylint]
 max-args = 8
+
+[tool.ty.src]
+exclude = ["alembic/", "tests/"]
