@@ -16,8 +16,11 @@ if [[ $CI != "true" ]]; then
     pre-commit run --all-files
 fi
 
-echo "Running $(mypy --version)"
+mypy --version
 mypy
+
+ty --version
+ty check
 
 echo "Running unit tests $(python -VV)"
 python -m unittest
