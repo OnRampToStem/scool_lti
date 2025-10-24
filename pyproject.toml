@@ -7,7 +7,7 @@ requires-python = "==3.13.*"
 dependencies = [
     "async-lru>=2.0.5",
     "asyncpg>=0.30.0",
-    "fastapi>=0.119.1",
+    "fastapi>=0.120.0",
     "httptools>=0.7.1",
     "httpx>=0.28.1",
     "joserfc>=1.4.0",
@@ -29,8 +29,8 @@ dev = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.22",
     "mypy>=1.18.2",
-    "ruff>=0.14.1",
-    "ty>=0.0.1a23",
+    "ruff>=0.14.2",
+    "ty>=0.0.1a24",
     "types-passlib",
 ]
 
