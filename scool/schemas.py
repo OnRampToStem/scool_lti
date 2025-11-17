@@ -109,7 +109,7 @@ class AuthUser(DBBaseModel):
         return False
 
     @classmethod
-    def from_scool_user(cls, scool_user: "ScoolUser") -> Self:
+    def from_scool_user(cls, scool_user: ScoolUser) -> Self:
         """Converts an ``ScoolUser`` to a ``AuthUser``."""
         return cls(
             id=scool_user.id or scool_user.email,
@@ -376,7 +376,7 @@ class LtiLaunchRequest:
         return f'{{"platform":{p},"message":{m}}}'
 
     @staticmethod
-    def loads(data: str) -> "LtiLaunchRequest":
+    def loads(data: str) -> LtiLaunchRequest:
         """Returns a ``LtiLaunchRequest`` from a json string."""
         content = json.loads(data)
         platform = Platform.model_validate(content["platform"])

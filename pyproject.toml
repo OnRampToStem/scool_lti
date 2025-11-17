@@ -3,20 +3,20 @@ name = "scool-lti"
 version = "1.0.0"
 description = "Student Centered Open Online Learning (SCOOL) LTI Integration"
 readme = "README.md"
-requires-python = "==3.13.*"
+requires-python = "==3.14.*"
 dependencies = [
     "async-lru>=2.0.5",
-    "asyncpg>=0.30.0",
-    "fastapi>=0.120.1",
+    "fastapi>=0.121.2",
     "httptools>=0.7.1",
     "httpx>=0.28.1",
-    "joserfc>=1.4.0",
+    "joserfc>=1.4.2",
     "passlib[bcrypt]>=1.7.4",
-    "pydantic>=2.12.3",
+    "psycopg[binary]>=3.2.12",
+    "pydantic>=2.12.4",
     "python-multipart>=0.0.20",
     "shortuuid>=1.0.13",
     "SQLAlchemy[asyncio]>=2.0.44",
-    "starlette>=0.49.1",
+    "starlette>=0.49.3",
     "trustme>=1.2.1",
     "uvicorn>=0.38.0",
     "uvloop>=0.22.1; sys_platform == 'linux'",
@@ -25,23 +25,23 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aiosqlite>=0.21.0",
-    "alembic>=1.17.0",
+    "alembic>=1.17.2",
     "mkdocs>=1.6.1",
-    "mkdocs-material>=9.6.22",
+    "mkdocs-material>=9.7.0",
     "mypy>=1.18.2",
-    "ruff>=0.14.2",
-    "ty>=0.0.1a24",
+    "ruff>=0.14.5",
+    "ty>=0.0.1a26",
     "types-passlib",
 ]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 packages = "scool"
 strict = true
 warn_unreachable = true
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 extend-exclude = [".*", "docs", "temp"]
 
 [tool.ruff.format]
@@ -82,6 +82,8 @@ select = [
 ]
 ignore = [
     "ISC001",  # ruff format warning
+    "TC002",
+    "TC003",
 ]
 
 [tool.ruff.lint.pep8-naming]

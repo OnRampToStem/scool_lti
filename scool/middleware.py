@@ -84,6 +84,6 @@ class LogMiddleware(BaseHTTPMiddleware):
 
 
 handlers = [
-    Middleware(ContextMiddleware),
-    Middleware(LogMiddleware),
+    Middleware(ContextMiddleware),  # ty: ignore[invalid-argument-type]
+    Middleware(LogMiddleware),  # ty: ignore[invalid-argument-type]
 ]
