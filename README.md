@@ -14,7 +14,7 @@ in the project root with the settings that are needed.
 
 ## Running with Python
 
-Requires Python 3.13.
+Requires Python 3.14.
 
 This project uses [uv][uv] for project packaging and management.
 
