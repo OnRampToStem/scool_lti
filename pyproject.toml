@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = "==3.14.*"
 dependencies = [
     "async-lru>=2.0.5",
-    "fastapi>=0.124.0",
+    "fastapi>=0.124.2",
     "httptools>=0.7.1",
     "httpx>=0.28.1",
     "joserfc>=1.5.0",
@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "python-multipart>=0.0.20",
     "shortuuid>=1.0.13",
-    "SQLAlchemy[asyncio]>=2.0.44",
+    "SQLAlchemy[asyncio]>=2.0.45",
     "starlette>=0.50.0",
     "trustme>=1.2.1",
     "uvicorn>=0.38.0",
@@ -27,8 +27,8 @@ dev = [
     "aiosqlite>=0.21.0",
     "alembic>=1.17.2",
     "mypy>=1.19.0",
-    "ruff>=0.14.8",
-    "ty>=0.0.1a32",
+    "ruff>=0.14.9",
+    "ty>=0.0.1a33",
     "types-passlib",
     "zensical>=0.0.11",
 ]
