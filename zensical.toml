@@ -1,0 +1,28 @@
+[project]
+site_name = "Student Centered Open Online Learning (SCOOL)"
+site_url = "https://scool.fresnostate.edu/api/docs"
+site_description = "Student Centered Open Online Learning (SCOOL)"
+site_dir = "temp/docs"
+nav = [
+    {"Home" = "index.md"},
+    {"Integration" = [
+        "lti/index.md",
+        "lti/general.md",
+        {"Canvas" = [
+            "lti/canvas.md",
+            "lti/canvas_install.md",
+            "lti/canvas_module.md",
+        ]},
+    ]},
+    "server/index.md",
+    {"Project Site" = "https://sites.google.com/mail.fresnostate.edu/onramptostem"}
+]
+
+[project.theme]
+features = [
+    "content.code.copy",
+    "navigation.footer",
+    "navigation.sections",
+    "navigation.tabs",
+    "navigation.top",
+]
