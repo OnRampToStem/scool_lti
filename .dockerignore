@@ -5,9 +5,9 @@ buildspec.yml
 compose.yaml
 COPYING
 Dockerfile
-mkdocs.yml
 README.md
 run_checks.sh
+zensical.toml
 
 .*/
 **/__pycache__/
