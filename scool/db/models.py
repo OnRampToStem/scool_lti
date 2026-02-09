@@ -83,7 +83,7 @@ class AuthUser(Base):
     )
 
     @validates("client_id")
-    def normalize_client_id(  # type: ignore[no-untyped-def]
+    def normalize_client_id(
         self,
         key,  # noqa: ARG002
         value: str,

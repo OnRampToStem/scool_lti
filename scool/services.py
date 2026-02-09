@@ -268,7 +268,7 @@ class AssignmentGradeService(LtiServicesClient):
             rv = await client.post(url=score_url, headers=headers, content=content)
             rv.raise_for_status()
 
-        return rv.json()  # type: ignore[no-any-return]
+        return rv.json()
 
     def __repr__(self) -> str:
         return f"AssignmentGradeService({self.service_url}, scopes={self.scopes})"
