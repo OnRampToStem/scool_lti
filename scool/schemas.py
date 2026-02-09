@@ -257,7 +257,7 @@ class LtiLaunchRequest:
 
     @property
     def sub(self) -> str:
-        return self.message["sub"]  # type: ignore[no-any-return]
+        return self.message["sub"]
 
     @property
     def launch_id(self) -> str:
@@ -296,7 +296,7 @@ class LtiLaunchRequest:
     @property
     def message_type(self) -> str:
         """Returns the message type, could be either a resource or deep link type."""
-        return self.message["https://purl.imsglobal.org/spec/lti/claim/message_type"]  # type: ignore[no-any-return]
+        return self.message["https://purl.imsglobal.org/spec/lti/claim/message_type"]
 
     @property
     def is_resource_link_launch(self) -> bool:
@@ -365,7 +365,7 @@ class LtiLaunchRequest:
         details on how to add the custom fields.
         """
         logger.debug("Looking for custom field [%s]", field_name)
-        return self.message.get(  # type: ignore[no-any-return]
+        return self.message.get(
             "https://purl.imsglobal.org/spec/lti/claim/custom", {}
         ).get(field_name)
 
