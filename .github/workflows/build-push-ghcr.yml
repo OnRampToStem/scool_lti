@@ -6,7 +6,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # image name must be lowercase, so we can't use `${{ github.repository }}` here
+  # since it resolves to `OnRampToStem`
+  IMAGE_NAME: onramptostem/scool_lti
 
 jobs:
   build-push:
