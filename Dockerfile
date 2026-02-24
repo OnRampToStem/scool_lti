@@ -1,5 +1,7 @@
 FROM public.ecr.aws/docker/library/python:3.14.3-slim
 
+LABEL org.opencontainers.image.source=https://github.com/OnRampToStem/scool_lti
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
