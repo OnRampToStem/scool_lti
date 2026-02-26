@@ -1,6 +1,11 @@
-name: Build and Push to GHCR
+name: Build/Push/Deploy
+
 on:
-  push:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
     branches:
       - main
 
@@ -11,8 +16,9 @@ env:
   IMAGE_NAME: onramptostem/scool_lti
 
 jobs:
-  build-push:
+  push:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
