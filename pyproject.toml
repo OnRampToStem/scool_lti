@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = "==3.14.*"
 dependencies = [
     "async-lru>=2.2.0",
-    "fastapi>=0.133.0",
+    "fastapi>=0.133.1",
     "httptools>=0.7.1",
     "httpx>=0.28.1",
     "joserfc>=1.6.3",
@@ -26,10 +26,10 @@ dependencies = [
 dev = [
     "aiosqlite>=0.22.1",
     "alembic>=1.18.4",
-    "ruff>=0.15.2",
-    "ty>=0.0.18",
+    "ruff>=0.15.4",
+    "ty>=0.0.19",
     "types-passlib",
-    "zensical>=0.0.23",
+    "zensical>=0.0.24",
 ]
 
 [tool.ruff]
