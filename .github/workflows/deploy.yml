@@ -60,7 +60,7 @@ jobs:
       - name: Run redeploy script
         run: |
           aws ssm send-command \
-            --instance-ids i-09cf61bddc1dab39a \
+            --instance-ids "${{ secrets.AWS_EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
             --comment "Redeploy from GitHub Action" \
             --parameters commands=/home/ec2-user/redeploy.sh \
