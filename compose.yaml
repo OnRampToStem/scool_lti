@@ -11,3 +11,5 @@ services:
       - "8443:8443"
     volumes:
       - ./scool:/app/scool
+    cpu_count: 2
+    mem_limit: 2g
