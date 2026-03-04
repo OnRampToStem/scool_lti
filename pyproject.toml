@@ -17,7 +17,6 @@ dependencies = [
     "shortuuid>=1.0.13",
     "SQLAlchemy[asyncio]>=2.0.48",
     "starlette>=0.52.1",
-    "trustme>=1.2.1",
     "uvicorn>=0.41.0",
     "uvloop>=0.22.1; sys_platform == 'linux'",
 ]
@@ -27,6 +26,7 @@ dev = [
     "aiosqlite>=0.22.1",
     "alembic>=1.18.4",
     "ruff>=0.15.4",
+    "trustme>=1.2.1",
     "ty>=0.0.20",
     "types-passlib",
     "zensical>=0.0.24",

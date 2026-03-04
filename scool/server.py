@@ -18,10 +18,12 @@
 ASGI Server entrypoint
 """
 
+import contextlib
 import logging
 import os
+from collections.abc import Iterator
+from pathlib import Path
 
-import trustme
 import uvicorn
 
 from . import settings
@@ -45,12 +47,7 @@ def start() -> None:
 
     logger.info(locals())
 
-    ssl_ca = trustme.CA()
-
-    with (
-        ssl_ca.cert_pem.tempfile() as ssl_certfile,
-        ssl_ca.private_key_pem.tempfile() as ssl_keyfile,
-    ):
+    with ssl_files() as (ssl_keyfile, ssl_certfile):
         uvicorn.run(
             app=app,
             host=host,
@@ -65,6 +62,23 @@ def start() -> None:
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
         )
+
+
+@contextlib.contextmanager
+def ssl_files() -> Iterator[tuple[str, str]]:
+    if Path("/etc/ssl/key.pem").exists():
+        logger.info("using ssl key file: %s", "/etc/ssl/key.pem")
+        yield "/etc/ssl/key.pem", "/etc/ssl/cert.pem"
+    else:
+        import trustme  # noqa: PLC0415
+
+        ssl_ca = trustme.CA()
+        with (
+            ssl_ca.private_key_pem.tempfile() as ssl_keyfile,
+            ssl_ca.cert_pem.tempfile() as ssl_certfile,
+        ):
+            logger.info("using ssl key file: %s", ssl_keyfile)
+            yield ssl_keyfile, ssl_certfile
 
 
 def calculate_workers() -> int:

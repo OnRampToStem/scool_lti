@@ -2,6 +2,7 @@ services:
   lti:
     build: .
     image: scool-lti
+    read_only: true
     env_file:
       - .env
     environment:

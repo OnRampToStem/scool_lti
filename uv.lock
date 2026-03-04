@@ -616,7 +616,6 @@ dependencies = [
     { name = "shortuuid" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "starlette" },
-    { name = "trustme" },
     { name = "uvicorn" },
     { name = "uvloop", marker = "sys_platform == 'linux'" },
 ]
@@ -626,6 +625,7 @@ dev = [
     { name = "aiosqlite" },
     { name = "alembic" },
     { name = "ruff" },
+    { name = "trustme" },
     { name = "ty" },
     { name = "types-passlib" },
     { name = "zensical" },
@@ -645,7 +645,6 @@ requires-dist = [
     { name = "shortuuid", specifier = ">=1.0.13" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.48" },
     { name = "starlette", specifier = ">=0.52.1" },
-    { name = "trustme", specifier = ">=1.2.1" },
     { name = "uvicorn", specifier = ">=0.41.0" },
     { name = "uvloop", marker = "sys_platform == 'linux'", specifier = ">=0.22.1" },
 ]
@@ -655,6 +654,7 @@ dev = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "alembic", specifier = ">=1.18.4" },
     { name = "ruff", specifier = ">=0.15.4" },
+    { name = "trustme", specifier = ">=1.2.1" },
     { name = "ty", specifier = ">=0.0.20" },
     { name = "types-passlib" },
     { name = "zensical", specifier = ">=0.0.24" },

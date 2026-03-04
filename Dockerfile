@@ -7,7 +7,13 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 RUN apt-get update -y && apt-get upgrade -y \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && openssl req -x509 -nodes -batch -newkey rsa:2048 \
+            -keyout /etc/ssl/key.pem \
+            -out /etc/ssl/cert.pem \
+            -days 395 \
+            -subj "/C=US/ST=California/L=Fresno/O=Fresno State/OU=TS/CN=scool-lti.priv.fresnostate.edu" \
+    && chmod 444 /etc/ssl/*.pem
 
 WORKDIR /app
 
