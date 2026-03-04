@@ -32,9 +32,11 @@ from starlette.config import Config
 
 BASE_PATH = Path(__file__).parent.parent
 
+ENV_FILE = BASE_PATH / ".env"
+
 VALID_ENVIRONMENTS = ("local", "sandbox", "dev", "prod")
 
-_cfg = Config(env_file=BASE_PATH / ".env")
+_cfg = Config(env_file=ENV_FILE if ENV_FILE.exists() else None)
 
 
 @dataclasses.dataclass(frozen=True)
