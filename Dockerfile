@@ -6,8 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-RUN apt-get update -y && apt-get upgrade -y \
-    && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && apt-get dist-clean \
     && openssl req -x509 -nodes -batch -newkey rsa:2048 \
             -keyout /etc/ssl/key.pem \
             -out /etc/ssl/cert.pem \
