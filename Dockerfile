@@ -1,18 +1,22 @@
-FROM public.ecr.aws/docker/library/python:3.14.3-slim
+FROM public.ecr.aws/docker/library/debian:trixie-slim
 
 LABEL org.opencontainers.image.source=https://github.com/OnRampToStem/scool_lti
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV UV_PYTHON_INSTALL_DIR=/usr/local/python
 
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
+		ca-certificates \
+		netbase \
     && apt-get dist-clean \
     && openssl req -x509 -nodes -batch -newkey rsa:2048 \
             -keyout /etc/ssl/key.pem \
             -out /etc/ssl/cert.pem \
-            -days 395 \
+            -days 180 \
             -subj "/C=US/ST=California/L=Fresno/O=Fresno State/OU=TS/CN=scool-lti.priv.fresnostate.edu" \
     && chmod 444 /etc/ssl/*.pem
 
@@ -21,7 +25,7 @@ WORKDIR /app
 RUN --mount=from=ghcr.io/astral-sh/uv,source=/uv,target=/bin/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-cache --no-dev --no-python-downloads --compile-bytecode
+    uv sync --frozen --no-cache --no-dev --compile-bytecode
 
 COPY . .
 
