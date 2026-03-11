@@ -41,6 +41,8 @@ app_info = {
     "lang_version": sys.version,
     "environment": settings.ENV,
     "engine": str(db.engine.sync_engine),
+    "jit_available": sys._jit.is_available(),  # ty: ignore[unresolved-attribute]
+    "jit_enabled": sys._jit.is_enabled(),  # ty: ignore[unresolved-attribute]
 }
 
 

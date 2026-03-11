@@ -5,6 +5,7 @@ LABEL org.opencontainers.image.source=https://github.com/OnRampToStem/scool_lti
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHON_JIT=1
 ENV UV_PYTHON_INSTALL_DIR=/usr/local/python
 
 RUN apt-get update \
