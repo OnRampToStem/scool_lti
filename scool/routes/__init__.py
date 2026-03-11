@@ -22,6 +22,7 @@ Contains the configuration for all API endpoint routers.
 
 import logging
 import sys
+from typing import Any
 
 from fastapi import APIRouter, Request, Security
 from fastapi import __version__ as fastapi_version
@@ -57,7 +58,7 @@ async def index(request: Request) -> RedirectResponse:
 
 
 @router.get("/lb-status", include_in_schema=False)
-async def health_check() -> dict[str, str]:
+async def health_check() -> dict[str, Any]:
     """Provides a health check endpoint for the Load Balancer."""
     return app_info
 
