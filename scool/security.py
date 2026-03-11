@@ -65,7 +65,7 @@ JWT_AUTH_USER_TOKEN_OPTS: dict[str, joserfc.jwt.ClaimsOption] = {
     "sub": {"essential": True},
 }
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], default="pbkdf2_sha256")
 
 
 class AuthorizeError(Exception):
