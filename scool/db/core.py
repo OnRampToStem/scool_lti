@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+import ssl
 import uuid
 
 import sqlalchemy.exc
@@ -31,14 +32,16 @@ logger = logging.getLogger("db.core")
 IntegrityError = sqlalchemy.exc.IntegrityError
 Session = sqlalchemy.orm.Session
 
+_ssl_ctx = ssl.create_default_context(
+    ssl.Purpose.SERVER_AUTH, cafile=settings.BASE_PATH / "rds-us-west-2-bundle.pem"
+)
+_ssl_ctx.check_hostname = True
+
 engine = create_async_engine(
     settings.DB_URL,
     echo=settings.DEBUG,
     pool_recycle=3600,
-    connect_args={
-        "sslmode": "verify-full",
-        "sslrootcert": settings.BASE_PATH / "rds-us-west-2-bundle.pem",
-    },
+    connect_args={"ssl": _ssl_ctx},
 )
 
 async_session = async_sessionmaker(
