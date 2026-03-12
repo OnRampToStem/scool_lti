@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHON_JIT=1
-ENV UV_PYTHON_INSTALL_DIR=/usr/local/python
+ENV UV_PYTHON_INSTALL_DIR=/usr/local/uv/python
 
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
