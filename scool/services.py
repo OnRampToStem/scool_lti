@@ -22,7 +22,7 @@ import contextlib
 import logging
 import re
 import time
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncGenerator, Sequence
 from typing import Any, ClassVar, cast
 
 import httpx
@@ -88,7 +88,7 @@ def next_page_link(headers: dict[str, Any]) -> str | None:
 
 
 @contextlib.asynccontextmanager
-async def lti_http_client() -> AsyncIterator[httpx.AsyncClient]:
+async def lti_http_client() -> AsyncGenerator[httpx.AsyncClient]:
     try:
         yield http_client
     except httpx.HTTPStatusError as exc:
@@ -202,7 +202,7 @@ class AssignmentGradeService(LtiServicesClient):
             logger.warning(msg)
             raise LtiServiceError(msg)
         if service_url := self.launch_request.assignment_grade_service.get("lineitems"):
-            return cast("str", service_url)
+            return service_url
         msg = "Launch Request does not contain the lineitems URL"
         logger.warning(msg)
         raise LtiServiceError(msg)

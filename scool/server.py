@@ -21,7 +21,7 @@ ASGI Server entrypoint
 import contextlib
 import logging
 import os
-from collections.abc import Iterator
+from collections.abc import Generator
 from pathlib import Path
 
 import uvicorn
@@ -65,7 +65,7 @@ def start() -> None:
 
 
 @contextlib.contextmanager
-def ssl_files() -> Iterator[tuple[str, str]]:
+def ssl_files() -> Generator[tuple[str, str]]:
     if Path("/etc/ssl/key.pem").exists():
         logger.info("using ssl key file: %s", "/etc/ssl/key.pem")
         yield "/etc/ssl/key.pem", "/etc/ssl/cert.pem"
