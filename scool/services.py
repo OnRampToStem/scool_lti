@@ -181,7 +181,7 @@ class NamesRoleService(LtiServicesClient):
         return MembersResult(
             context=data["context"],
             members=data["members"],
-            next_page=next_page_link(r.headers),  # type: ignore[arg-type]
+            next_page=next_page_link(r.headers),  # ty: ignore[invalid-argument-type]
         )
 
 
@@ -223,7 +223,7 @@ class AssignmentGradeService(LtiServicesClient):
         items = [LineItem.model_validate(item) for item in r.json()]
         return LineItemsResult(
             items=items,
-            next_page=next_page_link(r.headers),  # type: ignore[arg-type]
+            next_page=next_page_link(r.headers),  # ty: ignore[invalid-argument-type]
         )
 
     async def lineitem(self, label: str) -> LineItem | None:

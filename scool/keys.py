@@ -126,7 +126,7 @@ async def public_keys() -> list[joserfc.jwk.RSAKey]:
 async def public_key_set() -> joserfc.jwk.KeySet:
     """Returns a public JSON Web Key Set."""
     pub_keys = await public_keys()
-    return joserfc.jwk.KeySet(pub_keys)  # type: ignore[arg-type]
+    return joserfc.jwk.KeySet(pub_keys)  # ty: ignore[invalid-argument-type]
 
 
 def generate_private_key() -> schemas.AuthJsonWebKey:

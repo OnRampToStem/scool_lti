@@ -62,4 +62,4 @@ async def _load_jwks() -> dict[str, Any]:
             entry["use"] = "sig"
         if "alg" not in entry:
             entry["alg"] = "RS256"
-    return ks_dict
+    return ks_dict  # ty: ignore[invalid-return-type]
