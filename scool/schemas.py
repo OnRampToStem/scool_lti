@@ -91,6 +91,7 @@ class AuthUser(DBBaseModel):
     context: Mapping[str, str] | None = None
 
     @field_validator("scopes", mode="before")
+    @classmethod
     def assemble_scopes(cls, v: str | (list[str] | None)) -> list[str]:
         """Converts a space separated scope string to a list."""
         if v is None:
@@ -218,6 +219,7 @@ class AuthJsonWebKey(DBBaseModel):
     valid_to: datetime.datetime | None = None
 
     @field_validator("valid_from", "valid_to", mode="before")
+    @classmethod
     def tz_aware_dates(cls, v: datetime.datetime | None) -> datetime.datetime | None:
         if v is None:
             return None
@@ -438,6 +440,7 @@ class ScoolGrade(BaseModel):
         return self.studentid.split("@")[1]
 
     @field_validator("studentid")
+    @classmethod
     def _check_studentid(cls, v: str) -> str:
         if "@" not in v:
             raise ValueError("invalid_format")
