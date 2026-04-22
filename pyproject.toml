@@ -12,12 +12,12 @@ dependencies = [
     "httpx>=0.28.1",
     "joserfc>=1.6.4",
     "passlib>=1.7.4",
-    "pydantic>=2.13.2",
+    "pydantic>=2.13.3",
     "python-multipart>=0.0.26",
     "shortuuid>=1.0.13",
     "SQLAlchemy[asyncio]>=2.0.49",
     "starlette>=1.0.0",
-    "uvicorn>=0.44.0",
+    "uvicorn>=0.45.0",
     "uvloop>=0.22.1; sys_platform == 'linux'",
 ]
 
@@ -27,8 +27,8 @@ dev = [
     "alembic>=1.18.4",
     "ruff>=0.15.11",
     "trustme>=1.2.1",
-    "ty>=0.0.31",
-    "zensical>=0.0.33",
+    "ty>=0.0.32",
+    "zensical>=0.0.34",
 ]
 
 [tool.ruff]
@@ -72,7 +72,6 @@ select = [
     "W",  # pycodestyle (warnings)
 ]
 ignore = [
-    "ISC001",  # ruff format warning
     "TC002",
     "TC003",
 ]
