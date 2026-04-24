@@ -14,137 +14,152 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import unittest
+from typing import Any
 from unittest.mock import Mock, patch
 
+import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPBasicCredentials
 
 from scool import schemas, security
 
 
-class ScopePermissionTestCase(unittest.TestCase):
-    def test_invalid_scopes(self) -> None:
-        with self.assertRaises(ValueError):
-            security.ScopePermission.from_string("foo:bar:baz:qux")
-        with self.assertRaises(ValueError):
-            security.ScopePermission.from_string("")
-
-    def test_with_only_resource(self) -> None:
-        sp = security.ScopePermission.from_string("org")
-        self.assertEqual(sp.resource, "org")
-        self.assertSetEqual(sp.actions, set())
-        self.assertSetEqual(sp.items, set())
-
-    def test_with_action(self) -> None:
-        sp = security.ScopePermission.from_string("org:read")
-        self.assertEqual(sp.resource, "org")
-        self.assertSetEqual(sp.actions, {"read"})
-        self.assertSetEqual(sp.items, set())
-
-    def test_with_items(self) -> None:
-        sp = security.ScopePermission.from_string("org:read:123")
-        self.assertEqual(sp.resource, "org")
-        self.assertSetEqual(sp.actions, {"read"})
-        self.assertSetEqual(sp.items, {"123"})
-
-    def test_write_implies_read(self) -> None:
-        sp = security.ScopePermission.from_string("org:write")
-        self.assertEqual(sp.resource, "org")
-        self.assertSetEqual(sp.actions, {"read", "write"})
-
-    def test_multiple_items(self) -> None:
-        sp = security.ScopePermission.from_string("org:read:123,456,789")
-        self.assertSetEqual(sp.items, {"123", "456", "789"})
-
-    def test_star_allows_all_actions(self) -> None:
-        sp = security.ScopePermission.from_string("org:*")
-        other = security.ScopePermission.from_string("org:delete")
-        self.assertTrue(sp.allows(other))
-
-        other = security.ScopePermission.from_string("org:eradicate")
-        self.assertTrue(sp.allows(other))
-
-    def test_write_allows_read(self) -> None:
-        sp = security.ScopePermission.from_string("org:write")
-        other = security.ScopePermission.from_string("org:read")
-        self.assertTrue(sp.allows(other))
-
-    def test_read_disallows_write(self) -> None:
-        sp = security.ScopePermission.from_string("org:read")
-        other = security.ScopePermission.from_string("org:write")
-        self.assertFalse(sp.allows(other))
+def test_invalid_scopes() -> None:
+    with pytest.raises(ValueError, match="SCOPE"):
+        security.ScopePermission.from_string("foo:bar:baz:qux")
+    with pytest.raises(ValueError, match="SCOPE"):
+        security.ScopePermission.from_string("")
 
 
-class ScopeAuthUserAccessTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        self.test_user = {
-            "id": "c51dac2cf12f4676a59571bdab80c73b",
-            "client_id": "testuser@mail.fresnostate.edu",
-            "client_secret_hash": "none",
-            "is_active": True,
-            "scopes": [],
-        }
-
-    def test_superuser_access(self) -> None:
-        self.test_user["scopes"].append("role:superuser")
-        user = schemas.AuthUser(**self.test_user)
-        self.assertTrue(security.can_access(user, ["org"]))
-
-    def test_inactive_user_disallowed(self) -> None:
-        self.test_user["is_active"] = False
-        user = schemas.AuthUser(**self.test_user)
-        self.assertFalse(security.can_access(user, []))
-
-    def test_no_scopes_is_allowed(self) -> None:
-        user = schemas.AuthUser(**self.test_user)
-        self.assertTrue(security.can_access(user, None))
-        self.assertTrue(security.can_access(user, []))
-
-    def test_scopes_required(self) -> None:
-        user = schemas.AuthUser(**self.test_user)
-        self.assertFalse(security.can_access(user, ["org"]))
-
-        self.test_user["scopes"] = ["org:read"]
-        user = schemas.AuthUser(**self.test_user)
-        self.assertTrue(security.can_access(user, ["org"]))
-
-    def test_multiple_user_scopes_with_match(self) -> None:
-        self.test_user["scopes"] = ["foo:bar", "baz:qux", "org:write"]
-        user = schemas.AuthUser(**self.test_user)
-        self.assertTrue(security.can_access(user, ["org:read"]))
-
-    def test_multiple_user_scopes_without_match(self) -> None:
-        self.test_user["scopes"] = ["foo:bar", "baz:qux", "org:read"]
-        user = schemas.AuthUser(**self.test_user)
-        self.assertFalse(security.can_access(user, ["org:write"]))
+def test_with_only_resource() -> None:
+    sp = security.ScopePermission.from_string("org")
+    assert sp.resource == "org"
+    assert sp.actions == set()
+    assert sp.items == set()
 
 
-class AuthorizeTestCase(unittest.IsolatedAsyncioTestCase):
-    async def test_authorize_raise_if_no_valid_user(self) -> None:
-        request = Mock()
-        scopes = Mock()
-        scopes.scopes = []
-        basic = HTTPBasicCredentials(username="", password="")
-        with self.assertRaises(HTTPException) as http_exc:
-            await security.authorize(request, scopes, "", basic)
-        self.assertTrue(http_exc.exception.status_code, 401)
+def test_with_action() -> None:
+    sp = security.ScopePermission.from_string("org:read")
+    assert sp.resource == "org"
+    assert sp.actions == {"read"}
+    assert sp.items == set()
 
-    @patch("scool.schemas.ScoolUser")
-    @patch("scool.security.can_access")
-    @patch("scool.security.auth_user_from_token")
-    async def test_authorize_from_bearer_token(
-        self,
-        token_mock,
-        can_access_mock,
-        scool_user_mock,
-    ):
-        token_mock.return_value = "test_user"
-        request = Mock()
-        scopes = Mock()
-        scopes.scopes = []
-        basic = HTTPBasicCredentials(username="", password="")
-        await security.authorize(request, scopes, "test_token", basic)
-        token_mock.assert_called_with("test_token")
-        can_access_mock.assert_called_with("test_user", [])
-        scool_user_mock.from_auth_user.assert_called_with("test_user")
+
+def test_with_items() -> None:
+    sp = security.ScopePermission.from_string("org:read:123")
+    assert sp.resource == "org"
+    assert sp.actions == {"read"}
+    assert sp.items == {"123"}
+
+
+def test_write_implies_read() -> None:
+    sp = security.ScopePermission.from_string("org:write")
+    assert sp.resource == "org"
+    assert sp.actions == {"read", "write"}
+
+
+def test_multiple_items() -> None:
+    sp = security.ScopePermission.from_string("org:read:123,456,789")
+    assert sp.items == {"123", "456", "789"}
+
+
+def test_star_allows_all_actions() -> None:
+    sp = security.ScopePermission.from_string("org:*")
+    other = security.ScopePermission.from_string("org:delete")
+    assert sp.allows(other)
+
+    other = security.ScopePermission.from_string("org:eradicate")
+    assert sp.allows(other)
+
+
+def test_write_allows_read() -> None:
+    sp = security.ScopePermission.from_string("org:write")
+    other = security.ScopePermission.from_string("org:read")
+    assert sp.allows(other)
+
+
+def test_read_disallows_write() -> None:
+    sp = security.ScopePermission.from_string("org:read")
+    other = security.ScopePermission.from_string("org:write")
+    assert not sp.allows(other)
+
+
+@pytest.fixture
+def user_data() -> dict[str, Any]:
+    return {
+        "id": "c51dac2cf12f4676a59571bdab80c73b",
+        "client_id": "testuser@mail.fresnostate.edu",
+        "client_secret_hash": "none",
+        "is_active": True,
+        "scopes": [],
+    }
+
+
+def test_superuser_access(user_data: dict[str, Any]) -> None:
+    user_data["scopes"].append("role:superuser")
+    user = schemas.AuthUser(**user_data)
+    assert security.can_access(user, ["org"])
+
+
+def test_inactive_user_disallowed(user_data: dict[str, Any]) -> None:
+    user_data["is_active"] = False
+    user = schemas.AuthUser(**user_data)
+    assert not security.can_access(user, [])
+
+
+def test_no_scopes_is_allowed(user_data: dict[str, Any]) -> None:
+    user = schemas.AuthUser(**user_data)
+    assert security.can_access(user, None)
+    assert security.can_access(user, [])
+
+
+def test_scopes_required(user_data: dict[str, Any]) -> None:
+    user = schemas.AuthUser(**user_data)
+    assert not security.can_access(user, ["org"])
+
+    user_data["scopes"] = ["org:read"]
+    user = schemas.AuthUser(**user_data)
+    assert security.can_access(user, ["org"])
+
+
+def test_multiple_user_scopes_with_match(user_data: dict[str, Any]) -> None:
+    user_data["scopes"] = ["foo:bar", "baz:qux", "org:write"]
+    user = schemas.AuthUser(**user_data)
+    assert security.can_access(user, ["org:read"])
+
+
+def test_multiple_user_scopes_without_match(user_data: dict[str, Any]) -> None:
+    user_data["scopes"] = ["foo:bar", "baz:qux", "org:read"]
+    user = schemas.AuthUser(**user_data)
+    assert not security.can_access(user, ["org:write"])
+
+
+@pytest.mark.anyio
+async def test_authorize_raise_if_no_valid_user() -> None:
+    request = Mock()
+    scopes = Mock()
+    scopes.scopes = []
+    basic = HTTPBasicCredentials(username="", password="")
+    with pytest.raises(HTTPException) as http_exc:
+        await security.authorize(request, scopes, "", basic)
+    assert http_exc.value.status_code == 401
+
+
+@patch("scool.schemas.ScoolUser")
+@patch("scool.security.can_access")
+@patch("scool.security.auth_user_from_token")
+@pytest.mark.anyio
+async def test_authorize_from_bearer_token(
+    token_mock,
+    can_access_mock,
+    scool_user_mock,
+):
+    token_mock.return_value = "test_user"
+    request = Mock()
+    scopes = Mock()
+    scopes.scopes = []
+    basic = HTTPBasicCredentials(username="", password="")
+    await security.authorize(request, scopes, "test_token", basic)
+    token_mock.assert_called_with("test_token")
+    can_access_mock.assert_called_with("test_user", [])
+    scool_user_mock.from_auth_user.assert_called_with("test_user")

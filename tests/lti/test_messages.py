@@ -14,39 +14,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import unittest
-
 from scool.schemas import LtiLaunchRequest
 from tests import load_text_file
 
 
-class LaunchMessageTestCase(unittest.TestCase):
-    def test_resource_link_load_from_string(self) -> None:
-        msg_txt = load_text_file("lti/canvas_resource_link.json")
-        msg = LtiLaunchRequest.loads(msg_txt)
+def test_resource_link_load_from_string() -> None:
+    msg_txt = load_text_file("lti/canvas_resource_link.json")
+    msg = LtiLaunchRequest.loads(msg_txt)
 
-        self.assertEqual(msg.platform.id, "7f2308ab9092411aafe7f47279b47dfa")
+    assert msg.platform.id == "7f2308ab9092411aafe7f47279b47dfa"
 
-        self.assertListEqual(msg.roles, ["Instructor"])
-        self.assertTrue(msg.is_instructor)
-        self.assertFalse(msg.is_student)
+    assert msg.roles == ["Instructor"]
+    assert msg.is_instructor
+    assert not msg.is_student
 
-        self.assertDictEqual(
-            msg.context,
-            {
-                "id": "cfd70b5da3ce9018402b66c1d4ecfdc6b9d6eeef",
-                "title": "Development MATH6 Pilot",
-            },
-        )
+    assert msg.context == {
+        "id": "cfd70b5da3ce9018402b66c1d4ecfdc6b9d6eeef",
+        "title": "Development MATH6 Pilot",
+    }
 
-        self.assertEqual(msg.message_type, "LtiResourceLinkRequest")
-        self.assertTrue(msg.is_resource_link_launch)
-        self.assertFalse(msg.is_deep_link_launch)
+    assert msg.message_type == "LtiResourceLinkRequest"
+    assert msg.is_resource_link_launch
+    assert not msg.is_deep_link_launch
 
-        self.assertIsNotNone(msg.names_role_service)
+    assert msg.names_role_service
 
-        self.assertEqual(
-            msg.scool_user.id,
-            "2b93d9e3-2bc8-4ded-a5a0-81202704e8f7@7f2308ab9092411aafe7f47279b47dfa",
-        )
-        self.assertEqual(msg.scool_user.email, "johnwa@csufresno.edu")
+    assert (
+        msg.scool_user.id
+        == "2b93d9e3-2bc8-4ded-a5a0-81202704e8f7@7f2308ab9092411aafe7f47279b47dfa"
+    )
+    assert msg.scool_user.email == "johnwa@csufresno.edu"

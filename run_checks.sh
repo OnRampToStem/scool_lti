@@ -14,5 +14,4 @@ fi
 ty --version
 ty check
 
-echo "Running unit tests $(python -VV)"
-python -m unittest
+pytest -p no:cacheprovider
