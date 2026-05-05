@@ -89,6 +89,15 @@ wheels = [
 ]
 
 [[package]]
+name = "authstar"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8d/84/5f1b00c181fadc59faac9103487f67de914f6e25f5d4d1a94e1e91b44daa/authstar-1.2.0.tar.gz", hash = "sha256:bea3b34a9000c8b74429b1eb9f96f76a2c6a2e3dfb7c7b3dfd1ce8bc5cf36b89", size = 14977, upload-time = "2026-04-29T16:49:33.77Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/2e/f1130453114d751f3bc0d9c773bf04d2be52d735ad2ed7d365943eee78fd/authstar-1.2.0-py3-none-any.whl", hash = "sha256:7a10aabc1f4c5944c155a6bafd177fb9298548406b52ef149f3c8f91d5ad3d4d", size = 15700, upload-time = "2026-04-29T16:49:32.53Z" },
+]
+
+[[package]]
 name = "bcrypt"
 version = "4.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -619,6 +628,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "async-lru" },
     { name = "asyncpg" },
+    { name = "authstar" },
     { name = "bcrypt" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -648,6 +658,7 @@ dev = [
 requires-dist = [
     { name = "async-lru", specifier = ">=2.3.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "authstar", specifier = ">=1.2.0" },
     { name = "bcrypt", specifier = ">=4.3.0,<5" },
     { name = "fastapi", specifier = ">=0.136.1" },
     { name = "httpx", specifier = ">=0.28.1" },

@@ -17,7 +17,7 @@
 """
 FastAPI main entry point
 
-This modules configures our FastAPI application.
+This module configures our FastAPI application.
 """
 
 import asyncio
@@ -25,9 +25,11 @@ import contextlib
 import logging
 from typing import Any
 
+import authstar
 import fastapi
+from starlette.middleware import Middleware
 
-from . import __version__, db, middleware, routes, services, settings
+from . import __version__, db, routes, services, settings
 
 logger = logging.getLogger(__name__)
 
@@ -47,12 +49,24 @@ async def lifespan(_: fastapi.FastAPI) -> Any:
         await db.engine.dispose()
 
 
+middleware = [
+    Middleware(
+        authstar.ContextMiddleware,
+        context_class=settings.RequestContext,
+    ),
+    Middleware(
+        authstar.LogMiddleware,
+        logger_name="scool",
+        excluded_paths=["/lb-status", "/api/lb-status"],
+    ),
+]
+
 app = fastapi.FastAPI(
     debug=settings.DEBUG,
     title="SCOOL LTI",
     version=__version__,
     lifespan=lifespan,
-    middleware=middleware.handlers,
+    middleware=middleware,
     docs_url=f"{settings.PATH_PREFIX}/docs",
     redoc_url=None,
     openapi_url=f"{settings.PATH_PREFIX}/openapi.json",

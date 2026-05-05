@@ -25,10 +25,12 @@ import dataclasses
 import logging
 import secrets
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import shortuuid
 from starlette.config import Config
+from starlette.requests import Request
+from starlette.types import Scope
 
 BASE_PATH = Path(__file__).parent.parent
 
@@ -45,6 +47,18 @@ class RequestContext:
 
     request_id: str
     client_ip: str | None
+
+    @classmethod
+    def create_from_scope(cls, scope: Scope) -> Self:
+        request = Request(scope)
+        if not (request_id := request.headers.get("x-request-id")):
+            request_id = shortuuid.uuid()
+        ctx = cls(
+            request_id=request_id,
+            client_ip=request.client.host if request.client else None,
+        )
+        CTX_REQUEST.set(ctx)
+        return ctx
 
 
 CTX_REQUEST: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
