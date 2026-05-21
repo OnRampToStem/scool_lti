@@ -5,6 +5,7 @@ buildspec.yml
 compose.yaml
 COPYING
 Dockerfile
+prek.toml
 README.md
 run_checks.sh
 zensical.toml

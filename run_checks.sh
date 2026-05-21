@@ -2,16 +2,8 @@
 
 set -xe
 
-if [[ -d .venv/bin ]]; then
-    export PATH=.venv/bin:$PATH
-fi
+export UV_FROZEN=1
 
-echo "CI is set to [${CI}]"
-if [[ $CI != "true" ]]; then
-    pre-commit run --all-files
-fi
-
-ty --version
-ty check
-
-pytest -p no:cacheprovider
+uv run --active prek run --all-files
+uv run --active ty check
+uv run --active pytest -p no:cacheprovider
