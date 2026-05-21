@@ -37,11 +37,16 @@ _ssl_ctx = ssl.create_default_context(
 )
 _ssl_ctx.check_hostname = True
 
+if settings.DB_URL.endswith("@db/swa"):
+    _connect_args = {}
+else:
+    _connect_args = {"ssl": _ssl_ctx}
+
 engine = create_async_engine(
     settings.DB_URL,
     echo=settings.DEBUG,
     pool_recycle=3600,
-    connect_args={"ssl": _ssl_ctx},
+    connect_args=_connect_args,
 )
 
 async_session = async_sessionmaker(
