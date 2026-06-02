@@ -12,7 +12,7 @@ dependencies = [
     "fastapi>=0.136.3",
     "httptools>=0.8.0",
     "httpx>=0.28.1",
-    "joserfc>=1.6.8",
+    "joserfc>=1.7.0",
     "passlib>=1.7.4",
     "pydantic>=2.13.4",
     "python-multipart>=0.0.30",
@@ -30,7 +30,7 @@ dev = [
     "prek>=0.4.3",
     "pytest>=9.0.3",
     "trustme>=1.2.1",
-    "ty>=0.0.41",
+    "ty>=0.0.42",
     "zensical>=0.0.43",
 ]
 
