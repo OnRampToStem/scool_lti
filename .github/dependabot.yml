@@ -5,8 +5,13 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: tuesday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    open-pull-requests-limit: 10
     cooldown:
       default-days: 7
+      semver-patch-days: 3
     groups:
       dev-dependencies:
         dependency-type: development
@@ -18,11 +23,14 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: thursday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 3
     groups:
       github-actions:
         patterns:
           - "*"
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
+    
