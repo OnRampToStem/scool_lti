@@ -12,11 +12,14 @@ updates:
         dependency-type: production
         update-types:
           - patch
-          - minor
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
   - package-ecosystem: docker
     directory: /
     schedule:
