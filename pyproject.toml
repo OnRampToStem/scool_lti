@@ -27,11 +27,11 @@ dependencies = [
 dev = [
     "aiosqlite>=0.22.1",
     "alembic>=1.18.5",
-    "prek>=0.4.9",
+    "prek>=0.4.10",
     "pytest>=9.1.1",
     "trustme>=1.2.1",
-    "ty>=0.0.58",
-    "zensical>=0.0.50",
+    "ty>=0.0.61",
+    "zensical>=0.0.51",
 ]
 
 [tool.ruff]
