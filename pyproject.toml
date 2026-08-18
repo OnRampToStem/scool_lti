@@ -30,8 +30,8 @@ dev = [
     "prek>=0.4.13",
     "pytest>=9.1.1",
     "trustme>=1.2.1",
-    "ty>=0.0.69",
-    "zensical>=0.0.53",
+    "ty>=0.0.72",
+    "zensical>=0.0.54",
 ]
 
 [tool.ruff]
