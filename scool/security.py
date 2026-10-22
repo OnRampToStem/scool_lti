@@ -156,7 +156,7 @@ class OAuth2ClientCredentials(OAuth2):
         )
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
-    async def __call__(self, request: Request) -> str | None:
+    async def __call__(self, request: Request) -> str | None:  # ty: ignore[invalid-method-override]
         authorization = request.headers.get("Authorization")
         scheme, param = get_authorization_scheme_param(authorization)
         if not authorization or scheme.lower() != "bearer":
