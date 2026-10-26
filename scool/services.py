@@ -25,7 +25,7 @@ import time
 from collections.abc import AsyncGenerator, Sequence
 from typing import Any, ClassVar, cast
 
-import httpx
+import httpx2
 import joserfc.jwt
 import shortuuid
 
@@ -48,7 +48,7 @@ NEXT_PAGE_REGEX = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-http_client = httpx.AsyncClient(
+http_client = httpx2.AsyncClient(
     verify=settings.is_production(),
     timeout=45.0,
 )
@@ -88,16 +88,16 @@ def next_page_link(headers: dict[str, Any]) -> str | None:
 
 
 @contextlib.asynccontextmanager
-async def lti_http_client() -> AsyncGenerator[httpx.AsyncClient]:
+async def lti_http_client() -> AsyncGenerator[httpx2.AsyncClient]:
     try:
         yield http_client
-    except httpx.HTTPStatusError as exc:
+    except httpx2.HTTPStatusError as exc:
         try:
             message = exc.response.json()
         except Exception:
             message = exc.response.text
         raise LtiServiceError(message, exc.response.status_code) from None
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         raise LtiServiceError(str(exc)) from None
 
 
