@@ -12,12 +12,12 @@ dependencies = [
     "fastapi>=0.162.0",
     "httptools>=0.9.0",
     "httpx2>=2.16.0",
-    "joserfc>=1.7.7",
+    "joserfc>=1.8.0",
     "passlib>=1.7.4",
     "pydantic>=2.14.2",
-    "python-multipart>=0.0.32",
+    "python-multipart>=0.0.33",
     "shortuuid>=1.0.13",
-    "SQLAlchemy[asyncio]>=2.1.6",
+    "SQLAlchemy[asyncio]>=2.1.8",
     "starlette>=1.10.0",
     "uvicorn>=0.54.0",
     "uvloop>=0.23.0; sys_platform == 'linux'",
@@ -27,11 +27,11 @@ dependencies = [
 dev = [
     "aiosqlite>=0.22.1",
     "alembic>=1.20.1",
-    "prek>=0.5.9",
+    "prek>=0.5.10",
     "pytest>=9.2.0",
     "trustme>=1.2.1",
-    "ty>=0.0.95",
-    "zensical>=0.0.73",
+    "ty>=0.0.97",
+    "zensical>=0.0.74",
 ]
 
 [tool.ruff]
